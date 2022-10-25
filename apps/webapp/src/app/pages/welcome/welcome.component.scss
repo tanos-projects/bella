@@ -1,0 +1,13 @@
+$flag-img-width: 40px;
+
+.country-flag-btn {
+  cursor: pointer;
+  font-size: small;
+  text-align: center;
+  width: 90px;
+}
+
+.country-flag-img {
+  width: $flag-img-width;
+  height: $flag-img-width;
+}

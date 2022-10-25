@@ -1,0 +1,28 @@
+<!-- <p>Contacte moi par</p> -->
+<div class="d-flex justify-content-end me-2" *ngIf="contact">
+  <ng-container *ngIf="contact.whatsapp">
+    <button
+      type="button"
+      class="btn btn-success me-1"
+      [class.rounded-circle]="isMobileMode"
+      (click)="whatsappMe(contact)"
+    >
+      <i class="bi bi-whatsapp"></i><span *ngIf="!isMobileMode" class="ms-1">WhatsApp</span>
+    </button>
+  </ng-container>
+  <ng-container *ngIf="contact.email">
+    <button type="button" class="btn btn-info me-1" [class.rounded-circle]="isMobileMode" (click)="mailToMe(contact)">
+      <i class="bi bi-at"></i><span *ngIf="!isMobileMode" class="ms-1">Email</span>
+    </button>
+  </ng-container>
+  <ng-container *ngIf="contact.phone">
+    <button
+      type="button"
+      class="btn btn-primary me-1"
+      [class.rounded-circle]="isMobileMode"
+      (click)="phoneToMe(contact)"
+    >
+      <i class="bi bi-telephone"></i><span *ngIf="!isMobileMode" class="ms-1">Phone</span>
+    </button>
+  </ng-container>
+</div>

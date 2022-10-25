@@ -1,0 +1,20 @@
+<bella-titled-page [title]="'Mon compte'">
+  <ng-container *ngIf="isAuthenticated$ | async; else notConnectedTemplate">
+    <div *ngIf="user$ | async as user" class="text-center mb-2">
+      <img [src]="user.picture" class="rounded-circle img-fluid profile-picture" alt="image de profile" />
+    </div>
+    <ng-container *ngIf="currentUser$ | async as user">
+      <bella-profile-form [user]="user" [readonlyMode]="true" (userChange)="updateProfile($event)"></bella-profile-form>
+      <hr />
+      <div class="text-center mt-3">
+        <bella-logout-btn></bella-logout-btn>
+        <button type="button" class="btn btn-danger ms-2" (click)="deleteProfile()">
+          <i class="bi bi-trash me-1"></i>Supprimer
+        </button>
+      </div>
+    </ng-container>
+  </ng-container>
+  <ng-template #notConnectedTemplate>
+    <bella-auth-login-signup></bella-auth-login-signup>
+  </ng-template>
+</bella-titled-page>

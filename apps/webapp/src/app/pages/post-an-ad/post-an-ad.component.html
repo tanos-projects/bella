@@ -1,0 +1,22 @@
+<bella-titled-page [title]="'Publier une annonce'">
+  <div class="">
+    <div *ngIf="message" class="alert" [ngClass]="{'alert-danger':  error, 'alert-success': !error}" role="alert">
+      {{ message }}
+      <pre *ngIf="error">{{ error | json }}</pre>
+    </div>
+    <div *ngIf="!postedAd">
+      <bella-ad-form (submitData)="submit($event)"></bella-ad-form>
+    </div>
+    <div *ngIf="postedAd">
+
+      <h5>Et ensuite ?</h5>
+      <p>
+        C'est à nous de travailler pour controller et valider votre annonce. Si elle respecte les règles, elle sera très rapidement publiée.
+      </p>
+
+      <div class="d-flex justify-content-center">
+        <a [routerLink]="postedAdUrlPath">Visualiser mon annonce</a>
+      </div>
+    </div>
+  </div>
+</bella-titled-page>

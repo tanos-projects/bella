@@ -1,0 +1,29 @@
+<div class="mx-0">
+  <div class="banner d-flex justify-content-center align-items-center">Banniere publicitaire</div>
+</div>
+<ng-container *ngIf="(noAds$ | async); else emptyAdsResultsTemplate">
+  <div class="container" *ngIf="(adsByCategory$ | async) as adsByCategory">
+    <div class="mt-2" *ngFor="let adsByCategory of adsByCategory">
+      <bella-ads-previewer
+        [ads]="adsByCategory.ads || []"
+        [adCategory]="adsByCategory.category.code"
+        [title]="adsByCategory.category.label"
+        [displayedAdsCount]="4"
+        [spaceBetween]="30"
+        (viewAll)="viewAllAdsOfCategory(adsByCategory.category.code)"
+      >
+      </bella-ads-previewer>
+    </div>
+  </div>
+</ng-container>
+<ng-template #emptyAdsResultsTemplate
+  ><div class="container text-center">
+    <div class="rounded bg-light my-5 p-3">
+      <div>
+        <i class="bi bi-search" style="font-size: 3rem"></i>
+      </div>
+      <p class="text-muted">Aucune annonces n'est disponibles pour ce pays !</p>
+      <p class="text-secondary">Sois le premier à <a href="#" [routerLink]="['/post-an-ad']">publie ton annonce</a>.</p>
+    </div>
+  </div></ng-template
+>

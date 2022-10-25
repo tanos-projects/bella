@@ -1,0 +1,13 @@
+<bella-titled-page [title]="'Mes paramètres'">
+  <pre>
+    {{ deviceInfo | json }}
+  </pre>
+
+  <pre>
+    {{ health$ | async | json }}
+  </pre>
+
+  <div class="d-flex align-items-end">
+    <button type="button" class="btn btn-primary" (click)="clearSettings()">Reset</button>
+  </div>
+</bella-titled-page>

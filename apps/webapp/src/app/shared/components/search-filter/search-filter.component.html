@@ -1,0 +1,88 @@
+<div class="modal-header py-0 pt-1 border-0">
+  <button type="button" class="btn-close close pull-right" aria-label="Close" (click)="modalRef?.hide()">
+    <span aria-hidden="true" class="visually-hidden">&times;</span>
+  </button>
+</div>
+<div class="modal-body">
+  <form [formGroup]="form">
+    <div class="d-flex">
+      <ng-select
+        formControlName="country"
+        [items]="(countries$ | async) || []"
+        bindLabel="name"
+        bindValue="iso2"
+        [clearable]="false"
+      >
+        <ng-template ng-label-tmp let-item="item">
+          <img
+            *ngIf="item.iso2"
+            height="15"
+            width="15"
+            [src]="'assets/flags/png/'+item.iso2.toUpperCase()+'.png'"
+            [alt]="'drapeau'+item.name"
+            appendTo="body"
+          />
+          {{item.name}}
+        </ng-template>
+      </ng-select>
+
+      <input
+        (keyup.enter)="sendSearchFilter()"
+        formControlName="keyword"
+        type="text"
+        class="form-control"
+        placeholder="Rechercher"
+        [autofocus]="true"
+      />
+    </div>
+    <div class="form-group">
+      <label for="category">Catégorie</label>
+      <ng-select
+        id="category"
+        [clearable]="true"
+        [items]="(categories$ | async) || []"
+        bindLabel="label"
+        bindValue="code"
+        formControlName="category"
+      >
+      </ng-select>
+    </div>
+    <div class="form-group">
+      <label for="quality">Etat</label>
+      <ng-select
+        id="quality"
+        [clearable]="true"
+        [items]="(qualities$ | async) || []"
+        bindLabel="label"
+        bindValue="code"
+        formControlName="quality"
+      >
+      </ng-select>
+    </div>
+    <div class="form-group">
+      <label for="min-price">Prix</label>
+      <input formControlName="minPrice" id="min-price" type="number" class="form-control" placeholder="Prix min" />
+      <input formControlName="maxPrice" type="number" class="form-control" placeholder="Prix max" />
+    </div>
+
+    <div class="form-group">
+      <label for="city">Ville</label>
+      <input type="text" id="city" formControlName="city" class="form-control" />
+    </div>
+  </form>
+</div>
+<div class="modal-footer">
+  <ng-container *ngTemplateOutlet="searchButtonTemplate; context: { $implicit: approximativeSearchCount$ | async}">
+  </ng-container>
+</div>
+
+<ng-template #searchButtonTemplate let-approximativeSearchCount>
+  <button
+    (click)="sendSearchFilter()"
+    [disabled]="!approximativeSearchCount"
+    type="button"
+    class="btn btn-primary w-100"
+  >
+    Rechercher ({{ approximativeSearchCount | number }} annonces)
+  </button>
+</ng-template>

@@ -1,0 +1,9 @@
+<div class="drawer-backdrop" *ngIf="opened"></div>
+<div class="d-flex drawer-content" [ngClass]="{ 'opened': opened, 'closed': !opened}">
+  <div *ngIf="opened" class="drawer-sidebar">
+    <ng-content></ng-content>
+  </div>
+  <div class="drawer-close-area ps-0" *ngIf="opened" (click)="close()">
+    <span class="btn btn-primary mt-2">X</span>
+  </div>
+</div>

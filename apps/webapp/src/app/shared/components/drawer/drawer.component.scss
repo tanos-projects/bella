@@ -1,0 +1,44 @@
+@import '../../../../scss/variables';
+
+:host {
+  display: block;
+  position: absolute;
+  width: 100%;
+
+  .drawer-backdrop {
+    background-color: rgba($color: #000000, $alpha: 0.3);
+    z-index: 1041;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    position: fixed;
+    left: 0;
+    top: 0;
+  }
+
+  .drawer-content {
+    position: fixed;
+    width: 100%;
+    z-index: 1050;
+    transition: transform 300ms ease-out;
+
+    &.opened {
+      transform: translateX(0%);
+    }
+
+    &.closed {
+      transform: translateX(-100%);
+    }
+
+    .drawer-sidebar {
+      width: 80%;
+      height: 100vh;
+      background-color: #fff;
+      box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 15%);
+    }
+
+    .drawer-close-area {
+      width: 20%;
+    }
+  }
+}

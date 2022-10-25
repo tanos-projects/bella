@@ -1,0 +1,18 @@
+<swiper
+  *ngIf="images.length > 0"
+  [centeredSlides]="true"
+  [pagination]="{
+  type: 'bullets',
+  clickable: true
+}"
+  [navigation]="true"
+  [loop]="true"
+  class="image"
+>
+  <ng-template *ngFor="let image of images; let indexOfelement=index;" swiperSlide>
+    <img [src]="image.url" height="100%" alt="Image {{indexOfelement}}" />
+  </ng-template>
+</swiper>
+<div class="image" *ngIf="images.length === 0">
+  <img class="image" height="100%" src="../../../../assets/images/no-picture.svg" />
+</div>

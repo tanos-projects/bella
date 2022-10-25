@@ -1,0 +1,121 @@
+<div class="container">
+  <form [formGroup]="form">
+    <div class="d-flex justify-content-end pt-2" [class.sticky-top]="isMobileMode">
+      <button *ngIf="readonlyMode" type="button" class="btn btn-sm btn-outline-primary" (click)="toggleEditMode()">
+        <i class="bi bi-pencil me-1"></i>Editer
+      </button>
+      <ng-container *ngIf="isMobileMode">
+        <ng-container *ngTemplateOutlet="saveButtonsTemplate; context: { smBtn: true }"></ng-container>
+      </ng-container>
+    </div>
+    <fieldset [disabled]="readonlyMode">
+      <div class="form-group">
+        <label for="username">Nom d'utilisateur</label>
+        <input
+          type="text"
+          id="username"
+          formControlName="username"
+          class="form-control"
+          aria-describedby="usernameHelp"
+        />
+        <small id="usernameHelp" class="form-text text-muted"
+          >Seul ce nom d'utilisateur sera visible des autres utilisateurs</small
+        >
+      </div>
+      <div class="form-group">
+        <label for="country">Pays de résidence</label>
+        <ng-select
+          id="country"
+          [items]="(countries$ | async) || []"
+          bindLabel="name"
+          bindValue="iso2"
+          formControlName="country"
+          aria-describedby="countryHelp"
+          [clearable]="false"
+        >
+          <ng-template ng-label-tmp let-item="item">
+            <img
+              *ngIf="item.iso2"
+              height="15"
+              width="15"
+              [src]="'assets/flags/png/'+item.iso2.toUpperCase()+'.png'"
+              [alt]="'drapeau'+item.name "
+            />
+            {{item.name}}
+          </ng-template>
+        </ng-select>
+        <small id="countryHelp" class="form-text text-muted"
+          >Votre pays de résidence servira à pré-filtrer les annonces pour vous.</small
+        >
+      </div>
+      <div class="form-row">
+        <div class="form-group col-md-6">
+          <label for="mobilePhone">N° portable</label>
+          <!-- <div class="input-group">
+            <div class="input-group-prepend">
+              <select class="custom-select" formControlName="mobilePhoneIndicator">
+                <option value=""></option>
+                <option value="1">+229</option>
+                <option value="2">+421</option>
+                <option value="3">+33</option>
+              </select>
+            </div>
+            <input type="tel" formControlName="mobilePhone" class="form-control" />
+          </div> -->
+          <input
+            type="tel"
+            formControlName="mobilePhone"
+            class="form-control"
+            placeholder="ex. +22995926532"
+            aria-describedby="mobilePhoneHelp"
+          />
+          <small id="mobilePhoneHelp" class="form-text text-muted"
+            >Votre numéro de téléphone au format international (ex. +22995926532)</small
+          >
+        </div>
+
+        <div class="form-group col-md-6">
+          <label for="email">Email</label>
+          <input type="email" id="email" formControlName="email" class="form-control" />
+        </div>
+      </div>
+      <fieldset>
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="lastname">Nom (optionnel)</label>
+            <input type="text" id="lastname" formControlName="lastname" class="form-control" />
+          </div>
+          <div class="form-group col-6">
+            <label for="firstname">Prénom (optionnel)</label>
+            <input type="text" id="firstname" formControlName="firstname" class="form-control" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="birthdate">Date de naissance (optionnel)</label>
+          <input type="date" id="birthdate" formControlName="birthdate" class="form-control" />
+        </div>
+      </fieldset>
+    </fieldset>
+    <div class="d-flex justify-content-end">
+      <ng-container *ngTemplateOutlet="saveButtonsTemplate"></ng-container>
+    </div>
+  </form>
+  <ng-template #saveButtonsTemplate let-smBtn="smBtn">
+    <ng-container *ngIf="!readonlyMode">
+      <button
+        *ngIf="cancelable"
+        type="button"
+        class="btn btn-outline-secondary me-2"
+        [class.btn-sm]="smBtn"
+        (click)="cancel()"
+        [disabled]="form.invalid"
+      >
+        Annuler
+      </button>
+      <button type="button" class="btn btn-primary" [class.btn-sm]="smBtn" (click)="save()" [disabled]="form.invalid">
+        Valider
+      </button>
+    </ng-container>
+  </ng-template>
+</div>

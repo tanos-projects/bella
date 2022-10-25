@@ -1,0 +1,10 @@
+{
+    "ads" : {
+        "detail" : {
+            "NEW" : "Neuf",
+            "VERY_GOOD" : "Très bon",
+            "GOOD" : "Bon",
+            "MIDDLE" : "Satisfaisant"
+        }
+    }
+}

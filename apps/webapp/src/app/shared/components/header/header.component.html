@@ -1,0 +1,60 @@
+<nav
+  *ngIf="!isMobileMode; else mobileHeaderTmpl"
+  class="header navbar navbar-expand-lg navbar-light bg-light position-fixed"
+>
+  <div class="bd-highlight">
+    <button (click)="openDrawer()" type="button" class="navbar-toggler">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+  </div>
+
+  <a class="navbar-brand me-0" href="#">
+    <img width="90px" src="../../../../assets/images/logo.png" alt="Logo de BellA" />
+  </a>
+
+  <div class="ms-2 collapse navbar-collapse">
+    <ul class="navbar-nav me-auto">
+      <li class="nav-item" routerLinkActive="active">
+        <a class="nav-link" href="#" [routerLink]="['/annonces']" routerLinkActive="active">Accueil</a>
+      </li>
+
+      <li class="nav-item" routerLinkActive="active">
+        <a class="nav-link" href="#" [routerLink]="['/bookmarks']" routerLinkActive="active">Mes favoris</a>
+      </li>
+
+      <li class="nav-item" routerLinkActive="active">
+        <a class="nav-link" href="#" [routerLink]="['/post-an-ad']" routerLinkActive="active">Publier une annonce</a>
+      </li>
+
+      <li class="nav-item" routerLinkActive="active">
+        <a class="nav-link" href="#" [routerLink]="['/account']" routerLinkActive="active">Mon compte</a>
+      </li>
+
+      <li class="nav-item" routerLinkActive="active">
+        <a class="nav-link" href="#" [routerLink]="['/settings']" routerLinkActive="active">Mes paramètres</a>
+      </li>
+    </ul>
+
+    <bella-search-filter-button></bella-search-filter-button>
+
+    <ng-container *ngIf="isAuthenticationLoading$">
+      <ng-container *ngIf="isAuthenticated$ | async; else notConnectedTemplate">
+        <bella-logout-btn></bella-logout-btn>
+      </ng-container>
+
+      <ng-template #notConnectedTemplate>
+        <bella-auth-login-signup></bella-auth-login-signup>
+      </ng-template>
+    </ng-container>
+  </div>
+</nav>
+
+<ng-template #mobileHeaderTmpl>
+  <div class="d-flex header position-fixed align-items-center justify-content-between px-3">
+    <bella-search-filter-button *ngIf="isMobileMode"></bella-search-filter-button>
+
+    <a class="navbar-brand me-0" href="#">
+      <img width="90px" src="../../../../assets/images/logo.png" alt="Logo de BellA" />
+    </a>
+  </div>
+</ng-template>

@@ -1,0 +1,70 @@
+@import '../../../scss/variables';
+
+.ad-detail-content {
+  .ad-detail-actions-top {
+    position: fixed;
+    z-index: 10;
+    // top: $header-height;
+    .back-btn {
+      background-color: rgba($color: #ffffff, $alpha: 0.8);
+    }
+  }
+
+  .ad-detail-actions-bottom {
+    bottom: 20px;
+
+    // &.mobile {
+    //   bottom: $header-height;
+    // }
+  }
+  .ad-detail-image-container {
+    background-color: #f9fcfd;
+    text-align: center;
+
+    height: 40%;
+    .image {
+    }
+  }
+  .ad-detail-container {
+    .ad-detail-header {
+      text-align: center;
+
+      .title {
+        font-size: 1.4rem;
+      }
+
+      .price {
+        line-height: 1.4em;
+        color: $primary;
+        font-size: x-large;
+        font-weight: 600;
+      }
+
+      .date-and-city {
+        font-style: italic;
+        color: $secondary;
+      }
+    }
+
+    .ad-detail-body {
+      .sub-section-title {
+        font-size: large;
+        font-weight: 600;
+      }
+    }
+  }
+  .empty-footer-placeholder {
+    display: block;
+    height: 100px;
+  }
+}
+
+@media only screen and (min-width: 900px) {
+  .ad-detail-content {
+    .ad-detail-image-container {
+      .image {
+        height: 325px;
+      }
+    }
+  }
+}

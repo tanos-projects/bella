@@ -1,0 +1,13 @@
+<div class="d-flex align-items-center mt-2 footer-toolbar-action">
+  <!-- routerLinkActive=" active" [routerLinkActiveOptions]="{exact:
+    true}" -->
+  <button
+    [disabled]="!action"
+    [routerLink]="action"
+    [routerLinkActive]="action ? 'active' : ''"
+    type="button"
+    class="btn p-0 m-0"
+  >
+    <i class="{{'fs-4 '+icon}}"></i><span class="text-small d-block">{{ label }}</span>
+  </button>
+</div>

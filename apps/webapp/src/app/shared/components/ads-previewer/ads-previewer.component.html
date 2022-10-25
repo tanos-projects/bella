@@ -1,0 +1,70 @@
+<ng-container *ngIf="ads.length">
+  <div class="d-flex justify-content-between">
+    <h5><a class="category-title" [routerLink]="['/annonces/', adCategory]">{{ title }}</a></h5>
+    <a [routerLink]="['annonces/', adCategory]" *ngIf="!isMobileMode">Voir plus</a>
+  </div>
+  <div class="position-relative">
+    <!-- <div *ngIf="isSwipeBeginning" class="prev-scroll-indicator"></div> -->
+    <swiper
+      [autoplay]="{
+        delay: 2500,
+        disableOnInteraction: false
+      }"
+      [breakpoints]="{
+        '280': {
+          slidesPerView: 3,
+          spaceBetween: 20
+        },
+        '350': {
+          slidesPerView: 4,
+          spaceBetween: 30
+        },
+        '768': {
+          slidesPerView: 5,
+          spaceBetween: 40
+        },
+        '992': {
+          slidesPerView: 6,
+          spaceBetween: 50
+        },
+        '1200': {
+          slidesPerView: 7,
+          spaceBetween: 50
+        },
+        '1400': {
+          slidesPerView: 8,
+          spaceBetween: 50
+        },
+        '1600': {
+          slidesPerView: 9,
+          spaceBetween: 50
+        },
+        '1800': {
+          slidesPerView: 11,
+          spaceBetween: 50
+        }
+      }"
+      [freeMode]="{
+        enabled: true,
+        sticky: true
+      }"
+      [slidesPerView]="displayedAdsCount"
+      [spaceBetween]="spaceBetween"
+      [preventClicks]="true"
+      [preventClicksPropagation]="true"
+      (swiper)="onSwiper($event)"
+      (slideChange)="onSlideChange($event)"
+    >
+      <ng-template swiperSlide *ngFor="let ad of ads; trackBy: trackByAdIdFn">
+        <bella-ad-card [data]="ad"></bella-ad-card>
+      </ng-template>
+      <ng-template swiperSlide *ngIf="isMobileMode">
+        <div class="mb-3">
+          <a [routerLink]="['/annonces/', adCategory]">Voir toutes les annonces</a>
+        </div>
+      </ng-template>
+    </swiper>
+    <!-- {{ isSwipeEnd }} -->
+    <!-- <div *ngIf="isSwipeEnd" class="next-scroll-indicator"></div> -->
+  </div>
+</ng-container>

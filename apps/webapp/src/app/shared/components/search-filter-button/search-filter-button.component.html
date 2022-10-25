@@ -1,0 +1,32 @@
+<div class="d-flex">
+  <ng-select
+    *ngIf="(isSearchPage$ | async) === false"
+    [items]="(countries$ | async) || []"
+    [ngModel]="country$ | async"
+    (ngModelChange)="onCountryChange($event)"
+    bindLabel="name"
+    bindValue="iso2"
+    [clearable]="false"
+  >
+    <ng-template ng-label-tmp let-item="item">
+      <img
+        *ngIf="item.iso2"
+        height="15"
+        width="15"
+        [src]="'assets/flags/png/'+item.iso2.toUpperCase()+'.png'"
+        [alt]="'drapeau'+item.name"
+        appendTo="body"
+      />
+      {{item.name}}
+    </ng-template>
+  </ng-select>
+  <input
+    (click)="openFilter()"
+    [value]="(searchText$ | async) || ''"
+    type="text"
+    class="form-control bg-white"
+    placeholder="Rechercher"
+    readonly
+  />
+  <button (click)="openFilter()" type="button" class="btn"><i class="bi bi-search"></i></button>
+</div>

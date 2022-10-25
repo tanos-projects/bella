@@ -1,0 +1,32 @@
+<div class="container">
+  <div class="text-center">
+    <img class="mt-3" width="180px" src="../../../assets/images/logo.png" alt="Logo du site" />
+    <!-- <div id="logo"></div> -->
+    <h5>Bienvenue à toi sur Bella !</h5>
+    <p>Dis nous, dans quel pays souhaites-tu faire tes plus belles affaires ?</p>
+    <div class="row" *ngIf="(countries$ | async) as countries">
+      <div id="country-flags" class="col-lg-6 mx-auto d-flex justify-content-center flex-wrap">
+        <div
+          [title]="country.name"
+          (click)="validate(country.iso2)"
+          class="country-flag-btn me-2 mb-2"
+          *ngFor="let country of countries"
+        >
+          <img
+            class="d-inline-block country-flag-img rounded-circle"
+            [src]="'../../../assets/flags/png/'+ country.iso2.toUpperCase() + '.png'"
+            [alt]="'drapeau du '+country.name"
+          />
+          <span class="d-block text-wrap">{{ country.name }} </span>
+        </div>
+      </div>
+    </div>
+    <hr />
+    <!-- <p>
+      Si tu as déjà un compte ou si tu souhaites en créer un
+    </p> -->
+    <div class="mt-2">
+      <bella-auth-login-signup-link></bella-auth-login-signup-link>
+    </div>
+  </div>
+</div>

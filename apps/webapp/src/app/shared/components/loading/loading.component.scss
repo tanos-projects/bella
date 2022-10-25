@@ -1,0 +1,11 @@
+.spinner-backdrop {
+  background-color: rgba($color: #c2c2c2, $alpha: 0.2);
+  backdrop-filter: blur(3px);
+  z-index: 1050;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  position: fixed;
+  left: 0;
+  top: 0;
+}

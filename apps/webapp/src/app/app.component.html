@@ -1,1 +1,7 @@
-<bella-nx-welcome></bella-nx-welcome>
+<!-- <bella-navbar></bella-navbar> -->
+
+<bella-drawer *ngIf="!isMobileMode">
+  <bella-sidebar></bella-sidebar>
+</bella-drawer>
+<router-outlet></router-outlet>
+<bella-loading></bella-loading>

@@ -1,0 +1,11 @@
+<bella-header *ngIf="!isMobileMode"></bella-header>
+<div
+  class="container-fluid page-content mb-3"
+  [ngClass]="{'mobile-bottom' : isMobileMode, 'header-desktop-top-padding' : !isMobileMode}"
+>
+  <div *ngIf="isMobileMode" class="sticky-top bg-white pb-1 pt-2">
+    <h4>{{title}}</h4>
+  </div>
+  <ng-content></ng-content>
+</div>
+<bella-footer *ngIf="isMobileMode"></bella-footer>

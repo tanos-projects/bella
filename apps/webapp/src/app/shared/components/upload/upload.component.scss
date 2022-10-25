@@ -1,0 +1,27 @@
+@import '../../../../scss/variables';
+
+$active-color: $primary;
+
+// :host {
+//   display: block;
+// }
+
+.modal-title {
+  color: $active-color;
+}
+
+.file-picker {
+  background-color: transparent;
+  // border: 0;
+  width: 100px;
+  height: 100px;
+  color: $active-color;
+  &:disabled {
+    color: gray;
+  }
+}
+// button {
+//   span.action {
+//     color: $active-color;
+//   }
+// }

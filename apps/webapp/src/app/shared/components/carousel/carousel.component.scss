@@ -1,0 +1,13 @@
+.image {
+    overflow: hidden;
+}
+@media only screen and (min-width: 900px) {
+    .image {
+        height: 325px;
+    }
+}
+@media only screen and (max-width: 899px) {
+    .image {
+        height: 200px;
+    }
+}

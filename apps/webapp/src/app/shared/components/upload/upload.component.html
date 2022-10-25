@@ -1,0 +1,53 @@
+<button
+  [disabled]="!enabled"
+  type="button"
+  (click)="isMobileMode ? choosePicturesPicker(picturePickerModalTemplate) : fileUpload.click()"
+  class="border rounded file-picker fs-5" [class.border-primary]="enabled" [class.border-secondary]="!enabled"
+>
+  <i class="bi bi-file-earmark-plus"></i>
+</button>
+
+<input
+  #fileUpload
+  id="desktop-input-file"
+  class="d-none"
+  type="file"
+  [multiple]="multiple"
+  (change)="onSelectFile($event)"
+  [accept]="accept"
+/>
+
+<input
+  #fileUploadFromMobileCamera
+  id="mobile-input-file"
+  class="d-none"
+  type="file"
+  [multiple]="multiple"
+  (change)="onSelectFile($event)"
+  [accept]="accept"
+  capture="environment"
+/>
+
+<ng-template #picturePickerModalTemplate>
+  <div class="modal-body pt-3">
+    <h4 class="modal-title pull-left mb-2">Ajouter des photos</h4>
+
+    <div class="d-grid gap-2">
+      <div class="fs-5">
+        <label for="mobile-input-file" (click)=" modalRef?.hide()">
+          <i class="bi bi-camera-fill me-2"></i>
+
+          <span class="action">Prendre une photo</span>
+        </label>
+      </div>
+
+      <div class="fs-5">
+        <label for="desktop-input-file" (click)="modalRef?.hide()">
+          <i class="bi bi-images me-2"></i>
+
+          <span class="action">A partir de ma galérie</span>
+        </label>
+      </div>
+    </div>
+  </div>
+</ng-template>

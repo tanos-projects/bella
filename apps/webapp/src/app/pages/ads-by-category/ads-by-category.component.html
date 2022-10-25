@@ -1,0 +1,8 @@
+<div class="container mt-2">
+  <h3 class="mb-3">Annonces "{{ categoryCode }}"</h3>
+  <div class="row">
+    <div class="col-4 col-sm-3 col-md-2" *ngFor="let ad of (ads$ | async)">
+      <div class="mb-2"><bella-ad-card [data]="ad"></bella-ad-card></div>
+    </div>
+  </div>
+</div>

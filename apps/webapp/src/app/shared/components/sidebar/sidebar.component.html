@@ -1,0 +1,33 @@
+<div class="container-fluid">
+  <div class="sidebar-header"></div>
+  <div class="sidebar-menu">
+    <ul class="navbar-nav me-auto">
+      <li class="nav-item" routerLinkActive="active">
+        <a class="nav-link" href="#" [routerLink]="['/']">Accueil<span class="sr-only">(current)</span></a>
+      </li>
+      <li class="nav-item" routerLinkActive="active">
+        <a class="nav-link" href="#" [routerLink]="['/bookmarks']">Mes favoris</a>
+      </li>
+      <li class="nav-item" routerLinkActive="active">
+        <a class="nav-link" href="#" [routerLink]="['/post-an-ad']">Publier une annonce</a>
+      </li>
+      <li class="nav-item" routerLinkActive="active">
+        <a class="nav-link" href="#" [routerLink]="['/account']">Mon compte</a>
+      </li>
+      <li class="nav-item" routerLinkActive="active">
+        <a class="nav-link" href="#" [routerLink]="['/settings']">Mes paramètres</a>
+      </li>
+    </ul>
+  </div>
+  <hr />
+  <div class="text-center">
+    <ng-container *ngIf="isAuthenticationLoading$">
+      <ng-container *ngIf="isAuthenticated$ | async; else notConnectedTemplate">
+        <bella-logout-btn></bella-logout-btn>
+      </ng-container>
+      <ng-template #notConnectedTemplate>
+        <bella-auth-login-signup></bella-auth-login-signup>
+      </ng-template>
+    </ng-container>
+  </div>
+</div>

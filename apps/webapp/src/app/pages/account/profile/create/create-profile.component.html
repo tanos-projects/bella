@@ -1,0 +1,12 @@
+<bella-titled-page [title]="'Compléter mon profil'">
+  <div class="alert alert-warning" role="alert">
+    Merci de bien vouloir compléter votre profil utilisateur pour accéder à votre compte.
+  </div>
+  <div>
+    <bella-profile-form *ngIf="user$ | async as user" [user]="user" [cancelable]="false" (userChange)="save($event)">
+    </bella-profile-form>
+  </div>
+  <div class="text-center mt-5">
+    <bella-logout-btn></bella-logout-btn>
+  </div>
+</bella-titled-page>

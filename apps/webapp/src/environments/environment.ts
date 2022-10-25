@@ -1,9 +1,23 @@
 // This file can be replaced during build by using the `fileReplacements` array.
-// `ng build` replaces `environment.ts` with `environment.prod.ts`.
+// `ng build --prod` replaces `environment.ts` with `environment.prod.ts`.
 // The list of file replacements can be found in `angular.json`.
 
 export const environment = {
   production: false,
+  isMobileMode: true,
+  authConfig: {
+    domain: 'dev-bata.eu.auth0.com',
+    clientId: '53tGhIBsmv1zPnS7Zne8cBY9XqdySKi0',
+    redirectUri: 'http://localhost:4200/loggedIn',
+    audience: 'https://base-api/',
+    logoutUrl: 'http://localhost:4200'
+  },
+  apiBaseUrl: 'http://localhost:3000',
+  contactApi: {
+    whatsapp: 'https://wa.me/',
+    whatsappMobile: 'whatsapp://',
+    whatsappWeb: 'https://web.whatsapp.com/'
+  }
 };
 
 /*
