@@ -1,0 +1,20 @@
+// MongoDB Playground
+// To disable this template go to Settings | MongoDB | Use Default Template For Playground.
+// Make sure you are connected to enable completions and to be able to run a playground.
+// Use Ctrl+Space inside a snippet or a string literal to trigger completions.
+
+// Select the database to use.
+use('tangazo');
+
+// The drop() command destroys all data from a collection.
+// Make sure you run it against the correct database and collection.
+db.ads.drop();
+
+// Insert a few documents into the sales collection.
+db.ads.insertMany(
+  [
+    {"id":"6116ab34c4c9965f7e167daf","title":"iPhone 10","description":"iPhone 10 en très bon état","price":300000,"quality":"VERY_GOOD","category":"HI_TECH","country":"bj","city":"Cotonou","currency":"XOF","images":[]},
+    {"id":"6116abb0c4c9965f7e167db0","title":"Robe rouge","description":"Robe de soirée rouge","price":130000,"quality":"GOOD","category":"CLOTHES","country":"tg","city":"Niamtougou","currency":"XOF","images":[]},
+    {"id":"6116ac24c4c9965f7e167db1","title":"Toyota essence","description":"Toyota essence boite auto","price":800000,"quality":"GOOD","category":"CAR","country":"ci","city":"Daloa","currency":"XOF","images":[]}
+  ]
+);

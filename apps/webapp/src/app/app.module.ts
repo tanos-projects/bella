@@ -96,7 +96,7 @@ registerLocaleData(localeFr);
 
     // Shared third party modules
     NgSelectModule, // For entry components (such as Modal)
-    FormValidationModule.forRoot(),
+    // FormValidationModule.forRoot(),
     ReactiveFormsModule,
 
     ServiceWorkerModule.register('ngsw-worker.js', {

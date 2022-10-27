@@ -1,0 +1,24 @@
+// MongoDB Playground
+// To disable this template go to Settings | MongoDB | Use Default Template For Playground.
+// Make sure you are connected to enable completions and to be able to run a playground.
+// Use Ctrl+Space inside a snippet or a string literal to trigger completions.
+
+// Select the database to use.
+use('tangazo');
+
+// The drop() command destroys all data from a collection.
+// Make sure you run it against the correct database and collection.
+db.categories.drop();
+
+
+db.categories.insertMany([
+  { 'id': 1, 'code': "top", 'label': "Annonces récentes", 'description': '', top: true, selectable: false },
+  { 'id': 2, 'code': "vehicules", 'label': "Véhicules", 'description': '', top: true, selectable: true },
+  { 'id': 3, 'code': "multimedia", 'label': "Multimédia", 'description': '', top: true, selectable: true },
+  { 'id': 4, 'code': "immobilier", 'label': "Immobilier", 'description': '', top: true, selectable: true },
+  { 'id': 5, 'code': "mode-et-beaute", 'label': "Mode & beauté", 'description': '', top: true, selectable: true },
+  { 'id': 6, 'code': "services", 'label': "Services", 'description': '', top: true, selectable: true },
+  { 'id': 7, 'code': "sport-et-loisir", 'label': "Sport & loisir", 'description': '', top: true, selectable: true },
+  { 'id': 8, 'code': "job-et-emploi", 'label': "Job & emploi", 'description': '', top: true, selectable: true },
+  { 'id': 9, 'code': "mobilier", 'label': "Mobilier", 'description': '', top: true, selectable: true },
+]);

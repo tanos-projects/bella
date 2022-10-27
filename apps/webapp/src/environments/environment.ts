@@ -12,7 +12,7 @@ export const environment = {
     audience: 'https://base-api/',
     logoutUrl: 'http://localhost:4200'
   },
-  apiBaseUrl: 'http://localhost:3000',
+  apiBaseUrl: 'http://localhost:3000/api',
   contactApi: {
     whatsapp: 'https://wa.me/',
     whatsappMobile: 'whatsapp://',

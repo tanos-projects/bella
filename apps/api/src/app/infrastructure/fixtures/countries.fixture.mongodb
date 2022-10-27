@@ -1,0 +1,29 @@
+// MongoDB Playground
+// To disable this template go to Settings | MongoDB | Use Default Template For Playground.
+// Make sure you are connected to enable completions and to be able to run a playground.
+// Use Ctrl+Space inside a snippet or a string literal to trigger completions.
+
+// Select the database to use.
+use('tangazo');
+
+// The drop() command destroys all data from a collection.
+// Make sure you run it against the correct database and collection.
+db.countries.drop();
+
+// Insert a few documents into the sales collection.
+db.countries.insertMany([
+  { 'id': 1, 'name': "Bénin", 'iso2': "bj", 'phoneCode': '+229', 'currency': 'XOF', 'flag': '' },
+  { 'id': 2, 'name': "Burkina Faso", 'iso2': "bf", 'phoneCode': '+226', 'currency': 'XOF', 'flag': '' },
+  { 'id': 3, 'name': "Cameroun", 'iso2': "cm", 'phoneCode': '+237', 'currency': 'XAF', 'flag': '' },
+  { 'id': 4, 'name': "Côte d'Ivoire", 'iso2': "ci", 'phoneCode': '+225', 'currency': 'XOF', 'flag': '' },
+  { 'id': 5, 'name': "Gabon", 'iso2': "ga", 'phoneCode': '+241', 'currency': 'XAF', 'flag': '' },
+  { 'id': 6, 'name': "Guinée-Bissau", 'iso2': "gw", 'phoneCode': '+245', 'currency': 'XOF', 'flag': '' },
+  { 'id': 7, 'name': "Guinée équatoriale", 'iso2': "gq", 'phoneCode': '+240', 'currency':'XAF', 'flag': '' },
+  { 'id': 8, 'name': "Mali", 'iso2': "ml", 'phoneCode': '+223', 'currency':'XOF', 'flag': '' },
+  { 'id': 9, 'name': "Niger", 'iso2': "ne", 'phoneCode': '+227', 'currency':'XOF', 'flag': '' },
+  { 'id': 10, 'name': "République centrafricaine", 'iso2': "cf", 'phoneCode': '+236', 'currency':'XAF', 'flag': '' },
+  { 'id': 11, 'name': "République du congo", 'iso2': "cg", 'phoneCode': '+242', 'currency':'XAF', 'flag': '' },
+  { 'id': 12, 'name': "Sénégal", 'iso2': "sn", 'phoneCode': '+221', 'currency':'XOF', 'flag': '' },
+  { 'id': 13, 'name': "Tchad", 'iso2': "td", 'phoneCode': '+235', 'currency':'XAF', 'flag': '' },
+  { 'id': 14, 'name': "Togo", 'iso2': "tg", 'phoneCode': '+228', 'currency':'XOF', 'flag': '' }
+]);
