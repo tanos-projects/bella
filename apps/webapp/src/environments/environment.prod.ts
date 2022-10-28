@@ -4,9 +4,9 @@ export const environment = {
   authConfig: {
     domain: 'dev-bata.eu.auth0.com',
     clientId: '53tGhIBsmv1zPnS7Zne8cBY9XqdySKi0',
-    redirectUri: 'https://dev-bella.netlify.app/loggedIn',
+    redirectUri: 'https://main.d2s7lfd8fx3bhd.amplifyapp.com/loggedIn',
     audience: 'https://base-api/',
-    logoutUrl: 'https://dev-bella.netlify.app'
+    logoutUrl: 'https://main.d2s7lfd8fx3bhd.amplifyapp.com'
   },
   apiBaseUrl: 'https://tangazo-api.herokuapp.com',
   contactApi: {
