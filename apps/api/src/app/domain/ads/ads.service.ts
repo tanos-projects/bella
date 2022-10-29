@@ -1,6 +1,6 @@
 import { Observable } from 'rxjs';
 import { concatMap } from 'rxjs/operators';
-import { AdEntity, AdStatus } from './ad.entity';
+import { AdEntity/*, AdStatus*/ } from './ad.entity';
 import { AdsRepository } from './ads.repository';
 import { FilterCriteria, FilterOptions } from './models';
 
@@ -15,7 +15,7 @@ export class AdsService {
     return this.createAd(ad, 'DRAFT');
   }
 
-  private createAd(ad: AdEntity, status: AdStatus) {
+  private createAd(ad: AdEntity, status: string /*AdStatus*/) {
     return this.adsRepository.createNew({
       ...ad,
       status,
