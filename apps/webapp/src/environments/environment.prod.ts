@@ -8,7 +8,7 @@ export const environment = {
     audience: 'https://base-api/',
     logoutUrl: 'https://main.d2s7lfd8fx3bhd.amplifyapp.com'
   },
-  apiBaseUrl: 'https://api-dev.bellannonces.com',
+  apiBaseUrl: 'https://api-dev.bellannonces.com/api',
   contactApi: {
     whatsapp: 'https://wa.me/',
     whatsappMobile: 'whatsapp://',
