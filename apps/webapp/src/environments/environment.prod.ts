@@ -4,9 +4,9 @@ export const environment = {
   authConfig: {
     domain: 'dev-bata.eu.auth0.com',
     clientId: '53tGhIBsmv1zPnS7Zne8cBY9XqdySKi0',
-    redirectUri: 'https://main.d2s7lfd8fx3bhd.amplifyapp.com/loggedIn',
+    redirectUri: 'https://dev.bellannonces.com/loggedIn',
     audience: 'https://base-api/',
-    logoutUrl: 'https://main.d2s7lfd8fx3bhd.amplifyapp.com'
+    logoutUrl: 'https://dev.bellannonces.com'
   },
   apiBaseUrl: 'https://api-dev.bellannonces.com/api',
   contactApi: {
