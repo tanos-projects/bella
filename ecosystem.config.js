@@ -1,20 +1,33 @@
 module.exports = {
-  apps : [{
-    name: 'api',
-    script: 'dist/apps/api/main.js',
-    watch: '.'
-  }],
+  apps: [
+    {
+      name: 'api',
+      script: 'dist/apps/api/main.js',
+      watch: '.',
+      instances: 2,
+      exec_mode: 'cluster',
+      env: {
+        NODE_ENV: 'development',
+        CORS_ALLOW_LIST: 'https://dev.bellannonces.com,https://www.dev.bellannonces.com'
+      },
+      env_production: {
+        NODE_ENV: 'production',
+      },
+    },
+  ],
 
-  deploy : {
-    production : {
-      user : 'ubuntu',
-      host : 'ec2-54-163-152-228.compute-1.amazonaws.com',
-      ref  : 'origin/main',
-      repo : 'https://github.com/tanos-projects/bella.git',
-      path : '/home/ubuntu/projects/bella/workspace',
+  deploy: {
+    production: {
+      key: '~/.ssh/dev3-aws-bella.pem',
+      user: 'ubuntu',
+      host: 'ec2-54-172-187-8.compute-1.amazonaws.com',
+      ref: 'origin/main',
+      repo: 'git@github.com:tanos-projects/bella.git',
+      path: '/home/ubuntu/projects/bella/workspace',
       'pre-deploy-local': '',
-      'post-deploy' : 'yarn install && yarn build api && pm2 reload ecosystem.config.js --env production',
-      'pre-setup': ''
-    }
-  }
+      'post-deploy':
+        'yarn install && yarn build api && pm2 reload ecosystem.config.js --env production',
+      'pre-setup': '',
+    },
+  },
 };
