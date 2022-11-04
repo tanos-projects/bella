@@ -8,7 +8,10 @@ module.exports = {
       exec_mode: 'cluster',
       env: {
         NODE_ENV: 'development',
-        CORS_ALLOW_LIST: 'https://dev.bellannonces.com,https://www.dev.bellannonces.com'
+        CORS_ALLOW_LIST:
+          'https://dev.bellannonces.com,https://www.dev.bellannonces.com',
+        AUTH_ISSUER_URL: 'https://dev-bata.eu.auth0.com/',
+        AUTH_AUDIENCE: 'https://base-api/',
       },
       env_production: {
         NODE_ENV: 'production',
