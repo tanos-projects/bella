@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { MyDeviceService } from '../../../shared/services/my-device.service';
 import { ProfileService } from './profile.service';
 
 @Component({
@@ -10,5 +11,8 @@ import { ProfileService } from './profile.service';
 export class ProfileComponent {
   private readonly id: string = this.routeParams.snapshot.params['id'];
   readonly data$ = this.profileService.getProfile(this.id);
-  constructor(private routeParams: ActivatedRoute, private profileService: ProfileService) {}
+  isMobileMode = this.device.isMobile();
+
+  constructor(private routeParams: ActivatedRoute, private profileService: ProfileService, private device: MyDeviceService) {}
+
 }

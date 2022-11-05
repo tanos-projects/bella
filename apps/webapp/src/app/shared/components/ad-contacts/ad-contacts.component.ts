@@ -1,38 +1,55 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { MyDeviceService } from '../../services/my-device.service';
+
 import { environment } from '../../../../environments/environment';
 import { Contact } from '../../models/contact.model';
+import { MyDeviceService } from '../../services/my-device.service';
 
+const APP_BRAND_NAME = 'Bellannonces.com';
 @Component({
   selector: 'bella-ad-contacts',
   templateUrl: './ad-contacts.component.html',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdContactsComponent {
   @Input() contact: Contact | null = null;
   @Input() subject: string | null = null;
   @Input() text: string | null = null;
+  @Input() link: string | null = null;
   isMobileMode = false;
+
+  whatsAppUrl!: string;
 
   constructor(private deviceService: MyDeviceService) {
     this.isMobileMode = this.deviceService.isMobile();
   }
 
   whatsappMe(contact: Contact): void {
-    let url = '';
-    if (this.isMobileMode) {
-      url = `${environment.contactApi.whatsappMobile}`;
-    } else {
-      url = `${environment.contactApi.whatsappWeb}`;
-    }
-    url = `${url}send?phone=${contact.whatsapp}&text=${encodeURIComponent((this.subject || '') + (this.text || ''))}`;
+    const url = this.buildWhatsAppUrl(contact);
     window.open(url, 'no-referer');
   }
 
+  private buildWhatsAppUrl(contact: Contact) {
+    if (contact?.whatsapp) {
+      let url = '';
+      if (this.isMobileMode) {
+        url = `${environment.contactApi.whatsappMobile}`;
+      } else {
+        url = `${environment.contactApi.whatsappWeb}`;
+      }
+      const subject = this.subject ? `"${this.subject} "` : '';
+      const linkMessage = this.link ? `\nCliquez ici : ${this.link}` : '';
+      const text = encodeURIComponent(
+        `Hey, j'ai vu cette annonce ${subject}sur ${APP_BRAND_NAME} qui pourrait vous intéresser.${linkMessage}`
+      );
+      return `${url}send?phone=${contact.whatsapp}&text=${text}`;
+    }
+    return null;
+  }
+
   mailToMe(contact: Contact): void {
-    const url = `mailto:${contact.email}?subject=${encodeURIComponent(this.subject || '')}&body=${encodeURIComponent(
-      this.text || ''
-    )}`;
+    const url = `mailto:${contact.email}?subject=${encodeURIComponent(
+      this.subject || ''
+    )}&body=${encodeURIComponent(this.text || '')}`;
     window.open(url, 'no-referer');
   }
 

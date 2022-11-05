@@ -19,6 +19,7 @@ describe('AdCardComponent', () => {
   });
 
   it('should create', () => {
+    component.data = {category: '', title: '', } as any;
     expect(component).toBeTruthy();
   });
 });

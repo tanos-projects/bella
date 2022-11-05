@@ -20,6 +20,18 @@ module.exports = {
   ],
 
   deploy: {
+    development: {
+      key: '~/.ssh/dev3-aws-bella.pem',
+      user: 'ubuntu',
+      host: 'ec2-54-172-187-8.compute-1.amazonaws.com',
+      ref: 'origin/dev',
+      repo: 'git@github.com:tanos-projects/bella.git',
+      path: '/home/ubuntu/projects/bella/workspace',
+      'pre-deploy-local': '',
+      'post-deploy':
+        'yarn install && yarn build api && pm2 reload ecosystem.config.js --env production',
+      'pre-setup': '',
+    },
     production: {
       key: '~/.ssh/dev3-aws-bella.pem',
       user: 'ubuntu',

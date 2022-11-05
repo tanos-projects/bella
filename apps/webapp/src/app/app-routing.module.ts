@@ -43,7 +43,7 @@ const routes: Routes = [
     canActivate: [AuthGuard, CompleteProfileGuard]
   },
   {
-    path: 'profil/:id',
+    path: 'profil/:id/:username',
     component: ProfileComponent,
     canLoad: [WelcomeGuard]
   },

@@ -24,7 +24,7 @@ async function bootstrap() {
   // Starts listening for shutdown hooks
   app.enableShutdownHooks();
   const config = new DocumentBuilder()
-    .setTitle('Tangazo')
+    .setTitle('Bella')
     .setDescription('')
     .setVersion('1.0')
     .addBearerAuth({ in: 'header', type: 'http' })
@@ -34,7 +34,7 @@ async function bootstrap() {
     swaggerOptions: {
       persistAuthorization: true,
     },
-    customSiteTitle: 'Tangazo swagger',
+    customSiteTitle: 'Bella swagger',
   };
   SwaggerModule.setup(globalPrefix, app, document, customOptions);
 

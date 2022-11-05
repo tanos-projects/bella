@@ -15,7 +15,7 @@ export class AdsByCategoryComponent {
   categoryCode!: string;
 
   constructor(private route: ActivatedRoute, private adsService: AdsService) {
-    this.categoryCode = <string>this.route.snapshot.paramMap.get('category');
+    this.categoryCode = this.route.snapshot.paramMap.get('category');
     this.ads$ = this.adsService.getAll(this.categoryCode);
   }
 }

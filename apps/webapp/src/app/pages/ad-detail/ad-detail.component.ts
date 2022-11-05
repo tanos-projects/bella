@@ -15,13 +15,14 @@ SwiperCore.use([Pagination, Navigation]);
 @Component({
   selector: 'bella-ad-detail',
   templateUrl: './ad-detail.component.html',
-  styleUrls: ['./ad-detail.component.scss']
+  styleUrls: ['./ad-detail.component.scss'],
 })
 export class AdDetailComponent {
   isMobileMode: boolean = this.device.isMobile();
   id: string = this.routeParams.snapshot.params['id'];
   ad$ = this.adsService.getOne(this.id);
   contact$ = this.ad$.pipe(map((ad) => this.contactService.getContactData(ad)));
+  currentPageLink!: string;
 
   constructor(
     private routeParams: ActivatedRoute,
@@ -29,7 +30,9 @@ export class AdDetailComponent {
     private adsService: AdsService,
     private contactService: ContactService,
     private location: Location
-  ) {}
+  ) {
+    this.currentPageLink = window.location.href;
+  }
 
   back(): void {
     this.location.back();

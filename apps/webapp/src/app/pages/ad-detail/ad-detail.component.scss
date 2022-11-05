@@ -6,7 +6,10 @@
     z-index: 10;
     // top: $header-height;
     .back-btn {
-      background-color: rgba($color: #ffffff, $alpha: 0.8);
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      background-color: rgba($color: #9c9c9c, $alpha: 0.8);
     }
   }
 
@@ -30,13 +33,13 @@
       text-align: center;
 
       .title {
-        font-size: 1.4rem;
+        font-size: 1.2rem;
       }
 
       .price {
-        line-height: 1.4em;
+        line-height: 1.2rem;
         color: $primary;
-        font-size: x-large;
+        font-size: large;
         font-weight: 600;
       }
 
@@ -44,12 +47,20 @@
         font-style: italic;
         color: $secondary;
       }
+
+      .category {
+        font-size: small;
+      }
     }
 
     .ad-detail-body {
       .sub-section-title {
         font-size: large;
         font-weight: 600;
+      }
+
+      .description {
+        white-space: pre-line;
       }
     }
   }

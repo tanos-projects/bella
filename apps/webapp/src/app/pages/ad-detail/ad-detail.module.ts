@@ -6,9 +6,10 @@ import { AdContactsModule } from '../../shared/components/ad-contacts/ad-contact
 import { TranslateModule } from '@ngx-translate/core';
 import { HeaderModule } from '../../shared/components/header/header.module';
 import { CarouselModule } from '../../shared/components/carousel/carousel.module';
+import { AdPublisherCardModule } from '../../shared/components/ad-publisher-card/ad-publisher-card.module';
 
 @NgModule({
   declarations: [AdDetailComponent],
-  imports: [CommonModule, RouterModule, AdContactsModule, TranslateModule, HeaderModule, CarouselModule]
+  imports: [CommonModule, RouterModule, AdContactsModule, TranslateModule, HeaderModule, CarouselModule, AdPublisherCardModule]
 })
 export class AdDetailModule {}

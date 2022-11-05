@@ -1,8 +1,18 @@
-<!-- <div *ngIf="user$ | async as user" class="text-center mb-2">
-  <img [src]="user.picture" class="rounded-circle img-fluid profile-picture" alt="image de profile" />
-</div> -->
-<div class="container" *ngIf="(data$ |async) as userData">
-  <div class="font-weight-bold"></div>
-  <h2>Profil de {{ userData.username }}</h2>
-  <div>Pays: {{ userData.country }}</div>
-</div>
+<bella-header></bella-header>
+<main class="main-layout">
+  <div class="container mt-2" *ngIf="data$ | async as userData">
+    <div class="d-flex align-items-center p-2">
+      <div class="rounded-circle profile-picture me-3"></div>
+      <div>
+        <div class="fw-bold fs-4">{{ userData.username }}</div>
+        <div>
+          <i class="bi bi-geo-alt-fill me-1"></i> {{ userData.country }}
+        </div>
+      </div>
+    </div>
+    <div class="mt-5 d-flex align-items-center justify-content-center">
+      <div class="ad-square-area"></div>
+    </div>
+  </div>
+</main>
+<bella-footer *ngIf="isMobileMode"></bella-footer>

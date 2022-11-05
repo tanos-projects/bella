@@ -1,78 +1,117 @@
 <div class="modal-header py-0 pt-1 border-0">
-  <button type="button" class="btn-close close pull-right" aria-label="Close" (click)="modalRef?.hide()">
+  <button
+    type="button"
+    class="btn-close close pull-right"
+    aria-label="Close"
+    (click)="modalRef?.hide()"
+  >
     <span aria-hidden="true" class="visually-hidden">&times;</span>
   </button>
 </div>
 <div class="modal-body">
   <form [formGroup]="form">
-    <div class="d-flex">
-      <ng-select
-        formControlName="country"
-        [items]="(countries$ | async) || []"
-        bindLabel="name"
-        bindValue="iso2"
-        [clearable]="false"
-      >
-        <ng-template ng-label-tmp let-item="item">
-          <img
-            *ngIf="item.iso2"
-            height="15"
-            width="15"
-            [src]="'assets/flags/png/'+item.iso2.toUpperCase()+'.png'"
-            [alt]="'drapeau'+item.name"
-            appendTo="body"
-          />
-          {{item.name}}
-        </ng-template>
-      </ng-select>
-
-      <input
-        (keyup.enter)="sendSearchFilter()"
-        formControlName="keyword"
-        type="text"
+    <div class="row g-2 mt-0">
+      <div class="col-12">
+        <label for="search" class="form-label">Mots clés</label>
+        <input
+          id="search"
+          (keyup.enter)="sendSearchFilter()"
+          formControlName="keyword"
+          type="text"
+          class="form-control"
+          placeholder="Rechercher"
+          [autofocus]="true"
+        />
+      </div>
+    </div>
+    <div class="row g-2 mt-0">
+      <div class="col-6 col-md-4">
+        <label class="form-label">Pays</label>
+        <ng-select
+          formControlName="country"
+          [items]="(countries$ | async) || []"
+          bindLabel="name"
+          bindValue="iso2"
+          [clearable]="false"
+        >
+          <ng-template ng-label-tmp let-item="item">
+            <img
+              *ngIf="item.iso2"
+              height="15"
+              width="15"
+              [src]="'assets/flags/png/' + item.iso2.toUpperCase() + '.png'"
+              [alt]="'drapeau' + item.name"
+              appendTo="body"
+            />
+            {{ item.name }}
+          </ng-template>
+        </ng-select>
+      </div>
+      <div class="col-6 col-md-8">
+        <label for="city" class="form-label">Ville</label>
+        <input
+          type="text"
+          id="city"
+          formControlName="city"
+          class="form-control"
+        />
+      </div>
+    </div>
+    <div class="row g-2 mt-0">
+      <div class="col-6 col-md-6">
+        <label for="category" class="form-label">Catégorie</label>
+        <ng-select
+          id="category"
+          [clearable]="true"
+          [items]="(categories$ | async) || []"
+          bindLabel="label"
+          bindValue="code"
+          formControlName="category"
+        >
+        </ng-select>
+      </div>
+      <div class="col-6 col-md-6">
+        <label for="quality" class="form-label">Etat</label>
+        <ng-select
+          id="quality"
+          [clearable]="true"
+          [items]="(qualities$ | async) || []"
+          bindLabel="label"
+          bindValue="code"
+          formControlName="quality"
+        >
+        </ng-select>
+      </div>
+    </div>
+    <div class="row g-2 mt-0">
+      <div class="col-6 col-md-6">
+        <label for="min-price" class="form-label">Prix minimum</label>
+        <input
+        formControlName="minPrice"
+        id="min-price"
+        type="number"
         class="form-control"
-        placeholder="Rechercher"
-        [autofocus]="true"
+        placeholder="minimum"
       />
-    </div>
-    <div class="form-group">
-      <label for="category">Catégorie</label>
-      <ng-select
-        id="category"
-        [clearable]="true"
-        [items]="(categories$ | async) || []"
-        bindLabel="label"
-        bindValue="code"
-        formControlName="category"
-      >
-      </ng-select>
-    </div>
-    <div class="form-group">
-      <label for="quality">Etat</label>
-      <ng-select
-        id="quality"
-        [clearable]="true"
-        [items]="(qualities$ | async) || []"
-        bindLabel="label"
-        bindValue="code"
-        formControlName="quality"
-      >
-      </ng-select>
-    </div>
-    <div class="form-group">
-      <label for="min-price">Prix</label>
-      <input formControlName="minPrice" id="min-price" type="number" class="form-control" placeholder="Prix min" />
-      <input formControlName="maxPrice" type="number" class="form-control" placeholder="Prix max" />
-    </div>
-
-    <div class="form-group">
-      <label for="city">Ville</label>
-      <input type="text" id="city" formControlName="city" class="form-control" />
-    </div>
-  </form>
+      </div>
+      <div class="col-6 col-md-6">
+        <label for="max-price" class="form-label">Prix minimum</label>
+        <input
+        formControlName="maxPrice"
+        id="max-price"
+        type="number"
+        class="form-control"
+        placeholder="maximum"
+      />
+      </div>
 </div>
 <div class="modal-footer">
-  <ng-container *ngTemplateOutlet="searchButtonTemplate; context: { $implicit: approximativeSearchCount$ | async}">
+  <ng-container
+    *ngTemplateOutlet="
+      searchButtonTemplate;
+      context: { $implicit: approximativeSearchCount$ | async }
+    "
+  >
   </ng-container>
 </div>
 

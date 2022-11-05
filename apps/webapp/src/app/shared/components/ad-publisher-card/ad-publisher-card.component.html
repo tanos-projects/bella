@@ -1,0 +1,10 @@
+
+
+<div class="rounded user-card d-flex align-items-center p-2">
+  <div class="rounded-circle profile-picture me-3">
+
+  </div>
+  <a class="text-decoration-none" *ngIf="user" [routerLink]="['/profil', user.id, user.username]">{{
+    user.username
+  }}</a>
+</div>

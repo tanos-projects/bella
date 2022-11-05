@@ -4,6 +4,7 @@
 @import 'bootstrap-icons/font/bootstrap-icons.css';
 @import '@ng-select/ng-select/themes/default.theme.css';
 @import 'swiper/swiper-bundle.css';
+@import 'scss/variables';
 
 .no-scroll {
   overflow: hidden;
@@ -15,4 +16,16 @@
 
 .header-desktop-top-padding {
   padding-top: 80px;
+}
+
+.main-layout {
+  padding-top: $header-height;
+  padding-bottom: $footer-bar-height;
+}
+
+
+.profile-picture {
+  height: 80px;
+  width: 80px;
+  background-color: rgba(162, 162, 162, 0.933);
 }

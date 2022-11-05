@@ -1,73 +1,94 @@
-<bella-header *ngIf="!isMobileMode"></bella-header>
+<bella-header></bella-header>
 
-<div
-  *ngIf="ad$ | async as ad"
-  class="ad-detail-content"
-  [class.container]="!isMobileMode"
-  [class.header-desktop-top-padding]="!isMobileMode"
->
-  <div class="ad-detail-actions-top ms-3 mt-3" *ngIf="isMobileMode">
-    <button (click)="back()" class="btn back-btn rounded-circle">
-      <i class="bi bi bi-chevron-left"></i>
-    </button>
-  </div>
-
-  <div *ngIf="!isMobileMode">#breadcumb (todo)</div>
-
-  <div class="ad-detail-image-container rounded">
-    <bella-carousel [images]="ad.images || []"></bella-carousel>
-  </div>
-
-  <div class="ad-detail-container px-3">
-    <div class="ad-detail-header mb-3>">
-      <span class="price">{{ ad.price | currency:ad.currency ?? 'XOF' }}</span>
-
-      <h3 class="title mb-1">{{ ad.title }}</h3>
-
-      <ng-container *ngIf="ad.updatedAt; then updatedAtTemplate; else createdAtTemplate"></ng-container>
-
-      <ng-template #updatedAtTemplate>
-        <ng-container
-          [ngTemplateOutlet]="dateAndCityTemplate"
-          [ngTemplateOutletContext]="{ $implicit: ad.updatedAt, city: ad.city}"
-        ></ng-container>
-      </ng-template>
-
-      <ng-template #createdAtTemplate>
-        <ng-container
-          [ngTemplateOutlet]="dateAndCityTemplate"
-          [ngTemplateOutletContext]="{ $implicit: ad.createdAt, city: ad.city}"
-        ></ng-container>
-      </ng-template>
+<main class="main-layout">
+  <div
+    *ngIf="ad$ | async as ad"
+    class="ad-detail-content"
+    [class.container]="!isMobileMode"
+    [class.header-desktop-top-padding]="!isMobileMode"
+  >
+    <div class="ad-detail-actions-top ms-3 mt-3" *ngIf="isMobileMode">
+      <button (click)="back()" class="btn back-btn rounded-circle">
+        <i class="bi bi bi-chevron-left"></i>
+      </button>
     </div>
 
-    <div class="ad-detail-body">
-      <div *ngIf="ad.quality">
-        <span class="sub-section-title mb-2">Détail</span>
-        <p>{{ 'ads.detail.'+ad.quality | translate }}</p>
-      </div>
+    <div *ngIf="!isMobileMode">#breadcumb (todo)</div>
 
-      <div>
-        <span class="sub-section-title mb-2">Description</span>
-        <p>{{ ad.description }}</p>
-      </div>
+    <div class="ad-detail-image-container rounded">
+      <bella-carousel [images]="ad.images || []"></bella-carousel>
     </div>
 
-    <hr />
-    Publiée par
-    <a *ngIf="ad.owner" [routerLink]="['/profil', ad.owner.id]">{{ ad.owner.username }}</a>
-  </div>
+    <div class="ad-detail-container px-3">
+      <div class="ad-detail-header mb-3>">
+        <span class="price d-block mt-2">{{
+          ad.price | currency: ad.currency ?? 'XOF'
+        }}</span>
 
-  <div class="position-sticky ad-detail-actions-bottom mt-3" [ngClass]="{'mobile': isMobileMode}">
-    <bella-ad-contacts
-      *ngIf="ad.contactSettings"
-      [contact]="contact$ | async"
-      [subject]="ad.title"
-      [text]="ad.description"
-    ></bella-ad-contacts>
+        <div class="d-flex justify-content-center">
+          <h3 class="title me-1 mb-1">
+            {{ ad.title }} / <span class="category">{{ ad.category }}</span>
+          </h3>
+        </div>
+        <ng-container
+          *ngIf="ad.updatedAt; then updatedAtTemplate; else createdAtTemplate"
+        ></ng-container>
+
+        <ng-template #updatedAtTemplate>
+          <ng-container
+            [ngTemplateOutlet]="dateAndCityTemplate"
+            [ngTemplateOutletContext]="{
+              $implicit: ad.updatedAt,
+              city: ad.city
+            }"
+          ></ng-container>
+        </ng-template>
+
+        <ng-template #createdAtTemplate>
+          <ng-container
+            [ngTemplateOutlet]="dateAndCityTemplate"
+            [ngTemplateOutletContext]="{
+              $implicit: ad.createdAt,
+              city: ad.city
+            }"
+          ></ng-container>
+        </ng-template>
+      </div>
+
+      <div class="ad-detail-body">
+        <div *ngIf="ad.quality">
+          <span class="sub-section-title mb-2">Détail</span>
+          <p>{{ 'ads.detail.' + ad.quality | translate }}</p>
+        </div>
+
+        <div>
+          <span class="sub-section-title mb-2">Description</span>
+          <p class="description">{{ ad.description }}</p>
+        </div>
+      </div>
+
+      <hr />
+
+      <bella-ad-publisher-card [user]="ad.owner"></bella-ad-publisher-card>
+    </div>
+
+    <div
+      class="position-sticky ad-detail-actions-bottom mt-3"
+      [ngClass]="{ mobile: isMobileMode }"
+    >
+      <bella-ad-contacts
+        *ngIf="contact$ | async as contact"
+        [contact]="contact"
+        [subject]="ad.title"
+        [text]="ad.description"
+        [link]="currentPageLink"
+      ></bella-ad-contacts>
+    </div>
   </div>
-</div>
+</main>
 
 <ng-template #dateAndCityTemplate let-date let-city="city">
-  <span class="date-and-city">{{ date | date:'dd MMM Y à HH:mm' }} - {{ city }}</span>
+  <span class="date-and-city"
+    >{{ date | date: 'dd MMM Y à HH:mm' }} - {{ city }}</span
+  >
 </ng-template>
