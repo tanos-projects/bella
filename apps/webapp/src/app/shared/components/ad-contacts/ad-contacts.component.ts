@@ -37,14 +37,20 @@ export class AdContactsComponent {
         url = `${environment.contactApi.whatsappWeb}`;
       }
       const subject = this.subject ? `"${this.subject} "` : '';
-      const linkMessage = this.link ? `\nCliquez ici : ${this.link}` : '';
+      const linkMessage = this.link ? `\n-----\nLien : ${this.link}` : '';
       const text = encodeURIComponent(
-        `Hey, j'ai vu cette annonce ${subject}sur ${APP_BRAND_NAME} qui pourrait vous intéresser.${linkMessage}`
+        `Bonjour, votre annonce ${subject}sur ${APP_BRAND_NAME} m'intéresse beaucoup. Est-elle toujours disponible ?${linkMessage}`
       );
       return `${url}send?phone=${contact.whatsapp}&text=${text}`;
     }
     return null;
   }
+
+  // TODO : Utile pour le partage par whatsapp plus tard
+  // const linkMessage = this.link ? `\nCliquez ici : ${this.link}` : '';
+  //     const text = encodeURIComponent(
+  //       `Hey, j'ai vu cette annonce ${subject}sur ${APP_BRAND_NAME} qui pourrait vous intéresser.${linkMessage}`
+  //     );
 
   mailToMe(contact: Contact): void {
     const url = `mailto:${contact.email}?subject=${encodeURIComponent(
