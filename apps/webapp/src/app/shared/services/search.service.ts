@@ -1,6 +1,13 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { map, switchMap, take, tap } from 'rxjs/operators';
+import {
+  concatMap,
+  map,
+  skipWhile,
+  switchMap,
+  take,
+  tap,
+} from 'rxjs/operators';
 
 import { AdDTO } from '../models/ads.model';
 import { SearchFilter } from '../models/search-filter.model';
@@ -19,23 +26,46 @@ export function removeEmpty(obj: any): any {
 
 @Injectable({ providedIn: 'root' })
 export class SearchService {
-  private _currentSearchFilter$ = new BehaviorSubject<SearchFilter>(this.getInitialFilter());
-
+  private _currentSearchFilter$ = new BehaviorSubject<SearchFilter>(
+    this.getInitialFilter()
+  );
   currentSearchFilter$ = this._currentSearchFilter$.asObservable();
 
-  private _silentSearch$ = new BehaviorSubject<number>(0);
-  silentSearchCount$ = this._silentSearch$.asObservable();
+  private _currentSilentSearchFilter$ = new BehaviorSubject<SearchFilter>(
+    this.getInitialFilter()
+  );
+  currentSilentSearchFilter$ = this._currentSilentSearchFilter$.asObservable();
+
+  silentSearchCount$ = this._currentSilentSearchFilter$.pipe(
+    skipWhile(() => !this.silentSearchEnabled),
+    switchMap((filter) =>
+      this.adsService.search(removeEmpty(filter)).pipe(
+        map((response) => {
+          return response?.records?.length || 0;
+        })
+      )
+    )
+  );
 
   private _isSearchPage$ = new BehaviorSubject<boolean>(false);
   isSearchPage$ = this._isSearchPage$.asObservable();
 
-  private _searchResults$ = new BehaviorSubject<PaginatedResult<AdDTO>>({ records: [] });
+  private _searchResults$ = new BehaviorSubject<PaginatedResult<AdDTO>>({
+    records: [],
+  });
   searchResults$ = this._searchResults$.asObservable();
 
   // Referential data
   countries$ = this.countriesService.getAll();
   categories$ = this.categoriesService.getAll();
   qualities$ = this.qualitiesService.getAll();
+  countryCities$ = this._currentSilentSearchFilter$.pipe(
+    concatMap((filter) => {
+      console.log('Filter change : ', filter);
+      return this.countriesService.getCitiesByCountry(filter.country);
+    })
+  );
+  private silentSearchEnabled = false;
 
   constructor(
     private userSettingsService: UserSettingsService,
@@ -45,27 +75,23 @@ export class SearchService {
     private qualitiesService: QualitiesService
   ) {
     this.userSettingsService.country$.subscribe(() => this.reset());
-  }
 
-  updateFilter(filter: SearchFilter): void {
-    this.silentSearchFromFilter(filter).subscribe();
-  }
-
-  doSilentApproximativeSearchWithCurrentFilter(): void {
-    this.currentSearchFilter$
-      .pipe(
-        switchMap((filter) => this.silentSearchFromFilter(filter)),
-        take(1)
-      )
+    this._currentSilentSearchFilter$
+      .pipe(tap((filter) => console.log('cities ', filter)))
       .subscribe();
   }
 
-  private silentSearchFromFilter(filter: SearchFilter): Observable<void> {
-    return this.adsService.search(removeEmpty(filter)).pipe(
-      map((response) => {
-        this._silentSearch$.next(response?.records?.length || 0);
-      })
-    );
+  enableSilentSearch(): void {
+    this.silentSearchEnabled = true;
+    this.updateFilterForSilentSearch(this._currentSearchFilter$.value);
+  }
+
+  disableSilentSearch(): void {
+    this.silentSearchEnabled = false;
+  }
+
+  updateFilterForSilentSearch(filter: SearchFilter): void {
+    this._currentSilentSearchFilter$.next(filter);
   }
 
   search(): Observable<PaginatedResult<AdDTO>> {
@@ -81,11 +107,15 @@ export class SearchService {
     if (!filter?.country) {
       filter = {
         ...filter,
-        country: this.userSettingsService.getCountry()
+        country: this.userSettingsService.getCountry(),
       };
     }
     this._currentSearchFilter$.next(filter);
-    return this.adsService.search(removeEmpty(filter)).pipe(tap((result) => this._searchResults$.next(result)));
+    this._currentSilentSearchFilter$.next(filter);
+
+    return this.adsService
+      .search(removeEmpty(filter))
+      .pipe(tap((result) => this._searchResults$.next(result)));
   }
 
   setIsCurrentPageSearch(isSearchPage: boolean): void {
@@ -94,7 +124,7 @@ export class SearchService {
 
   private getInitialFilter(): SearchFilter {
     return {
-      country: this.userSettingsService.getCountry()
+      country: this.userSettingsService.getCountry(),
       // quality: 'GOOD'
     };
   }

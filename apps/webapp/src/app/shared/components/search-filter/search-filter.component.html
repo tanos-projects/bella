@@ -1,4 +1,6 @@
-<div class="modal-header py-0 pt-1 border-0">
+<div class="modal-header py-0 pt-2 border-0">
+
+  <h5 class="modal-title">Recherche</h5>
   <button
     type="button"
     class="btn-close close pull-right"
@@ -12,14 +14,14 @@
   <form [formGroup]="form">
     <div class="row g-2 mt-0">
       <div class="col-12">
-        <label for="search" class="form-label">Mots clés</label>
+        <!-- <label for="search" class="form-label">Mots clés</label> -->
         <input
           id="search"
           (keyup.enter)="sendSearchFilter()"
           formControlName="keyword"
           type="text"
           class="form-control"
-          placeholder="Rechercher"
+          placeholder="Mots clés"
           [autofocus]="true"
         />
       </div>
@@ -49,12 +51,21 @@
       </div>
       <div class="col-6 col-md-8">
         <label for="city" class="form-label">Ville</label>
-        <input
+        <!-- <input
           type="text"
           id="city"
           formControlName="city"
           class="form-control"
-        />
+        /> -->
+        <ng-select
+        formControlName="city"
+        [items]="(countryCities$ | async) || []"
+        bindLabel="label"
+        bindValue="label"
+        [clearable]="false"
+        [minTermLength]="2"
+      >
+      </ng-select>
       </div>
     </div>
     <div class="row g-2 mt-0">
