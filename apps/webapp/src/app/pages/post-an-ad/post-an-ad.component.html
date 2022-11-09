@@ -5,7 +5,7 @@
       <pre *ngIf="error">{{ error | json }}</pre>
     </div>
     <div *ngIf="!postedAd">
-      <bella-ad-form (submitData)="submit($event)"></bella-ad-form>
+      <bella-ad-form [submitting]="submitting" (submitData)="submit($event)"></bella-ad-form>
     </div>
     <div *ngIf="postedAd">
 

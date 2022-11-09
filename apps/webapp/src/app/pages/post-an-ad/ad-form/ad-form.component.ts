@@ -1,5 +1,5 @@
 import { CurrencyPipe, getCurrencySymbol } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, OnInit, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
 import { FormlyFieldConfig, FormlyFormOptions } from '@ngx-formly/core';
 import { of } from 'rxjs';
@@ -29,6 +29,18 @@ const NO_QUALITY_CATEGORIES = ['services', 'mode-et-beaute', 'sport-et-loisir'];
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AdFormComponent implements OnInit {
+  // private _submitting = false;
+
+  options: FormlyFormOptions = {
+    formState: {
+      submitting: false,
+    },
+  };
+
+  @Input() set submitting(value: boolean) {
+    this.options.formState.submitting = value;
+  }
+
   @Output() submitData = new EventEmitter<AdDTO>(true);
 
   form = new FormGroup<AdFormModel>({} as AdFormModel);
@@ -40,7 +52,6 @@ export class AdFormComponent implements OnInit {
     // country: { iso2: 'bj' },
     // city: 'Cotonou'
   };
-  options: FormlyFormOptions = {};
 
   fields: FormlyFieldConfig[] = [];
 

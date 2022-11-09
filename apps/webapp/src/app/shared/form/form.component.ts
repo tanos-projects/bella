@@ -15,7 +15,7 @@ export class FormComponent {
 
   @Output() submitData = new EventEmitter<any>(true);
 
-  constructor() {}
+  // constructor() {}
 
   onSubmit(): void {
     this.submitData.emit(this.form.value);

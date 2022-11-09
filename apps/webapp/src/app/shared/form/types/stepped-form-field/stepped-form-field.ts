@@ -18,7 +18,8 @@ import { environment } from '../../../../../environments/environment';
       <div class="progression-bar">
         <progressbar
           [value]="((currentStep + 1) / nbFields) * 100"
-          [striped]="true"
+          [striped]="false"
+          [type]="'info'"
         ></progressbar>
       </div>
       <ng-container *ngIf="debug">
@@ -69,7 +70,7 @@ import { environment } from '../../../../../environments/environment';
             <button
               *ngIf="field.props['submitButton'] && last"
               class="btn btn-primary w-100"
-              [disabled]="!form.valid"
+              [disabled]="!form.valid || options.formState['submitting']"
               type="submit"
             >
               {{ field.props['submitButtonLabel'] ?? 'Submit' }}
