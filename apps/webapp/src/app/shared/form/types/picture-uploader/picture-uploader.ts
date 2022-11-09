@@ -2,17 +2,41 @@ import { CommonModule } from '@angular/common';
 import { Component, NgModule, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { FieldType, FieldTypeConfig, FormlyFieldConfig } from '@ngx-formly/core';
+import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
+
 import { UploadModule } from '../../../../shared/components/upload/upload.module';
 
 class Picture {
+  get type(): string {
+    return this.file.type;
+  }
+
   constructor(public name: string, public file: File, public url: SafeUrl) {}
+}
+
+export function isFileImage(file: File): boolean {
+  const filename = file.name.toLowerCase();
+  return (
+    ['image/jpeg', 'image/png'].includes(file.type) &&
+    (filename.endsWith('.jpg') || filename.endsWith('.png'))
+  );
+}
+
+function fileListToArrayFile(fileList: FileList): File[] {
+  const files: File[] = [];
+  for (let i = 0; i < fileList.length; ++i) {
+    files.push(fileList[i]);
+  }
+  return files;
 }
 
 class PicturesHolder {
   private pictures: Picture[] = [];
 
-  constructor(private domSanitizer: DomSanitizer, private maxAllowedPictures: number) {}
+  constructor(
+    private domSanitizer: DomSanitizer,
+    private maxAllowedPictures: number
+  ) {}
 
   getLength(): number {
     return this.pictures.length;
@@ -20,6 +44,14 @@ class PicturesHolder {
 
   getMaxAllowed(): number {
     return this.maxAllowedPictures;
+  }
+
+  isMaxAllowedReached(): boolean {
+    return this.getLength() === this.getMaxAllowed();
+  }
+
+  remainingFilesToUpload(): number {
+    return this.getMaxAllowed() - this.getLength();
   }
 
   getFiles(): File[] {
@@ -30,10 +62,18 @@ class PicturesHolder {
     return this.pictures;
   }
 
-  add(filesToUpload: FileList | null): void {
-    if (filesToUpload) {
-      const maxRemainingFilesAllowed = this.maxAllowedPictures - this.pictures.length;
-      const maxAllowed = Math.min(maxRemainingFilesAllowed, filesToUpload.length);
+  add(selectedFileList: FileList | null): void {
+    if (selectedFileList) {
+      const filesToUpload = fileListToArrayFile(selectedFileList).filter(
+        (file) => isFileImage(file)
+      );
+
+      const maxRemainingFilesAllowed =
+        this.maxAllowedPictures - this.pictures.length;
+      const maxAllowed = Math.min(
+        maxRemainingFilesAllowed,
+        selectedFileList.length
+      );
       this.load(this.extractMaxAllowedPictures(maxAllowed, filesToUpload));
     }
   }
@@ -41,21 +81,26 @@ class PicturesHolder {
   load(files: File[]): void {
     if (files?.length) {
       this.pictures.push(
-        ...files.map((file) => new Picture(file.name, file, this.convertPictureFileToViewableImageUrl(file)))
+        ...files.map(
+          (file) =>
+            new Picture(
+              file.name,
+              file,
+              this.convertPictureFileToViewableImageUrl(file)
+            )
+        )
       );
     }
   }
 
-  private extractMaxAllowedPictures(maxAllowed: number, files: FileList) {
-    const filesList: File[] = [];
-    for (let i = 0; i < maxAllowed; ++i) {
-      filesList.push(files[i]);
-    }
-    return filesList;
+  private extractMaxAllowedPictures(maxAllowed: number, files: File[]) {
+    return files.slice(0, maxAllowed);
   }
 
   private convertPictureFileToViewableImageUrl(picture: File): SafeUrl {
-    return this.domSanitizer.bypassSecurityTrustUrl(URL.createObjectURL(picture as Blob));
+    return this.domSanitizer.bypassSecurityTrustUrl(
+      URL.createObjectURL(picture as Blob)
+    );
   }
 
   remove(i: number): void {
@@ -85,50 +130,54 @@ interface PictureUploaderFormFieldOptions {
         background-color: red;
         border-radius: 1rem;
       }
-    `
+
+      bella-upload.max-reached {
+        cursor: not-allowed;
+      }
+    `,
   ],
   template: `
     <div class="form-group">
-      <label>{{ field.props['label'] }} ({{ pictureManager.getLength() }} / {{ pictureManager.getMaxAllowed() }})</label>
-      <!-- <div class="d-flex align-items-center mt-2">
-      <div *ngFor="let image of placeHolders; let i = index" class="me-3">
-        <bella-upload
-          [multiple]="field?.props?.limit > 1"
-          [accept]="field?.props?.accept || ''"
-          [enabled]="adImagesFiles.length < field?.props?.limit"
-        ></bella-upload>
-      </div>
-    </div> -->
-
-      <!-- <bella-upload
-      (files)="onFileSelected($event)"
-      [multiple]="field?.props?.limit > 1"
-      [accept]="field?.props?.accept || ''"
-      [enabled]="adImagesFiles.length < field?.props?.limit"
-    ></bella-upload> -->
+      <label [class.error]="field.formControl.errors?.['images']"
+        >{{ field.props['label'] }} ({{ pictureManager.getLength() }} /
+        {{ pictureManager.getMaxAllowed() }})</label
+      >
     </div>
-    <div class="d-flex align-items-center mt-3">
-      <div class="mx-2">
+    <div class="alert alert-info" *ngIf="pictureManager.isMaxAllowedReached()">
+      Vous avez atteint le maximum de photos autorisé !
+    </div>
+    <div
+      *ngIf="field.formControl.errors"
+      class="alert alert-danger"
+      role="alert"
+    >
+      Seules des photos JPG et PNG sont autorisées
+    </div>
+    <div class="d-flex flex-wrap align-items-center mt-3">
+      <div class="mx-1 mt-1" *ngFor="let picture of remainingImagePlaceHolders">
         <bella-upload
           (files)="onFileSelected($event)"
           [multiple]="pictureManager.getMaxAllowed() > 1"
           [accept]="field.props['accept'] || ''"
-          [enabled]="pictureManager.getLength() < pictureManager.getMaxAllowed()"
+          [enabled]="!pictureManager.isMaxAllowedReached()"
         ></bella-upload>
       </div>
-      <div *ngFor="let picture of pictureManager.getPictures(); let i = index" class="mx-2">
+      <div
+        *ngFor="let picture of pictureManager.getPictures(); let i = index"
+        class="mx-1 mt-1"
+      >
         <div class="d-flex align-items-center picture-viewer rounded">
-          <!-- <div class="position-relative picture-viewer"> -->
-          <!-- <div class="position-absolute top-0 start-100 translate-middle remove-picture"></div> -->
-          <!-- <div class="position-absolute top-50 start-50 translate-middle overflow-hidden"> -->
-          <img (click)="removePicture(i)" [src]="picture.url" width="100" [title]="picture.name" [alt]="picture.name" />
-          <!-- </div>
-        </div> -->
+          <img
+            (click)="removePicture(i)"
+            [src]="picture.url"
+            width="100"
+            [title]="'Supprimer ' + picture.name"
+            [alt]="picture.name"
+          />
         </div>
       </div>
-      <!-- <pre>{{ field | json }}</pre> -->
     </div>
-  `
+  `,
 })
 export class PictureUploaderFormFieldComponent
   extends FieldType<FieldTypeConfig & PictureUploaderFormFieldOptions>
@@ -136,47 +185,38 @@ export class PictureUploaderFormFieldComponent
 {
   pictureManager!: PicturesHolder;
 
-  // public get adImagesFiles() {
-  //   return this.pictureManager.getPictures();
-  // }
-
   private get allowedFilesLimit(): number {
     return this.field.props['limit'];
   }
 
-  // public placeHolders: any[] = [];
+  get remainingImagePlaceHolders(): number[] {
+    let size = this.pictureManager.remainingFilesToUpload();
+    if (this.pictureManager.isMaxAllowedReached()) {
+      size += 1;
+    }
+
+    return new Array<number>(size);
+  }
 
   constructor(private domSanitizer: DomSanitizer, private fb: FormBuilder) {
     super();
   }
 
   ngOnInit() {
-    // console.log(this.key);
-    console.log(this.model);
-    this.pictureManager = new PicturesHolder(this.domSanitizer, this.allowedFilesLimit);
+    this.pictureManager = new PicturesHolder(
+      this.domSanitizer,
+      this.allowedFilesLimit
+    );
     this.pictureManager.load(this.model.images);
     this.updateFormcontrol();
   }
 
-  isValid(field: FormlyFieldConfig): boolean {
-    if (field.key) {
-      return Boolean(field.formControl?.valid);
-    }
-
-    return field.fieldGroup ? field.fieldGroup.every((f) => this.isValid(f)) : true;
-  }
-
   onFileSelected(files: FileList | null): void {
-    // this.loadPictures(files);
     this.pictureManager.add(files);
-    this.updateFormcontrol()
-    // this.uploadService.upload(filesList).subscribe((r) => {
-    //   console.log(r);
-    // });
+    this.updateFormcontrol();
   }
 
   updateFormcontrol(): void {
-
     this.formControl.setValue(this.pictureManager.getFiles());
   }
 
@@ -188,6 +228,6 @@ export class PictureUploaderFormFieldComponent
 @NgModule({
   declarations: [PictureUploaderFormFieldComponent],
   exports: [PictureUploaderFormFieldComponent],
-  imports: [CommonModule, UploadModule, ReactiveFormsModule]
+  imports: [CommonModule, UploadModule, ReactiveFormsModule],
 })
 export class PictureUploaderFormFieldModule {}

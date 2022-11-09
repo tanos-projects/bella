@@ -1,9 +1,26 @@
-import { CurrencyPipe, getCurrencySymbol } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
+import { getCurrencySymbol } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output
+} from '@angular/core';
+import {
+  FormBuilder,
+  FormControl,
+  FormGroup
+} from '@angular/forms';
 import { FormlyFieldConfig, FormlyFormOptions } from '@ngx-formly/core';
 import { of } from 'rxjs';
-import { concatMap, distinctUntilChanged, startWith, tap } from 'rxjs/operators';
+import {
+  concatMap,
+  distinctUntilChanged,
+  startWith,
+  tap
+} from 'rxjs/operators';
+
 import { AdDTO } from '../../../shared/models/ads.model';
 import { CountryDTO } from '../../../shared/models/countries.model';
 import { CategoriesService } from '../../../shared/services/categories.service';
@@ -21,12 +38,13 @@ interface AdFormModel {
   city: FormControl<string>;
 }
 
+
 const NO_QUALITY_CATEGORIES = ['services', 'mode-et-beaute', 'sport-et-loisir'];
 @Component({
   selector: 'bella-ad-form',
   templateUrl: './ad-form.component.html',
   styleUrls: ['./ad-form.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdFormComponent implements OnInit {
   // private _submitting = false;
@@ -60,9 +78,8 @@ export class AdFormComponent implements OnInit {
     private userSettingsService: UserSettingsService,
     private countriesService: CountriesService,
     private categoriesService: CategoriesService,
-    private qualitiesService: QualitiesService
-  ) // private currencyPipe: CurrencyPipe
-  {}
+    private qualitiesService: QualitiesService // private currencyPipe: CurrencyPipe
+  ) {}
 
   ngOnInit(): void {
     this.fields = [
@@ -70,7 +87,7 @@ export class AdFormComponent implements OnInit {
         type: 'stepper',
         props: {
           submitButton: true,
-          submitButtonLabel: 'Publier'
+          submitButtonLabel: 'Publier',
         },
         fieldGroup: [
           {
@@ -82,8 +99,8 @@ export class AdFormComponent implements OnInit {
                 focus: true,
                 props: {
                   label: 'Titre',
-                  required: true
-                }
+                  required: true,
+                },
                 // modelOptions: {
                 //   debounce: {
                 //     default: 1000,
@@ -99,10 +116,10 @@ export class AdFormComponent implements OnInit {
                   required: true,
                   options: this.categoriesService.getAll(),
                   valueProp: 'code',
-                  labelProp: 'label'
-                }
-              }
-            ]
+                  labelProp: 'label',
+                },
+              },
+            ],
           },
           {
             templateOptions: { label: 'Photos' },
@@ -113,10 +130,16 @@ export class AdFormComponent implements OnInit {
                 props: {
                   label: 'Photos',
                   limit: 3,
-                  accept: 'images/jpg, images/png'
-                }
-              }
-            ]
+                  accept: '.jpg,.png',
+                },
+                // validators: {
+                //   ip: {
+                //     expression: (c: AbstractControl) => /(\d{1,3}\.){3}\d{1,3}/.test(c.value),
+                //     message: (error: any, field: FormlyFieldConfig) => `"${field.formControl.value}" is not a valid IP Address`,
+                //   },
+                // },
+              },
+            ],
           },
           {
             templateOptions: { label: 'Informations complémentaires' },
@@ -133,11 +156,12 @@ export class AdFormComponent implements OnInit {
                   options: this.qualitiesService.getAll(),
 
                   valueProp: 'code',
-                  labelProp: 'label'
+                  labelProp: 'label',
                 },
                 expressions: {
-                  'templateOptions.required': (model: any) => NO_QUALITY_CATEGORIES.includes(model.category)
-                }
+                  'templateOptions.required': (model: any) =>
+                    NO_QUALITY_CATEGORIES.includes(model.category),
+                },
               },
               {
                 key: 'description',
@@ -146,14 +170,15 @@ export class AdFormComponent implements OnInit {
                 props: {
                   label: 'Description',
                   required: true,
-                  placeholder: 'Donne moi un peu plus de détail sur ton annonce...',
-                  rows: 3
-                }
+                  placeholder:
+                    'Donne moi un peu plus de détail sur ton annonce...',
+                  rows: 3,
+                },
                 // modelOptions: {
                 //   updateOn: 'blur'
                 // }
-              }
-            ]
+              },
+            ],
           },
           {
             templateOptions: { label: 'Localisation' },
@@ -165,30 +190,35 @@ export class AdFormComponent implements OnInit {
                   label: 'Country',
                   required: true,
                   options: [],
-                  compareWith: (o1: CountryDTO, o2: CountryDTO) => o1?.iso2 === o2?.iso2,
+                  compareWith: (o1: CountryDTO, o2: CountryDTO) =>
+                    o1?.iso2 === o2?.iso2,
                   labelProp: 'name',
 
                   //ng-select
-                  clearable: false
+                  clearable: false,
                 },
                 hooks: {
                   onInit: (field) => {
                     if (field?.props) {
-                      field.props.options = this.countriesService.getAllDetailed().pipe(
-                        tap((countries) => {
-                          if (!field.formControl?.value) {
-                            const defaultCountry = countries.find(
-                              (c) => c.iso2 === this.userSettingsService.getCountry()
-                            );
-                            if (defaultCountry) {
-                              field.formControl?.setValue(defaultCountry);
+                      field.props.options = this.countriesService
+                        .getAllDetailed()
+                        .pipe(
+                          tap((countries) => {
+                            if (!field.formControl?.value) {
+                              const defaultCountry = countries.find(
+                                (c) =>
+                                  c.iso2 ===
+                                  this.userSettingsService.getCountry()
+                              );
+                              if (defaultCountry) {
+                                field.formControl?.setValue(defaultCountry);
+                              }
                             }
-                          }
-                        })
-                      );
+                          })
+                        );
                     }
-                  }
-                }
+                  },
+                },
               },
               {
                 key: 'city',
@@ -199,10 +229,10 @@ export class AdFormComponent implements OnInit {
                   options: [],
                   valueProp: 'label',
                   labelProp: 'label',
-                  clearable: false
+                  clearable: false,
                 },
                 expressions: {
-                  'templateOptions.disabled': '!model.country'
+                  'templateOptions.disabled': '!model.country',
                 },
                 hooks: {
                   onInit: (field) => {
@@ -214,20 +244,28 @@ export class AdFormComponent implements OnInit {
                         startWith(country),
                         distinctUntilChanged(),
                         concatMap((value: CountryDTO) => {
-                          return value?.iso2 ? this.countriesService.getCitiesByCountry(value.iso2) : of([]);
+                          return value?.iso2
+                            ? this.countriesService.getCitiesByCountry(
+                                value.iso2
+                              )
+                            : of([]);
                         }),
                         tap((options) => {
-                          if (!options.find((city) => city.label === field.model.city)) {
+                          if (
+                            !options.find(
+                              (city) => city.label === field.model.city
+                            )
+                          ) {
                             field.formControl?.reset();
                             // field.formControl?.clearValidators();
                           }
                         })
                       );
                     }
-                  }
-                }
-              }
-            ]
+                  },
+                },
+              },
+            ],
           },
           {
             templateOptions: { label: 'Prix et modalités de contact' },
@@ -240,8 +278,8 @@ export class AdFormComponent implements OnInit {
                   type: 'number',
                   required: true,
                   addonRight: {
-                    text: '$'
-                  }
+                    text: '$',
+                  },
                 },
                 // modelOptions: {
                 //   updateOn: 'blur'
@@ -249,12 +287,16 @@ export class AdFormComponent implements OnInit {
                 hooks: {
                   onInit: (field) => {
                     if (field.props) {
-                      const country: CountryDTO | undefined = field?.form?.get('country')?.value;
+                      const country: CountryDTO | undefined =
+                        field?.form?.get('country')?.value;
 
-                      field.props['addonRight'].text = getCurrencySymbol(country?.currency ?? 'XOF', 'narrow');
+                      field.props['addonRight'].text = getCurrencySymbol(
+                        country?.currency ?? 'XOF',
+                        'narrow'
+                      );
                     }
-                  }
-                }
+                  },
+                },
               },
               {
                 key: 'contactSettings',
@@ -264,14 +306,14 @@ export class AdFormComponent implements OnInit {
                   options: [
                     { value: 'phone', label: 'Phone' },
                     { value: 'whatsapp', label: 'Whatsapp' },
-                    { value: 'email', label: 'Email' }
-                  ]
-                }
-              }
-            ]
-          }
-        ]
-      }
+                    { value: 'email', label: 'Email' },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
     ];
 
     this.form.patchValue(this.model);

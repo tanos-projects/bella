@@ -2,9 +2,6 @@
 
 $active-color: $primary;
 
-// :host {
-//   display: block;
-// }
 
 .modal-title {
   color: $active-color;
@@ -18,6 +15,7 @@ $active-color: $primary;
   color: $active-color;
   &:disabled {
     color: gray;
+    cursor: not-allowed;
   }
 }
 // button {
