@@ -69,7 +69,7 @@
       </div>
     </div>
     <div class="row g-2 mt-0">
-      <div class="col-6 col-md-6">
+      <div [ngClass]="{ 'col col-md': NO_QUALITY_ALLOWED_CATEGORIES.includes(form.get('category').value), 'col-6 col-md-6': !NO_QUALITY_ALLOWED_CATEGORIES.includes(form.get('category').value) }">
         <label for="category" class="form-label">Catégorie</label>
         <ng-select
           id="category"
@@ -81,7 +81,7 @@
         >
         </ng-select>
       </div>
-      <div class="col-6 col-md-6">
+      <div class="col-6 col-md-6" *ngIf="!NO_QUALITY_ALLOWED_CATEGORIES.includes(form.get('category').value)">
         <label for="quality" class="form-label">Etat</label>
         <ng-select
           id="quality"

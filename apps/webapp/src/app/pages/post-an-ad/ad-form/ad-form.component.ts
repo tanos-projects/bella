@@ -23,7 +23,7 @@ import {
 
 import { AdDTO } from '../../../shared/models/ads.model';
 import { CountryDTO } from '../../../shared/models/countries.model';
-import { CategoriesService } from '../../../shared/services/categories.service';
+import { CategoriesService, NO_QUALITY_CATEGORIES } from '../../../shared/services/categories.service';
 import { CountriesService } from '../../../shared/services/countries.service';
 import { QualitiesService } from '../../../shared/services/qualities.service';
 import { UserSettingsService } from '../../../shared/services/user-settings.service';
@@ -38,8 +38,6 @@ interface AdFormModel {
   city: FormControl<string>;
 }
 
-
-const NO_QUALITY_CATEGORIES = ['services', 'mode-et-beaute', 'sport-et-loisir'];
 @Component({
   selector: 'bella-ad-form',
   templateUrl: './ad-form.component.html',

@@ -4,6 +4,10 @@ import { Observable, shareReplay } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { CategoryDTO } from '../models/categories.model';
 
+
+
+export const NO_QUALITY_CATEGORIES = ['services', 'mode-et-beaute', 'sport-et-loisir'];
+
 @Injectable({ providedIn: 'root' })
 export class CategoriesService {
   private baseUrl = environment.apiBaseUrl;

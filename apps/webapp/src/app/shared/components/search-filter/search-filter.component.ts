@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { BsModalRef } from 'ngx-bootstrap/modal';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { NO_QUALITY_CATEGORIES } from '../../services/categories.service';
 
 import { removeEmpty, SearchService } from '../../services/search.service';
 
@@ -17,6 +18,8 @@ export class SearchFilterComponent implements OnInit, OnDestroy {
   categories$ = this.searchService.categories$;
   qualities$ = this.searchService.qualities$;
   countryCities$ = this.searchService.countryCities$;
+
+  NO_QUALITY_ALLOWED_CATEGORIES: Readonly<string[]> = NO_QUALITY_CATEGORIES;
 
   form!: UntypedFormGroup;
   private unsubscribe$ = new Subject<void>();
@@ -59,6 +62,16 @@ export class SearchFilterComponent implements OnInit, OnDestroy {
         },
       });
 
+    this.form
+      .get('category')
+      .valueChanges.pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (value) => {
+          if (this.NO_QUALITY_ALLOWED_CATEGORIES.includes(value)) {
+            this.form.get('quality').reset();
+          }
+        },
+      });
 
     this.form.valueChanges.pipe(takeUntil(this.unsubscribe$)).subscribe({
       next: (filterValues) => {
