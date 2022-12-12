@@ -15,9 +15,11 @@
         "polyfills": "apps/webapp/src/polyfills.ts",
         "tsConfig": "apps/webapp/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
-        "assets": ["apps/webapp/src/favicon.ico", "apps/webapp/src/assets"],
+        "assets": ["apps/webapp/src/favicon.ico", "apps/webapp/src/assets", "apps/webapp/src/_redirects", "apps/webapp/src/manifest.webmanifest"],
         "styles": ["apps/webapp/src/styles.scss"],
-        "scripts": []
+        "scripts": [],
+        "serviceWorker": true,
+        "ngswConfigPath": "apps/webapp/src/ngsw-config.json"
       },
       "configurations": {
         "production": {
