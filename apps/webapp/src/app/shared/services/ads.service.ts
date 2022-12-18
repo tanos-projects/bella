@@ -25,11 +25,11 @@ export class AdsService {
     const params = new HttpParams()
       .set('category', categoryCode)
       .set('country', this.userSettingsService.getCountry());
-    return this.http.get<AdDTO[]>(`${this.baseUrl}/ads`, { params });
+    return this.http.get<AdDTO[]>(`${this.baseUrl}/publications`, { params });
   }
 
   getOne(id: string): Observable<AdDTO> {
-    return this.http.get<AdDTO>(`${this.baseUrl}/ads/${id}`).pipe(
+    return this.http.get<AdDTO>(`${this.baseUrl}/publications/${id}`).pipe(
       withLatestFrom(this.categoriesService.getAll()),
       map(([ad, categories]) => {
         const adWithCategoryLabel: AdDTO = {
@@ -48,19 +48,19 @@ export class AdsService {
       .set('category', category.code)
       .set('limit', this.maxMostRecentAds)
       .set('country', this.userSettingsService.getCountry());
-    return this.http.get<AdDTO[]>(`${this.baseUrl}/ads/most-recent`, {
+    return this.http.get<AdDTO[]>(`${this.baseUrl}/publications/most-recent`, {
       params,
     });
   }
 
   create(payload: CreateAdDTO): Observable<AdDTO> {
-    return this.http.post<AdDTO>(`${this.baseUrl}/ads`, payload);
+    return this.http.post<AdDTO>(`${this.baseUrl}/publications`, payload);
   }
 
   search(filter: SearchFilter): Observable<PaginatedResult<AdDTO>> {
     const params = new HttpParams({ fromObject: { ...filter } });
-    // return this.http.get<PaginatedResult<AdDTO>>(`${this.baseUrl}/ads`, { params });
-    return this.http.get<AdDTO[]>(`${this.baseUrl}/ads`, { params }).pipe(
+    // return this.http.get<PaginatedResult<AdDTO>>(`${this.baseUrl}/publications`, { params });
+    return this.http.get<AdDTO[]>(`${this.baseUrl}/publications`, { params }).pipe(
       map(
         (records) =>
           ({

@@ -72,15 +72,15 @@ registerLocaleData(localeFr);
             httpMethod: 'DELETE'
           },
           {
-            uri: `${environment.apiBaseUrl}/ads`,
+            uri: `${environment.apiBaseUrl}/publications`,
             httpMethod: 'POST'
           },
           {
-            uri: `${environment.apiBaseUrl}/ads`,
+            uri: `${environment.apiBaseUrl}/publications`,
             httpMethod: 'PATCH'
           },
           {
-            uri: `${environment.apiBaseUrl}/ads`,
+            uri: `${environment.apiBaseUrl}/publications`,
             httpMethod: 'PUT'
           }
         ]
