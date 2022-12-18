@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { UsersService as UsersDomainService } from '../../domain/users/users.service';
+import { UsersService as UsersDomainService } from '@bella/api/domain';
 import { UsersRepositoryNest } from '../persistence/repositories/users-repository-nest';
 
 @Injectable()

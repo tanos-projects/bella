@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { from, Observable } from 'rxjs';
-import { CategoryEntity } from '../../../domain/categories/category.entity';
+import { CategoryEntity } from '@bella/api/domain';
 import {
   CategoriesRepository,
   CategorySearchCriteria,
-} from '../../../domain/categories/categories.repository';
+} from '@bella/api/domain';
 import { Category, CategoryDocument } from '../schemas/category.schema';
 
 @Injectable()

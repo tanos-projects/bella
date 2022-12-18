@@ -5,8 +5,8 @@ import { from, Observable } from 'rxjs';
 import {
   CountrySearchCriteria,
   CountriesRepository,
-} from '../../../domain/countries/countries.repository';
-import { CountryEntity } from '../../../domain/countries/country.entity';
+} from '@bella/api/domain';
+import { CountryEntity } from '@bella/api/domain';
 import { Country, CountryDocument } from '../schemas/country.schema';
 
 @Injectable()

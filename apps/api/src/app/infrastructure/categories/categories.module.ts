@@ -6,7 +6,7 @@ import {
   CategorySchema,
 } from '../persistence/schemas/category.schema';
 import { CategoriesService } from './categories.service';
-// import { CategoriesService as DomainCategoriesService } from '../../domain/categories/categories.service';
+// import { CategoriesService as DomainCategoriesService } from '@bella/api/domain';
 
 @Module({
   imports: [
