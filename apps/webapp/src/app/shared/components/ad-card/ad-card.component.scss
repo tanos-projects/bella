@@ -52,6 +52,7 @@ $city-color: gray; // TODO Theme
 
     .info {
       text-align: center;
+      flex: auto;
       .title {
         // display: -webkit-box;
         // -webkit-box-orient: vertical;
@@ -73,6 +74,10 @@ $city-color: gray; // TODO Theme
 
       .price {
         color: $primary;
+        font-size: 0.7rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
   }
