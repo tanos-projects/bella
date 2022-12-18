@@ -31,7 +31,7 @@ function shuffle<T>(array: Array<T>): Array<T> {
   return [...array].sort(() => Math.random() - 0.5);
 }
 
-@Controller('ads')
+@Controller('publications')
 export class AdsController {
   constructor(
     private adsService: AdsService,
