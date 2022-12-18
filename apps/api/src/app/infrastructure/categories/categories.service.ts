@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CategoriesService as CategoriesDomainService } from '../../domain/categories/categories.service';
+import { CategoriesService as CategoriesDomainService } from '@bella/api/domain';
 import { CategoriesRepositoryNest } from '../persistence/repositories/categories-repository-nest';
 
 @Injectable()

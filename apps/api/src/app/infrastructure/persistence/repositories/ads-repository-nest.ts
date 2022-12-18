@@ -3,9 +3,9 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { from, Observable } from 'rxjs';
 
-import { AdEntity } from '../../../domain/ads/ad.entity';
-import { AdsRepository } from '../../../domain/ads/ads.repository';
-import { FilterCriteria, FilterOptions } from '../../../domain/ads/models';
+import { AdEntity } from '@bella/api/domain';
+import { AdsRepository } from '@bella/api/domain';
+import { FilterCriteria, FilterOptions } from '@bella/api/domain';
 import { Ad, AdDocument } from '../schemas/ad.schema';
 
 @Injectable()

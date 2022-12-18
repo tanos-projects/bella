@@ -1,7 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { CategoryEntity } from '../../domain/categories/category.entity';
+import { CategoryEntity } from '@bella/api/domain';
 import { CategoriesService } from '../../infrastructure/categories/categories.service';
 import { CategoryDTO } from './dto/category-dto';
 

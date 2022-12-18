@@ -2,7 +2,7 @@ import { Controller, Get, Param } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { CountriesService } from '../../infrastructure/countries/countries.service';
-import { CountryEntity } from '../../domain/countries/country.entity';
+import { CountryEntity } from '@bella/api/domain';
 import { CountryDetailedDTO, CountryDTO } from './dto/country-dto';
 import { CitiesService } from '../../infrastructure/cities/cities.service';
 

@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import * as mongoose from 'mongoose';
-import { AdImage, AdStatus, ContactSetting } from '../../../domain/ads/ad.entity';
+import { AdImage, AdStatus, ContactSetting } from '@bella/api/domain';
 import { User } from './user.schema';
 
 export type AdDocument = Ad & mongoose.Document;

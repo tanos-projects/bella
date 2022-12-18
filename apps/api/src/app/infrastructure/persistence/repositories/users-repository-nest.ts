@@ -3,11 +3,11 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { EMPTY, from, Observable } from 'rxjs';
 import { concatMap } from 'rxjs/operators';
-import { UserEntity } from '../../../domain/users/user.entity';
+import { UserEntity } from '@bella/api/domain';
 import {
   UserSearchCriteria,
   UsersRepository,
-} from '../../../domain/users/users.repository';
+} from '@bella/api/domain';
 import { User, UserDocument } from '../schemas/user.schema';
 
 @Injectable()

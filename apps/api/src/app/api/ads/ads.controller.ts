@@ -20,7 +20,7 @@ import { CreateAdDTO } from './dto/create-ad-dto';
 import { UsersService } from '../../infrastructure/users/users.service';
 
 import * as AdMapper from './dto/model-mapper';
-import { UserEntity } from '../../domain/users/user.entity';
+import { UserEntity } from '@bella/api/domain';
 import { Request as ExpressRequest } from 'express';
 
 interface RequestWithUser extends ExpressRequest {

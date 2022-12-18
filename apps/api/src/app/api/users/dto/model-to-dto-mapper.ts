@@ -1,4 +1,4 @@
-import { UserEntity } from '../../../domain/users/user.entity';
+import { UserEntity } from '@bella/api/domain';
 import { UserDTO, UserProfileDTO } from './user-dto';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { CreateUserDTO } from './create-user-dto';

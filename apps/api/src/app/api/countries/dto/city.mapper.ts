@@ -1,6 +1,6 @@
 
 
-import { CityEntity } from '../../../domain/cities/city.entity';
+import { CityEntity } from '@bella/api/domain';
 import { CityDetailedDTO, CityDTO } from './city-dto';
 
 export const modelToDTO: (model: CityEntity) => CityDTO = (model) => ({

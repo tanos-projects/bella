@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CitiesService as CitiesDomainService } from '../../domain/cities/cities.service';
+import { CitiesService as CitiesDomainService } from '@bella/api/domain';
 import { CitiesRepositoryNest } from '../persistence/repositories/cities-repository-nest';
 
 @Injectable()

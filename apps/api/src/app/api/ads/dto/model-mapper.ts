@@ -1,4 +1,4 @@
-import { AdEntity } from '../../../domain/ads/ad.entity';
+import { AdEntity } from '@bella/api/domain';
 import { AdDTO, ContactSettingDTO } from './ad-dto';
 import { CreateAdDTO } from './create-ad-dto';
 
