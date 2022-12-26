@@ -43,6 +43,12 @@ const routes: Routes = [
     canActivate: [AuthGuard, CompleteProfileGuard]
   },
   {
+    path: 'my-publications',
+    loadChildren: () => import('./pages/my-publications/my-publications.module').then((m) => m.MyPublicationsModule),
+    canLoad: [WelcomeGuard],
+    canActivate: [AuthGuard, CompleteProfileGuard]
+  },
+  {
     path: 'profil/:id/:username',
     component: ProfileComponent,
     canLoad: [WelcomeGuard]

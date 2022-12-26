@@ -74,6 +74,32 @@ export class AdsController {
       );
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('my-publications')
+  @ApiBearerAuth()
+  getMyPublications(
+    @Request() req,
+    @Query() filter: any, // TODO type it !
+    @Query('limit') limit: number,
+  ): Observable<AdDTO[]> {
+    const user: AuthUser = req.user;
+    return this.getUser(req.user).pipe(
+      switchMap((user) => {
+        return this.adsService
+        .findAllByOwner(
+          user,
+          { ...filter },
+          {
+            limit: limit ?? 0,
+          },
+        )
+      }
+      ,
+      ),
+      map(AdMapper.modelToDTOList),
+    );
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string): Observable<AdDTO> {
     return this.adsService.findOne(id).pipe(map(AdMapper.modelToDTO));

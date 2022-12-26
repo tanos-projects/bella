@@ -75,4 +75,9 @@ export class AdsService {
       )
     );
   }
+
+  getMyPublications(): Observable<AdDTO[]> {
+    const params = new HttpParams();
+    return this.http.get<AdDTO[]>(`${this.baseUrl}/publications/my-publications`, { params });
+  }
 }
