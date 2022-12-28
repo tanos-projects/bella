@@ -76,7 +76,15 @@ registerLocaleData(localeFr);
             httpMethod: 'POST'
           },
           {
-            uri: `${environment.apiBaseUrl}/publications/my-publications`,
+            uri: `${environment.apiBaseUrl}/publications/my-publications/published`,
+            httpMethod: 'GET'
+          },
+          {
+            uri: `${environment.apiBaseUrl}/publications/my-publications/submitted`,
+            httpMethod: 'GET'
+          },
+          {
+            uri: `${environment.apiBaseUrl}/publications/my-publications/draft`,
             httpMethod: 'GET'
           },
           {

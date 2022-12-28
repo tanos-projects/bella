@@ -11,11 +11,15 @@ import { MyDeviceService } from '../../shared/services/my-device.service';
   styleUrls: ['./my-publications.component.scss'],
 })
 export class MyPublicationsComponent implements OnInit {
-  ads$: Observable<AdDTO[]>;
+  publications$: Observable<AdDTO[]>;
+  submittedPublications$: Observable<AdDTO[]>;
+  drafts$: Observable<AdDTO[]>;
   isMobileMode = this.device.isMobile();
 
   constructor(private adsService: AdsService, private device: MyDeviceService) {
-    this.ads$ = this.adsService.getMyPublications();
+    this.publications$ = this.adsService.getMyPublishedPublications();
+    this.submittedPublications$ = this.adsService.getMySubmittedPublications();
+    this.drafts$ = this.adsService.getMyDraftPublications();
   }
 
   ngOnInit(): void {}

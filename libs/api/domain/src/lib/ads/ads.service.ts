@@ -51,7 +51,7 @@ export class AdsService {
     options?: FilterOptions,
   ): Observable<AdEntity[]> {
     return this.adsRepository.findAll(
-      { ...filter, ...{owner: owner}, status: 'PUBLISHED' },
+      { ...filter, ...{owner: owner} },
       options,
     );
   }

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  NotFoundException,
   Param,
   Post,
   Query,
@@ -20,7 +21,7 @@ import { CreateAdDTO } from './dto/create-ad-dto';
 import { UsersService } from '../../infrastructure/users/users.service';
 
 import * as AdMapper from './dto/model-mapper';
-import { UserEntity } from '@bella/api/domain';
+import { AdStatus, UserEntity } from '@bella/api/domain';
 import { Request as ExpressRequest } from 'express';
 
 interface RequestWithUser extends ExpressRequest {
@@ -75,20 +76,25 @@ export class AdsController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('my-publications')
+  @Get('my-publications/:status')
   @ApiBearerAuth()
   getMyPublications(
+    @Param() params,
     @Request() req,
     @Query() filter: any, // TODO type it !
     @Query('limit') limit: number,
   ): Observable<AdDTO[]> {
+    const status = params.status.toUpperCase();
+    if (![AdStatus.DRAFT, AdStatus.PUBLISHED, AdStatus.SUBMITTED].includes(status)) {
+      throw new NotFoundException();
+    }
     const user: AuthUser = req.user;
     return this.getUser(req.user).pipe(
       switchMap((user) => {
         return this.adsService
         .findAllByOwner(
           user,
-          { ...filter },
+          { ...filter, ...{status: status} },
           {
             limit: limit ?? 0,
           },
