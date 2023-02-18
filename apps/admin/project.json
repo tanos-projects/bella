@@ -1,30 +1,23 @@
 {
-  "name": "webapp",
+  "name": "admin",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "sourceRoot": "apps/webapp/src",
+  "sourceRoot": "apps/admin/src",
   "prefix": "bella",
   "targets": {
     "build": {
       "executor": "@angular-devkit/build-angular:browser",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/apps/webapp",
-        "index": "apps/webapp/src/index.html",
-        "main": "apps/webapp/src/main.ts",
-        "polyfills": "apps/webapp/src/polyfills.ts",
-        "tsConfig": "apps/webapp/tsconfig.app.json",
+        "outputPath": "dist/apps/admin",
+        "index": "apps/admin/src/index.html",
+        "main": "apps/admin/src/main.ts",
+        "polyfills": "apps/admin/src/polyfills.ts",
+        "tsConfig": "apps/admin/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
-        "assets": [
-          "apps/webapp/src/favicon.ico",
-          "apps/webapp/src/assets",
-          "apps/webapp/src/_redirects",
-          "apps/webapp/src/manifest.webmanifest"
-        ],
-        "styles": ["apps/webapp/src/styles.scss"],
-        "scripts": [],
-        "serviceWorker": true,
-        "ngswConfigPath": "apps/webapp/src/ngsw-config.json"
+        "assets": ["apps/admin/src/favicon.ico", "apps/admin/src/assets"],
+        "styles": ["apps/admin/src/styles.scss"],
+        "scripts": []
       },
       "configurations": {
         "production": {
@@ -32,7 +25,7 @@
             {
               "type": "initial",
               "maximumWarning": "500kb",
-              "maximumError": "2mb"
+              "maximumError": "1mb"
             },
             {
               "type": "anyComponentStyle",
@@ -42,8 +35,8 @@
           ],
           "fileReplacements": [
             {
-              "replace": "apps/webapp/src/environments/environment.ts",
-              "with": "apps/webapp/src/environments/environment.prod.ts"
+              "replace": "apps/admin/src/environments/environment.ts",
+              "with": "apps/admin/src/environments/environment.prod.ts"
             }
           ],
           "outputHashing": "all"
@@ -63,35 +56,35 @@
       "executor": "@angular-devkit/build-angular:dev-server",
       "configurations": {
         "production": {
-          "browserTarget": "webapp:build:production"
+          "browserTarget": "admin:build:production"
         },
         "development": {
-          "browserTarget": "webapp:build:development"
+          "browserTarget": "admin:build:development"
         }
       },
       "defaultConfiguration": "development",
       "options": {
-        "proxyConfig": "apps/webapp/proxy.conf.json",
-        "port": 4200
+        "proxyConfig": "apps/admin/proxy.conf.json",
+        "port": 4300
       }
     },
     "extract-i18n": {
       "executor": "@angular-devkit/build-angular:extract-i18n",
       "options": {
-        "browserTarget": "webapp:build"
+        "browserTarget": "admin:build"
       }
     },
     "lint": {
       "executor": "@nrwl/linter:eslint",
       "options": {
-        "lintFilePatterns": ["apps/webapp/**/*.ts", "apps/webapp/**/*.html"]
+        "lintFilePatterns": ["apps/admin/**/*.ts", "apps/admin/**/*.html"]
       }
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/apps/webapp"],
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
-        "jestConfig": "apps/webapp/jest.config.ts",
+        "jestConfig": "apps/admin/jest.config.ts",
         "passWithNoTests": true
       }
     }

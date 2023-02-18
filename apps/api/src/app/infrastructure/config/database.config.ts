@@ -8,9 +8,12 @@ export interface DatabaseConfig {
 
 export default registerAs(
   'database',
-  (): DatabaseConfig => ({
-    uri: process.env.DATABASE_URL || 'mongodb://localhost:27017/tangazo',
-    // user: process.env.DATABASE_USER,
-    // password: process.env.DATABASE_PASSWORD,
-  }),
+  (): DatabaseConfig => {
+    console.log(`------------- DATABASE URI -------------\n\n${process.env.DATABASE_URL}`)
+    return {
+      uri: process.env.DATABASE_URL || 'mongodb://127.0.0.1:27017/tangazo',
+      // user: process.env.DATABASE_USER,
+      // password: process.env.DATABASE_PASSWORD,
+    }
+  },
 );

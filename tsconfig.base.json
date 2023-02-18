@@ -15,7 +15,9 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@bella/api/domain": ["libs/api/domain/src/index.ts"]
+      "@bella/api/adapters": ["libs/api/adapters/src/index.ts"],
+      "@bella/api/domain": ["libs/api/domain/src/index.ts"],
+      "@bella/dtos": ["libs/dtos/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
