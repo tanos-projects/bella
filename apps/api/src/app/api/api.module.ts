@@ -1,17 +1,22 @@
 import { Module } from '@nestjs/common';
 import { InfrastructureModule } from '../infrastructure/infrastructure.module';
+import { AdminPublicationController } from './admin/admin-publication.controller';
+// import { AdminModule } from './admin/admin.module';
 import { AdsController } from './ads.controller';
 import { CategoriesController } from './categories.controller';
 import { CountriesController } from './countries.controller';
 import { UsersController } from './users.controller';
 
 @Module({
-  imports: [InfrastructureModule],
+  imports: [InfrastructureModule/*, AdminModule*/],
   controllers: [
     AdsController,
     CategoriesController,
     CountriesController,
-    UsersController
+    UsersController,
+
+    // Admin controllers
+    AdminPublicationController
   ],
   providers: [],
 })

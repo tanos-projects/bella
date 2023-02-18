@@ -23,7 +23,7 @@ export class PublicationsComponent implements OnInit {
       currency: 'XOF',
       images: [],
       // contactSettings: null,
-      createdAt: '2021-09-02T05:33:15.287Z',
+      createdAt: new Date('2021-09-02T05:33:15.287Z'),
       // updatedAt: '2021-09-02T05:33:15.287Z',
       // owner: {
       //   id: {

@@ -26,6 +26,6 @@ export interface AdDTO extends BaseDTO {
   readonly city?: string;
   readonly currency?: string;
   readonly owner?: UserDTO;
-  readonly createdAt?: string;
+  readonly createdAt?: Date;
   readonly contactSettings?: ContactSettingDTO;
 }

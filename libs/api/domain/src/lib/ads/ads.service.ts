@@ -7,8 +7,7 @@ import { FilterCriteria, FilterOptions } from './models';
 export class AdsService {
   constructor(protected adsRepository: AdsRepository) {}
   create(ad: AdEntity): Observable<AdEntity> {
-    // FIXME : should not be published SUBMITTED
-    return this.createAd(ad, 'PUBLISHED');
+    return this.createAd(ad, 'SUBMITTED');
   }
 
   createDraft(ad: AdEntity): Observable<AdEntity> {
