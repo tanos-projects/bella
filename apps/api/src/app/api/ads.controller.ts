@@ -77,6 +77,11 @@ export class AdsController {
     return this.adsService.findOne(id).pipe(map(AdMapper.modelToDTO));
   }
 
+  @Get('published/:id')
+  findPublishedOne(@Param('id') id: string): Observable<AdDTO> {
+    return this.adsService.findOnePublished(id).pipe(map(AdMapper.modelToDTO));
+  }
+
   // TODO move to admin or add right check
   @UseGuards(JwtAuthGuard)
   @Post()
