@@ -46,9 +46,9 @@ export class AdsService {
     return this.adsRepository.findOne(id);
   }
 
-  // findOnePublished(id: string): Observable<AdEntity> {
-  //   return this.adsRepository.findOnePublished(id);
-  // }
+  findOnePublished(id: string): Observable<AdEntity> {
+    return this.adsRepository.findOnePublished(id);
+  }
 
   findOneUnpublished(id: string): Observable<AdEntity> {
     return this.adsRepository.findOneUnpublished(id);

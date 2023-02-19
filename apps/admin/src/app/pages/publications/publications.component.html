@@ -2,7 +2,8 @@
   <mat-tab-group>
     <mat-tab label="Annonces en attentes">
       <bella-publications-list
-        [items]="(items$ | async) ?? []"
+        [publications]="(unpublishedPublications$ | async) ?? []"
+        (approbationDecision)="onApprobationDecisionMaked($event)"
       ></bella-publications-list
     ></mat-tab>
     <mat-tab label="Second"> Content 2 </mat-tab>

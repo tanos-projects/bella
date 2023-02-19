@@ -105,13 +105,13 @@ export class AdsRepositoryNest implements AdsRepository {
     );
   }
 
-  // findOnePublished(id: string): Observable<AdEntity> {
-  //   return this.findOneByIdAndPublishedStatus(id, true);
-  // }
+  findOnePublished(id: string): Observable<AdEntity> {
+    return from(this.adModel.findOne({ _id: id, status: 'PUBLISHED' }).exec());
+  }
 
   findOneUnpublished(id: string): Observable<AdEntity> {
     // return this.findOneByIdAndPublishedStatus(id, false);
-    return from(this.adModel.findOne({ _id: id, status: 'PUBLISHED' }).exec());
+    return from(this.adModel.findOne({ _id: id, status: 'SUBMITED' }).exec());
   }
 
   // private findOneByIdAndPublishedStatus(

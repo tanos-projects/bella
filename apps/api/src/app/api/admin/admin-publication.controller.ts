@@ -4,7 +4,7 @@ https://docs.nestjs.com/controllers#controllers
 
 import { AdMapper } from '@bella/api/adapters';
 import { AdDTO } from '@bella/dtos';
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { map, Observable, of } from 'rxjs';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { AdsService } from '../../infrastructure/ads/ads.service';
@@ -19,18 +19,16 @@ import { AdsService } from '../../infrastructure/ads/ads.service';
 // @UseGuards(JwtAuthGuard)
 export class AdminPublicationController {
   constructor(private adsService: AdsService) {}
-  // TODO Remove me !
-  @Get('hello')
-  // @SetMetadata('roles', ['admin'])
-  getHello(): Observable<string> {
-    return of('Hello my friend');
-  }
 
   @Get('unpublished')
-  getAllUnpublished(
-  ): Observable<AdDTO[]> {
+  getAllUnpublished(): Observable<AdDTO[]> {
     return this.adsService
       .findAllUnpublished()
       .pipe(map(AdMapper.modelToDTOList));
+  }
+
+  @Post(':id/approve')
+  approveUnpublished(@Param('id') id: string): Observable<AdDTO> {
+    return this.adsService.publish(id).pipe(map(AdMapper.modelToDTO));
   }
 }

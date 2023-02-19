@@ -1,9 +1,60 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { AdDTO } from '@bella/dtos';
 import { of } from 'rxjs';
 
 import { ConfirmationDialogComponent } from '../../../../shared/components/confirmation-dialog/confirmation-dialog.component';
+
+export enum ApprobationEventType {
+  APPROVED,
+  REJECTED,
+  ARCHIVED,
+}
+
+export class ApprobationEvent {
+  publicationId!: string;
+  message?: string;
+  type!: ApprobationEventType;
+
+  static buildApprovedEvent(publicationId: string): ApprobationEvent {
+    return this.buildApprobationEvent(
+      publicationId,
+      ApprobationEventType.APPROVED
+    );
+  }
+  static buildRejectedEvent(
+    publicationId: string,
+    message: string
+  ): ApprobationEvent {
+    return this.buildApprobationEvent(
+      publicationId,
+      ApprobationEventType.REJECTED,
+      message
+    );
+  }
+  static buildArchivedEvent(
+    publicationId: string,
+    message: string
+  ): ApprobationEvent {
+    return this.buildApprobationEvent(
+      publicationId,
+      ApprobationEventType.ARCHIVED,
+      message
+    );
+  }
+
+  private static buildApprobationEvent(
+    publicationId: string,
+    type: ApprobationEventType,
+    message?: string
+  ): ApprobationEvent {
+    return {
+      publicationId,
+      type,
+      message,
+    };
+  }
+}
 
 @Component({
   selector: 'bella-publications-list',
@@ -19,7 +70,9 @@ import { ConfirmationDialogComponent } from '../../../../shared/components/confi
 export class PublicationsListComponent {
   constructor(public dialog: MatDialog) {}
 
-  @Input() items: AdDTO[] = [];
+  @Input() publications: AdDTO[] = [];
+
+  @Output() approbationDecision = new EventEmitter<ApprobationEvent>();
 
   displayedColumns = ['createdAt', 'title', 'price', 'city', 'action'];
   // ngOnInit() {}
@@ -27,6 +80,7 @@ export class PublicationsListComponent {
   onApprove(row: AdDTO): void {
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       data: {
+        // TODO make message configurable / translatable ?
         message: 'Êtes-vous sûr de vouloir approuver cette publication ?',
       },
     });
@@ -34,9 +88,17 @@ export class PublicationsListComponent {
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
         console.log('Approve ', row.id);
+        this.sendApprobationDecision(
+          ApprobationEvent.buildApprovedEvent(row.id)
+        );
       }
     });
   }
+
+  private sendApprobationDecision(approbationEvent: ApprobationEvent) {
+    this.approbationDecision.emit(approbationEvent);
+  }
+
   onReject(row: AdDTO): void {
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       data: { message: 'Êtes-vous sûr de vouloir rejeter cette publication ?' },
@@ -44,10 +106,15 @@ export class PublicationsListComponent {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        const motifRequiredMessage = 'Veuillez saisir le motif de refus';
-        this.askMotivation(motifRequiredMessage).subscribe((motif) => {
-          console.log('Reject ', row.id, motif);
-        });
+        this.askReason('Veuillez saisir le motif de refus').subscribe(
+          (givenReason) => {
+            console.log('Reject ', row.id, givenReason);
+
+            this.sendApprobationDecision(
+              ApprobationEvent.buildRejectedEvent(row.id, givenReason)
+            );
+          }
+        );
       }
     });
   }
@@ -61,14 +128,18 @@ export class PublicationsListComponent {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        this.askMotivation('Veuillez saisir le motif de suppression').subscribe((motif) => {
-          console.log('Delete ', row.id, motif);
-        });
+        this.askReason('Veuillez saisir le motif de suppression').subscribe(
+          (givenReason) => {
+            this.sendApprobationDecision(
+              ApprobationEvent.buildArchivedEvent(row.id, givenReason)
+            );
+          }
+        );
       }
     });
   }
 
-  private askMotivation(motifRequiredMessage: string) {
+  private askReason(motifRequiredMessage: string) {
     return of(prompt(motifRequiredMessage) ?? '<NON_PRECISE>');
   }
 }

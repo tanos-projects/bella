@@ -11,7 +11,7 @@ export interface AdsRepository {
   ): Observable<AdEntity[]>;
   findAllByUserId(userId: string): Observable<AdEntity[]>;
   findOne(id: string): Observable<AdEntity>;
-  // findOnePublished(id: string): Observable<AdEntity>;
+  findOnePublished(id: string): Observable<AdEntity>;
   findOneUnpublished(id: string): Observable<AdEntity>;
   findOneDraft(id: string): Observable<AdEntity>;
 }
