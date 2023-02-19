@@ -12,7 +12,7 @@ export const environment = {
     audience: 'https://base-api/',
     logoutUrl: 'http://localhost:4300',
   },
-  apiBaseUrl: 'http://localhost:3000/api',
+  apiBaseUrl: 'http://localhost:3000/api/admin',
 };
 
 /*
