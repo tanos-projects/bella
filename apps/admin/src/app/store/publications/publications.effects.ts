@@ -1,11 +1,13 @@
 import { Injectable } from '@angular/core';
-import { of, switchMap, tap } from 'rxjs';
+import { switchMap } from 'rxjs';
 
 import { AdminPublicationsService } from '../../shared/services/publications.service';
 import { ofType } from '../utils';
 import {
   approveUnpublishedPublication,
+  archivePublication,
   loadUnpublished,
+  rejectPublication
 } from './publications.action';
 import { PublicationsStore } from './publications.store';
 
@@ -30,6 +32,28 @@ export class PublicationsEffects {
         ofType(approveUnpublishedPublication),
         switchMap(({ payload: { publicationId } }) => {
           return this.service.approve(publicationId);
+        })
+      )
+      .subscribe({
+        next: () => store.dispatch(loadUnpublished()),
+      });
+
+    store.actions$
+      .pipe(
+        ofType(rejectPublication),
+        switchMap(({ payload: { publicationId, reason } }) => {
+          return this.service.reject(publicationId, reason);
+        })
+      )
+      .subscribe({
+        next: () => store.dispatch(loadUnpublished()),
+      });
+
+    store.actions$
+      .pipe(
+        ofType(archivePublication),
+        switchMap(({ payload: { publicationId, reason } }) => {
+          return this.service.archive(publicationId, reason);
         })
       )
       .subscribe({

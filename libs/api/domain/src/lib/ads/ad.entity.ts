@@ -12,12 +12,13 @@ export class ContactSetting {
 }
 
 export enum AdStatus {
-  DRAFT='DRAFT',
-  SUBMITTED='SUBMITTED',
-  PUBLISHED='PUBLISHED',
+  DRAFT = 'DRAFT',
+  SUBMITTED = 'SUBMITTED',
+  APPROVED = 'APPROVED',
+  PUBLISHED = 'PUBLISHED',
+  REJECTED = 'REJECTED',
+  ARCHIVED = 'ARCHIVED',
 }
-
-
 
 export class AdEntity {
   category: string;
@@ -35,6 +36,7 @@ export class AdEntity {
   updatedAt?: Date;
   owner?: UserEntity;
   contactSettings?: ContactSetting;
+  approbationMessage?: string;
 
   // setPublished(value: boolean): void {
   //   this.published = value;

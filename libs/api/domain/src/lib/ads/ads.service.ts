@@ -1,20 +1,22 @@
 import { Observable } from 'rxjs';
 import { concatMap } from 'rxjs/operators';
-import { AdEntity/*, AdStatus*/ } from './ad.entity';
+
+import { AdEntity, AdStatus } from './ad.entity';
 import { AdsRepository } from './ads.repository';
 import { FilterCriteria, FilterOptions } from './models';
 
 export class AdsService {
   constructor(protected adsRepository: AdsRepository) {}
   create(ad: AdEntity): Observable<AdEntity> {
-    return this.createAd(ad, 'SUBMITTED');
+    return this.createAd(ad, AdStatus.SUBMITTED);
   }
 
   createDraft(ad: AdEntity): Observable<AdEntity> {
-    return this.createAd(ad, 'DRAFT');
+    return this.createAd(ad, AdStatus.DRAFT);
   }
 
   private createAd(ad: AdEntity, status: string /*AdStatus*/) {
+    // TODO sanitize title and description (remove link or phone number)
     return this.adsRepository.createNew({
       ...ad,
       status,
@@ -27,19 +29,19 @@ export class AdsService {
 
   findAllPublished(
     filter?: FilterCriteria,
-    options?: FilterOptions,
+    options?: FilterOptions
   ): Observable<AdEntity[]> {
     if (filter.category === 'top' || !filter.category) {
       delete filter['category'];
     }
     return this.adsRepository.findAll(
-      { ...filter, status: 'PUBLISHED' },
-      options,
+      { ...filter, status: AdStatus.PUBLISHED },
+      options
     );
   }
 
   findAllUnpublished(): Observable<AdEntity[]> {
-    return this.adsRepository.findAll({ status: 'SUBMITTED' });
+    return this.adsRepository.findAll({ status: AdStatus.SUBMITTED });
   }
 
   findOne(id: string): Observable<AdEntity> {
@@ -60,21 +62,45 @@ export class AdsService {
       concatMap((ad) => {
         return this.adsRepository.updateOne(id, {
           ...ad,
-          status: 'SUBMITTED',
+          status: AdStatus.SUBMITTED,
         });
-      }),
+      })
     );
   }
 
   // FIXME : comportement un peu bizarre à tester et corriger
   publish(id: string): Observable<AdEntity> {
-    return this.adsRepository.findOneUnpublished(id).pipe(
-      concatMap((ad) => {
-        return this.adsRepository.updateOne(id, {
-          ...ad,
-          status: 'PUBLISHED',
-        });
-      }),
-    );
+    // return this.adsRepository.findOneUnpublished(id).pipe(
+    //   concatMap((ad) => {
+    return this.adsRepository.updateOne(id, {
+      // ...ad,
+      status: AdStatus.PUBLISHED, // TODO => Should be APPROVED before PUBLISHED
+    });
+    //   })
+    // );
+  }
+
+  reject(id: string, approbationMessage: string): Observable<AdEntity> {
+    // return this.adsRepository.findOne(id).pipe(
+    //   concatMap((ad) => {
+    return this.adsRepository.updateOne(id, {
+      // ...ad,
+      approbationMessage,
+      status: AdStatus.REJECTED,
+    });
+    //   })
+    // );
+  }
+
+  archive(id: string, approbationMessage: string): Observable<AdEntity> {
+    // return this.adsRepository.findOne(id).pipe(
+    //   concatMap((ad) => {
+    return this.adsRepository.updateOne(id, {
+      // ...ad,
+      approbationMessage,
+      status: AdStatus.ARCHIVED,
+    });
+    //   })
+    // );
   }
 }

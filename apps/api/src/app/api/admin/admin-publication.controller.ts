@@ -4,9 +4,13 @@ https://docs.nestjs.com/controllers#controllers
 
 import { AdMapper } from '@bella/api/adapters';
 import { AdDTO } from '@bella/dtos';
-import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
-import { map, Observable, of } from 'rxjs';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import {
+  Body,
+  Controller, Get,
+  Param,
+  Patch
+} from '@nestjs/common';
+import { map, Observable } from 'rxjs';
 import { AdsService } from '../../infrastructure/ads/ads.service';
 
 // ADMIN ROLES
@@ -27,8 +31,24 @@ export class AdminPublicationController {
       .pipe(map(AdMapper.modelToDTOList));
   }
 
-  @Post(':id/approve')
+  @Patch('unpublished/:id/approve')
   approveUnpublished(@Param('id') id: string): Observable<AdDTO> {
     return this.adsService.publish(id).pipe(map(AdMapper.modelToDTO));
+  }
+
+  @Patch(':id/reject')
+  reject(
+    @Param('id') id: string,
+    @Body() { reason }: { reason: string }
+  ): Observable<AdDTO> {
+    return this.adsService.reject(id, reason).pipe(map(AdMapper.modelToDTO));
+  }
+
+  @Patch(':id/archive')
+  archive(
+    @Param('id') id: string,
+    @Body() { reason }: { reason: string }
+  ): Observable<AdDTO> {
+    return this.adsService.archive(id, reason).pipe(map(AdMapper.modelToDTO));
   }
 }

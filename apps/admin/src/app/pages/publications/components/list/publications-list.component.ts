@@ -12,14 +12,17 @@ export enum ApprobationEventType {
 }
 
 export class ApprobationEvent {
-  publicationId!: string;
-  message?: string;
-  type!: ApprobationEventType;
+  constructor(
+    readonly publicationId: string,
+    readonly type: ApprobationEventType,
+    readonly message: string
+  ) {}
 
   static buildApprovedEvent(publicationId: string): ApprobationEvent {
     return this.buildApprobationEvent(
       publicationId,
-      ApprobationEventType.APPROVED
+      ApprobationEventType.APPROVED,
+      ''
     );
   }
   static buildRejectedEvent(
@@ -46,13 +49,9 @@ export class ApprobationEvent {
   private static buildApprobationEvent(
     publicationId: string,
     type: ApprobationEventType,
-    message?: string
+    message: string
   ): ApprobationEvent {
-    return {
-      publicationId,
-      type,
-      message,
-    };
+    return new ApprobationEvent(publicationId, type, message);
   }
 }
 
@@ -139,7 +138,7 @@ export class PublicationsListComponent {
     });
   }
 
-  private askReason(motifRequiredMessage: string) {
-    return of(prompt(motifRequiredMessage) ?? '<NON_PRECISE>');
+  private askReason(message: string) {
+    return of(prompt(message) ?? '<NON_PRECISE>');
   }
 }

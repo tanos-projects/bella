@@ -15,14 +15,14 @@ export class AdminPublicationsService {
   }
 
   approve(id: string): Observable<void> {
-    return this.http.post<void>(`${this.baseUrl}/publications/${id}/approve`, {});
+    return this.http.patch<void>(`${this.baseUrl}/publications/unpublished/${id}/approve`, {});
   }
 
   reject(id: string, reason: string): Observable<void> {
-    return this.http.post<void>(`${this.baseUrl}/publications/${id}/reject`, { reason });
+    return this.http.patch<void>(`${this.baseUrl}/publications/${id}/reject`, { reason });
   }
 
   archive(id: string, reason: string): Observable<void> {
-    return this.http.post<void>(`${this.baseUrl}/publications/${id}/archive`, { reason });
+    return this.http.patch<void>(`${this.baseUrl}/publications/${id}/archive`, { reason });
   }
 }

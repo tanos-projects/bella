@@ -42,9 +42,11 @@ export class PublicationsComponent implements OnInit {
         break;
       }
       case ApprobationEventType.REJECTED: {
+        this.actions.rejectPublication(decision.publicationId, decision.message);
         break;
       }
       case ApprobationEventType.ARCHIVED: {
+        this.actions.archivePublication(decision.publicationId, decision.message);
         break;
       }
       default:

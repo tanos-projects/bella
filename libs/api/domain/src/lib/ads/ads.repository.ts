@@ -4,7 +4,7 @@ import { FilterCriteria, FilterOptions } from './models';
 
 export interface AdsRepository {
   createNew(createAd: AdEntity): Observable<AdEntity>;
-  updateOne(id: string, update: AdEntity): Observable<AdEntity>;
+  updateOne(id: string, update: Partial<AdEntity>): Observable<AdEntity>;
   findAll(
     filter?: FilterCriteria,
     options?: FilterOptions,
