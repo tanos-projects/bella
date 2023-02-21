@@ -4,6 +4,8 @@ import { concatMap } from 'rxjs/operators';
 import { AdEntity, AdStatus } from './ad.entity';
 import { AdsRepository } from './ads.repository';
 import { FilterCriteria, FilterOptions } from './models';
+import { UserEntity } from '../users/user.entity';
+
 
 export class AdsService {
   constructor(protected adsRepository: AdsRepository) {}
@@ -42,6 +44,17 @@ export class AdsService {
 
   findAllUnpublished(): Observable<AdEntity[]> {
     return this.adsRepository.findAll({ status: AdStatus.SUBMITTED });
+  }
+
+  findAllByOwner(
+    owner?: UserEntity,
+    filter?: FilterCriteria,
+    options?: FilterOptions,
+  ): Observable<AdEntity[]> {
+    return this.adsRepository.findAll(
+      { ...filter, ...{owner: owner} },
+      options,
+    );
   }
 
   findOne(id: string): Observable<AdEntity> {

@@ -90,4 +90,21 @@ export class AdsService {
       )
     );
   }
+
+  getMySubmittedPublications(): Observable<AdDTO[]> {
+    return this.getPublicationsByStatus('submitted');
+  }
+
+  getMyPublishedPublications(): Observable<AdDTO[]> {
+    return this.getPublicationsByStatus('published');
+  }
+
+  getMyDraftPublications(): Observable<AdDTO[]> {
+    return this.getPublicationsByStatus('draft');
+  }
+
+  private getPublicationsByStatus(status: string): Observable<AdDTO[]> {
+    const params = new HttpParams();
+    return this.http.get<AdDTO[]>(`${this.baseUrl}/publications/my-publications/${status}`, { params });
+  }
 }

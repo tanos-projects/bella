@@ -1,10 +1,11 @@
 import { AdMapper } from '@bella/api/adapters';
-import { UserEntity } from '@bella/api/domain';
+import { AdStatus, UserEntity } from '@bella/api/domain';
 import { AdDTO, CreateAdDTO } from '@bella/dtos';
 import {
   Body,
   Controller,
   Get,
+  NotFoundException,
   Param,
   Post,
   Query,
@@ -71,6 +72,37 @@ export class AdsController {
         this.fakeMostRecentAds(undefined)
       );
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('my-publications/:status')
+  @ApiBearerAuth()
+  getMyPublications(
+    @Param() params,
+    @Request() req,
+    @Query() filter: any, // TODO type it !
+    @Query('limit') limit: number,
+  ): Observable<AdDTO[]> {
+    const status = params.status.toUpperCase();
+    if (![AdStatus.DRAFT, AdStatus.PUBLISHED, AdStatus.SUBMITTED].includes(status)) {
+      throw new NotFoundException();
+    }
+    return this.getUser(req.user).pipe(
+      switchMap((user) => {
+        return this.adsService
+        .findAllByOwner(
+          user,
+          { ...filter, ...{status: status} },
+          {
+            limit: limit ?? 0,
+          },
+        )
+      }
+      ,
+      ),
+      map(AdMapper.modelToDTOList),
+    );
+  }
+
 
   @Get(':id')
   findOne(@Param('id') id: string): Observable<AdDTO> {
