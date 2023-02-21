@@ -1,22 +1,31 @@
 <bella-titled-page [title]="'Publier une annonce'">
   <div class="">
-    <div *ngIf="message" class="alert" [ngClass]="{'alert-danger':  error, 'alert-success': !error}" role="alert">
+    <div
+      *ngIf="message"
+      class="alert"
+      [ngClass]="{ 'alert-danger': error, 'alert-success': !error }"
+      role="alert"
+    >
       {{ message }}
       <pre *ngIf="error">{{ error | json }}</pre>
     </div>
     <div *ngIf="!postedAd">
-      <bella-ad-form [submitting]="submitting" (submitData)="submit($event)"></bella-ad-form>
+      <bella-ad-form
+        [submitting]="submitting"
+        (submitData)="submit($event)"
+      ></bella-ad-form>
     </div>
     <div *ngIf="postedAd">
-
       <h5>Et ensuite ?</h5>
       <p>
-        C'est à nous de travailler pour controller et valider votre annonce. Si elle respecte les règles, elle sera très rapidement publiée.
+        Merci, nous avons bien reçu votre demande de publication d'annonce. Si elle respecte les
+        <a href="#"> conditions générales </a>, elle sera publiée dans les
+        meilleurs délais.
       </p>
-
-      <div class="d-flex justify-content-center">
+      <!-- FIXME comme l'annonce passe en attente de validation on ne peut plus y accéder immédiatement -->
+      <!-- <div class="d-flex justify-content-center">
         <a [routerLink]="postedAdUrlPath">Visualiser mon annonce</a>
-      </div>
+      </div> -->
     </div>
   </div>
 </bella-titled-page>

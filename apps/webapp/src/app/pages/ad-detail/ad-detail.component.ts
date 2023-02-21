@@ -20,7 +20,7 @@ SwiperCore.use([Pagination, Navigation]);
 export class AdDetailComponent {
   isMobileMode: boolean = this.device.isMobile();
   id: string = this.routeParams.snapshot.params['id'];
-  ad$ = this.adsService.getOne(this.id);
+  ad$ = this.adsService.getPublishedOne(this.id);
   contact$ = this.ad$.pipe(map((ad) => this.contactService.getContactData(ad)));
   currentPageLink!: string;
 

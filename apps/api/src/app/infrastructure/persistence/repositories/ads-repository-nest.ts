@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { from, Observable } from 'rxjs';
+import { from, Observable, tap } from 'rxjs';
 
-import { AdEntity } from '@bella/api/domain';
+import { AdEntity, AdStatus } from '@bella/api/domain';
 import { AdsRepository } from '@bella/api/domain';
 import { FilterCriteria, FilterOptions } from '@bella/api/domain';
 import { Ad, AdDocument } from '../schemas/ad.schema';
@@ -17,17 +17,17 @@ export class AdsRepositoryNest implements AdsRepository {
     return from(createdAd.save());
   }
 
-  updateOne(id: string, update: AdEntity): Observable<AdEntity> {
+  updateOne(id: string, update: Partial<AdEntity>): Observable<AdEntity> {
     return from(
       this.adModel.findOneAndUpdate(
         { _id: id },
         // FIXME : find a way to bind User and UserEntity properly
-        { ...update } as any, // TODO remove any
+        { ...update },
         {
           useFindAndModify: false,
         },
       ),
-    );
+    ).pipe(tap(x => console.log(x)));
   }
 
   findAll(
@@ -36,6 +36,7 @@ export class AdsRepositoryNest implements AdsRepository {
   ): Observable<AdEntity[]> {
     let filterToUse: any = { ...filter };
 
+    // TODO : extract into builder class
     filterToUse = this.manageKeyword(filterToUse);
     filterToUse = this.managePrice(filterToUse);
 
@@ -102,16 +103,16 @@ export class AdsRepositoryNest implements AdsRepository {
           populate: 'owner',
         })
         .exec(),
-    );
+    ).pipe(tap(x => console.log(x)));
   }
 
-  // findOnePublished(id: string): Observable<AdEntity> {
-  //   return this.findOneByIdAndPublishedStatus(id, true);
-  // }
+  findOnePublished(id: string): Observable<AdEntity> {
+    return from(this.adModel.findOne({ _id: id, status: AdStatus.PUBLISHED }).exec());
+  }
 
   findOneUnpublished(id: string): Observable<AdEntity> {
     // return this.findOneByIdAndPublishedStatus(id, false);
-    return from(this.adModel.findOne({ _id: id, status: 'PUBLISHED' }).exec());
+    return from(this.adModel.findOne({ _id: id, status: AdStatus.SUBMITTED }).exec());
   }
 
   // private findOneByIdAndPublishedStatus(
@@ -122,7 +123,7 @@ export class AdsRepositoryNest implements AdsRepository {
   // }
 
   findOneDraft(id: string): Observable<AdEntity> {
-    return from(this.adModel.findOne({ _id: id, status: 'DRAFT' }).exec());
+    return from(this.adModel.findOne({ _id: id, status: AdStatus.DRAFT }).exec());
   }
 
   findAllByUserId(userId: string): Observable<AdEntity[]> {

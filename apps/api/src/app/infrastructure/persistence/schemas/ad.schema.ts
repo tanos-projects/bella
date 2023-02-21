@@ -31,17 +31,19 @@ export class Ad {
   @Prop({
     type: String,
     required: true,
-    enum: [AdStatus.DRAFT, AdStatus.PUBLISHED, AdStatus.SUBMITTED],
+    enum: Object.keys(AdStatus)
   })
   status: string;
   @Prop({ required: true })
   title: string;
   @Prop()
   contactSettings?: ContactSetting;
+  @Prop()
+  approbationMessage?: string;
   @Prop({ default: Date.now })
   createdAt?: Date;
   @Prop({ default: Date.now })
-  updateAt?: Date;
+  updatedAt?: Date;
 }
 
 export const AdSchema = SchemaFactory.createForClass(Ad);

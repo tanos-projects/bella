@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { concatMap, map, withLatestFrom } from 'rxjs/operators';
+import { Observable } from 'rxjs';
+import { map, withLatestFrom } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
 import { AdDTO, CreateAdDTO } from '../models/ads.model';
@@ -28,8 +28,23 @@ export class AdsService {
     return this.http.get<AdDTO[]>(`${this.baseUrl}/publications`, { params });
   }
 
-  getOne(id: string): Observable<AdDTO> {
-    return this.http.get<AdDTO>(`${this.baseUrl}/publications/${id}`).pipe(
+  getPublishedOne(id: string): Observable<AdDTO> {
+    return this.http.get<AdDTO>(`${this.baseUrl}/publications/published/${id}`).pipe(
+      withLatestFrom(this.categoriesService.getAll()),
+      map(([ad, categories]) => {
+        const adWithCategoryLabel: AdDTO = {
+          ...ad,
+          category: categories.find(
+            (category) => category.code === ad.category
+          ).label,
+        };
+        return adWithCategoryLabel;
+      })
+    );
+  }
+
+  getUnpublishedOne(id: string): Observable<AdDTO> {
+    return this.http.get<AdDTO>(`${this.baseUrl}/publications/unpublished/${id}`).pipe(
       withLatestFrom(this.categoriesService.getAll()),
       map(([ad, categories]) => {
         const adWithCategoryLabel: AdDTO = {
