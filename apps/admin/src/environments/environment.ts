@@ -7,7 +7,8 @@ export const environment = {
   isMobileMode: true,
   authConfig: {
     domain: 'dev-bata.eu.auth0.com',
-    clientId: 'SwrAN2wpotPHDX3qolANvGM7g1kA19rE',
+    //clientId: 'SwrAN2wpotPHDX3qolANvGM7g1kA19rE',
+    clientId: '7X5lEqv9ifgKKGyEQvtizhjP8uJdyvAL',
     redirectUri: 'http://localhost:4300/loggedIn',
     audience: 'https://base-api/',
     logoutUrl: 'http://localhost:4300',
