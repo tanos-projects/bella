@@ -9,6 +9,9 @@
     "build": "nx build",
     "test": "nx test"
   },
+  "engines": {
+    "node": ">=22 <23"
+  },
   "private": true,
   "dependencies": {
     "@angular/animations": "~14.2.0",
@@ -47,7 +50,7 @@
     "dayjs": "^1.10.4",
     "dotenv": "^16.0.1",
     "jwks-rsa": "^2.1.4",
-    "mongoose": "^6.4.2",
+    "mongoose": "^6.13.10",
     "ng-bootstrap-form-validation": "^9.0.1",
     "ngx-bootstrap": "^8.0.0",
     "ngx-device-detector": "^3.0.0",
