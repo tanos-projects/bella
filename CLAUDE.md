@@ -70,13 +70,16 @@ Feature domains: `ads`, `categories`, `cities`, `countries`, `users`. Adding one
 
 ### Authorization gaps to be aware of
 
-Several guards are commented out rather than absent, which is easy to misread as intentional:
+Across the admin controller, the admin app's routes and one of the public
+endpoints, several authorization guards are **commented out rather than absent**
+— which is easy to misread as intentional when editing nearby code. There is
+also no role or permission model anywhere yet: `JwtAuthGuard` only proves the
+caller holds *a* valid Auth0 token, not that they are an administrator.
 
-- `AdminPublicationController` (`api/admin/admin-publication.controller.ts`) is registered in `ApiModule` with its `@UseGuards(JwtAuthGuard)` commented out, and `main.ts` installs no global guard — `/api/admin/publications/*` approve/reject/archive are reachable **unauthenticated**.
-- The `admin` app's routes (`apps/admin/src/app/app.routes.ts`) likewise have `canActivate: [AuthGuard]` commented out.
-- `POST /api/publications/:id/publish` is guarded by `JwtAuthGuard` only, with no ownership or role check, so any authenticated user can publish any ad.
-
-There is no role/permission model anywhere yet — `JwtAuthGuard` only proves *a* valid Auth0 token.
+Before touching anything under `api/admin/`, `apps/admin/src/app/app.routes.ts`,
+or the publish endpoint, read **issue #49** — it inventories what is disabled,
+explains why re-enabling the guards on their own is not enough, and tracks the
+decision on how roles should work.
 
 ## Front-end architecture (webapp and admin)
 
