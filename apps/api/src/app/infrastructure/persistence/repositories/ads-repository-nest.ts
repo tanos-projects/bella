@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { from, Observable, tap } from 'rxjs';
+import { from, Observable } from 'rxjs';
 
 import { AdEntity, AdStatus } from '@bella/api/domain';
 import { AdsRepository } from '@bella/api/domain';
@@ -24,10 +24,13 @@ export class AdsRepositoryNest implements AdsRepository {
         // FIXME : find a way to bind User and UserEntity properly
         { ...update },
         {
+          // Without `new`, Mongoose resolves with the pre-update document and
+          // callers report the ad's previous status back to the client.
+          new: true,
           useFindAndModify: false,
         },
       ),
-    ).pipe(tap(x => console.log(x)));
+    );
   }
 
   findAll(
@@ -103,7 +106,7 @@ export class AdsRepositoryNest implements AdsRepository {
           populate: 'owner',
         })
         .exec(),
-    ).pipe(tap(x => console.log(x)));
+    );
   }
 
   findOnePublished(id: string): Observable<AdEntity> {

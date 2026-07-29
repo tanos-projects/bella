@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { map, Observable } from 'rxjs';
 import { AdsService } from '../../infrastructure/ads/ads.service';
+import { mapAdTransitionError } from '../../utils/ad-transition-error.operator';
 
 // ADMIN ROLES
 // publications : can manage publications (approve, reject, delete) ?
@@ -33,7 +34,9 @@ export class AdminPublicationController {
 
   @Patch('unpublished/:id/approve')
   approveUnpublished(@Param('id') id: string): Observable<AdDTO> {
-    return this.adsService.publish(id).pipe(map(AdMapper.modelToDTO));
+    return this.adsService
+      .publish(id)
+      .pipe(mapAdTransitionError(), map(AdMapper.modelToDTO));
   }
 
   @Patch(':id/reject')
@@ -41,7 +44,9 @@ export class AdminPublicationController {
     @Param('id') id: string,
     @Body() { reason }: { reason: string }
   ): Observable<AdDTO> {
-    return this.adsService.reject(id, reason).pipe(map(AdMapper.modelToDTO));
+    return this.adsService
+      .reject(id, reason)
+      .pipe(mapAdTransitionError(), map(AdMapper.modelToDTO));
   }
 
   @Patch(':id/archive')
@@ -49,6 +54,8 @@ export class AdminPublicationController {
     @Param('id') id: string,
     @Body() { reason }: { reason: string }
   ): Observable<AdDTO> {
-    return this.adsService.archive(id, reason).pipe(map(AdMapper.modelToDTO));
+    return this.adsService
+      .archive(id, reason)
+      .pipe(mapAdTransitionError(), map(AdMapper.modelToDTO));
   }
 }
