@@ -44,7 +44,7 @@ Project names are not directory names: `libs/api/domain` is the **`api-domain`**
 
 Jest is configured per project (`jest.config.ts` at the root only aggregates via `getJestProjects()`), so a root-level jest invocation will not do what you expect — go through Nx.
 
-Nx Cloud is configured as the task runner in `nx.json`. Set `NX_NO_CLOUD=true` to run offline.
+Caching is local: `nx.json` uses Nx's default task runner, with `build`, `lint`, `test` and `e2e` marked cacheable. Nx Cloud is not wired up — it previously was, with its access token committed in cleartext. To turn remote caching back on, issue a fresh token and pass it as `NX_CLOUD_ACCESS_TOKEN` in the environment rather than putting it back in `nx.json`.
 
 The API needs a `.env` (copy `.env.dist`): `DATABASE_URL` (local MongoDB), `CORS_ALLOW_LIST`, and Auth0 `AUTH_ISSUER_URL` / `AUTH_AUDIENCE`. Seed data lives in `apps/api/src/app/infrastructure/fixtures/*.fixture.mongodb`.
 

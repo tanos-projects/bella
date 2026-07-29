@@ -39,5 +39,15 @@ testem.log
 Thumbs.db
 
 .angular
-/apps/**/.env
 /amplify
+
+# secrets — .env.dist is the committed template, .env itself never is.
+# The API reads a .env at the repository root, which only /apps/**/.env
+# covered before, so a root .env would have been committed.
+.env
+.env.*
+!.env.dist
+/apps/**/.env
+
+# Nx local cache
+/.nx/cache
