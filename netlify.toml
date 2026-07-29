@@ -1,18 +1,19 @@
-# Versioned build configuration for the dev-bella site, which serves the
-# public webapp. Without this the settings live only in the dashboard, where
-# they still describe the predecessor repository's layout (a top-level
-# front-end/ directory that does not exist here), so every deploy failed
-# within seconds of starting.
+# Shared Netlify settings for every site built from this repository.
 #
-# Netlify gives this file precedence over the dashboard.
+# Three sites are linked to it — dev-bella (webapp), dev-admin-bella (admin)
+# and api-bella — and a root-level [build] block applies to ALL of them, since
+# netlify.toml has no per-site scoping. Setting `command` and `publish` here
+# therefore made all three deploy the webapp, so those two keys deliberately
+# stay out of this file and belong in each site's own configuration:
 #
-# The SPA rewrite is not repeated here: apps/webapp/src/_redirects already
-# carries `/* /index.html 200` and is copied into the build output by the
-# webapp's `assets` configuration.
-
-[build]
-  command = "npx nx build webapp"
-  publish = "dist/apps/webapp"
+#   dev-bella        npx nx build webapp   ->  dist/apps/webapp
+#   dev-admin-bella  npx nx build admin    ->  dist/apps/admin
+#   api-bella        (the API is a NestJS server, not a static site)
+#
+# Only settings that are correct for every site live here.
+#
+# The SPA rewrite is not needed here either: apps/webapp/src/_redirects carries
+# `/* /index.html 200` and the build copies it into the output.
 
 [build.environment]
   NODE_VERSION = "22"
