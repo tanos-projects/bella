@@ -40,7 +40,7 @@ npx nx lint webapp
 npx nx e2e webapp-e2e
 ```
 
-Project names are not directory names: `libs/api/domain` is the **`api-domain`** project, `libs/api/adapters` is **`api-adapters`**. Run `npx nx show projects` when in doubt.
+Project names are not directory names: `libs/api/domain` is the **`api-domain`** project, `libs/api/adapters` is **`api-adapters`**. `nx show projects` does not exist on Nx 15 — read the `name` field of each `project.json`, or use `npx nx print-affected --type=app --select=projects` to list the apps a diff touches.
 
 Jest is configured per project (`jest.config.ts` at the root only aggregates via `getJestProjects()`), so a root-level jest invocation will not do what you expect — go through Nx.
 
