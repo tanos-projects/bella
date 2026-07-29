@@ -1,6 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { LoadingComponent } from './loading.component';
+import {
+  commonTestImports,
+  commonTestProviders,
+  commonTestSchemas,
+} from '../../../../testing/testing-support';
 
 describe('LoadingComponent', () => {
   let component: LoadingComponent;
@@ -8,7 +13,10 @@ describe('LoadingComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [LoadingComponent]
+      declarations: [LoadingComponent],
+      imports: [...commonTestImports],
+      providers: [...commonTestProviders],
+      schemas: [...commonTestSchemas],
     }).compileComponents();
   });
 

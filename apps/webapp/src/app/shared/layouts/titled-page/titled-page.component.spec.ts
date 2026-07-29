@@ -1,6 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { TitledPageComponent } from './titled-page.component';
+import {
+  commonTestImports,
+  commonTestProviders,
+  commonTestSchemas,
+} from '../../../../testing/testing-support';
 
 describe('TitledPageComponent', () => {
   let component: TitledPageComponent;
@@ -8,7 +13,10 @@ describe('TitledPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [TitledPageComponent]
+      declarations: [TitledPageComponent],
+      imports: [...commonTestImports],
+      providers: [...commonTestProviders],
+      schemas: [...commonTestSchemas],
     }).compileComponents();
   });
 

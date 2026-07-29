@@ -1,6 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { DrawerComponent } from './drawer.component';
+import {
+  commonTestImports,
+  commonTestProviders,
+  commonTestSchemas,
+} from '../../../../testing/testing-support';
 
 describe('DrawerComponent', () => {
   let component: DrawerComponent;
@@ -8,7 +13,10 @@ describe('DrawerComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [DrawerComponent]
+      declarations: [DrawerComponent],
+      imports: [...commonTestImports],
+      providers: [...commonTestProviders],
+      schemas: [...commonTestSchemas],
     }).compileComponents();
   });
 

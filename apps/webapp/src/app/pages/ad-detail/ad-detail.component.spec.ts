@@ -1,6 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { AdDetailComponent } from './ad-detail.component';
+import {
+  commonTestImports,
+  commonTestProviders,
+  commonTestSchemas,
+} from '../../../testing/testing-support';
 
 describe('AdDetailComponent', () => {
   let component: AdDetailComponent;
@@ -8,7 +13,10 @@ describe('AdDetailComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ AdDetailComponent ]
+      declarations: [ AdDetailComponent ],
+      imports: [...commonTestImports],
+      providers: [...commonTestProviders],
+      schemas: [...commonTestSchemas],
     })
     .compileComponents();
   });

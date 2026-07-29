@@ -1,11 +1,24 @@
 import { TestBed } from '@angular/core/testing';
+import { TranslateService } from '@ngx-translate/core';
 import { AppComponent } from './app.component';
-import { NxWelcomeComponent } from './nx-welcome.component';
+import {
+  commonTestImports,
+  commonTestProviders,
+  commonTestSchemas,
+} from '../testing/testing-support';
+import { MyDeviceService } from './shared/services/my-device.service';
+import { SearchService } from './shared/services/search.service';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [AppComponent, NxWelcomeComponent],
+      // NxWelcomeComponent used to be declared here; the file was deleted when
+      // the real shell landed, and the stale import was a compile error that
+      // took the whole suite down with it.
+      declarations: [AppComponent],
+      imports: [...commonTestImports],
+      providers: [...commonTestProviders, MyDeviceService, SearchService],
+      schemas: [...commonTestSchemas],
     }).compileComponents();
   });
 
@@ -15,18 +28,18 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  // it(`should have as title 'webapp'`, () => {
-  //   const fixture = TestBed.createComponent(AppComponent);
-  //   const app = fixture.componentInstance;
-  //   expect(app.title).toEqual('webapp');
-  // });
+  it('registers French as the only language', () => {
+    TestBed.createComponent(AppComponent);
 
-  // it('should render title', () => {
-  //   const fixture = TestBed.createComponent(AppComponent);
-  //   fixture.detectChanges();
-  //   const compiled = fixture.nativeElement as HTMLElement;
-  //   expect(compiled.querySelector('h1')?.textContent).toContain(
-  //     'Welcome webapp'
-  //   );
-  // });
+    const translate = TestBed.inject(TranslateService);
+    expect(translate.getLangs()).toEqual(['fr']);
+    expect(translate.getDefaultLang()).toBe('fr');
+  });
+
+  it('completes its subscriptions on destroy', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+
+    expect(() => fixture.destroy()).not.toThrow();
+  });
 });

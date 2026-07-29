@@ -1,6 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { MyPublicationsComponent } from './my-publications.component';
+import {
+  commonTestImports,
+  commonTestProviders,
+  commonTestSchemas,
+} from '../../../testing/testing-support';
 
 describe('MyPublicationsComponent', () => {
   let component: MyPublicationsComponent;
@@ -9,6 +14,9 @@ describe('MyPublicationsComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [MyPublicationsComponent],
+      imports: [...commonTestImports],
+      providers: [...commonTestProviders],
+      schemas: [...commonTestSchemas],
     }).compileComponents();
 
     fixture = TestBed.createComponent(MyPublicationsComponent);

@@ -13,7 +13,12 @@ export default {
   transform: {
     '^.+\\.(ts|mjs|js|html)$': 'jest-preset-angular',
   },
-  transformIgnorePatterns: ['node_modules/(?!.*\\.mjs$)'],
+  // swiper and its dependencies ship ESM under a .js extension, so the default
+  // "only transform .mjs" rule leaves them untransformed and Jest chokes on
+  // `export`. Any spec that pulls in the carousel hits this.
+  transformIgnorePatterns: [
+    'node_modules/(?!(?:.*\\.mjs$|swiper|ssr-window|dom7))',
+  ],
   snapshotSerializers: [
     'jest-preset-angular/build/serializers/no-ng-attributes',
     'jest-preset-angular/build/serializers/ng-snapshot',

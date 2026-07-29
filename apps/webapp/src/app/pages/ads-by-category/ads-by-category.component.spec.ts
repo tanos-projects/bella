@@ -1,6 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { AdsByCategoryComponent } from './ads-by-category.component';
+import {
+  commonTestImports,
+  commonTestProviders,
+  commonTestSchemas,
+} from '../../../testing/testing-support';
 
 describe('AdsByCategoryComponent', () => {
   let component: AdsByCategoryComponent;
@@ -8,7 +13,10 @@ describe('AdsByCategoryComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ AdsByCategoryComponent ]
+      declarations: [ AdsByCategoryComponent ],
+      imports: [...commonTestImports],
+      providers: [...commonTestProviders],
+      schemas: [...commonTestSchemas],
     })
     .compileComponents();
   });
