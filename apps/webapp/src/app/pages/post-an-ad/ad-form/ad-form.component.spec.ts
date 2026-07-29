@@ -1,6 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { AdFormComponent } from './ad-form.component';
+import {
+  commonTestImports,
+  commonTestProviders,
+  commonTestSchemas,
+} from '../../../../testing/testing-support';
 
 describe('AdFormComponent', () => {
   let component: AdFormComponent;
@@ -8,7 +13,10 @@ describe('AdFormComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ AdFormComponent ]
+      declarations: [ AdFormComponent ],
+      imports: [...commonTestImports],
+      providers: [...commonTestProviders],
+      schemas: [...commonTestSchemas],
     })
     .compileComponents();
 

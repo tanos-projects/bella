@@ -21,6 +21,7 @@ import { AuthUser } from '../auth/auth-user';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdsService } from '../infrastructure/ads/ads.service';
 import { UsersService } from '../infrastructure/users/users.service';
+import { mapAdTransitionError } from '../utils/ad-transition-error.operator';
 
 interface RequestWithUser extends ExpressRequest {
   user: AuthUser;
@@ -133,11 +134,15 @@ export class AdsController {
     );
   }
 
+  // FIXME : guarded by JwtAuthGuard alone, so any authenticated user can
+  // publish any ad — this needs an ownership or role check.
   @UseGuards(JwtAuthGuard)
   @Post(':id/publish')
   @ApiBearerAuth()
   publishAd(@Param('id') id: string): Observable<AdDTO> {
-    return this.adsService.publish(id).pipe(map(AdMapper.modelToDTO));
+    return this.adsService
+      .publish(id)
+      .pipe(mapAdTransitionError(), map(AdMapper.modelToDTO));
   }
 
   private fakeMostRecentAds(

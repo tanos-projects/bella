@@ -1,0 +1,31 @@
+# Netlify build configuration.
+#
+# A root-level [build] block applies to EVERY site linked to this repository,
+# because netlify.toml has no per-site scoping. Three sites are linked today:
+#
+#   dev-bella        the public webapp — the only one in service
+#   dev-admin-bella  the admin console — its production build did not compile
+#                    at all until recently, so it has never served anything
+#   api-bella        an early experiment at hosting the NestJS API here
+#
+# So the settings below are the webapp's, and the other two sites currently
+# receive them too. That is deliberate and temporary: it costs nothing while
+# neither of them serves real traffic, and it lets the webapp deploy from a
+# versioned configuration instead of dashboard state that still described the
+# predecessor repository's layout.
+#
+# Before the admin console goes live, this has to become per-site
+# configuration — each site needs its own build command and publish directory,
+# set on the site itself:
+#
+#   dev-admin-bella  npx nx build admin  ->  dist/apps/admin
+#
+# The SPA rewrite is not repeated here: apps/webapp/src/_redirects carries
+# `/* /index.html 200` and the build copies it into the output.
+
+[build]
+  command = "npx nx build webapp"
+  publish = "dist/apps/webapp"
+
+[build.environment]
+  NODE_VERSION = "22"

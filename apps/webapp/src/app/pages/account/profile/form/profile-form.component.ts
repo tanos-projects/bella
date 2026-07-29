@@ -48,7 +48,10 @@ export class ProfileFormComponent implements OnInit {
   }
 
   private initForm(): void {
-    if (this.user !== null) {
+    // `user` is an optional input, so it is undefined — not null — whenever the
+    // parent leaves it unbound, and a `!== null` guard let that straight
+    // through into a dereference.
+    if (this.user) {
       this.form.patchValue({
         ...this.user,
         birthdate: this.user.birthdate ? this.formatDate(this.user.birthdate) : null

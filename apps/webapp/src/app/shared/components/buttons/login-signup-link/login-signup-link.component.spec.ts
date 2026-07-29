@@ -1,6 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { LoginSignupLinkComponent } from './login-signup-link.component';
+import {
+  commonTestImports,
+  commonTestProviders,
+  commonTestSchemas,
+} from '../../../../../testing/testing-support';
 
 describe('AuthButtonComponent', () => {
   let component: LoginSignupLinkComponent;
@@ -8,7 +13,10 @@ describe('AuthButtonComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [LoginSignupLinkComponent]
+      declarations: [LoginSignupLinkComponent],
+      imports: [...commonTestImports],
+      providers: [...commonTestProviders],
+      schemas: [...commonTestSchemas],
     }).compileComponents();
   });
 

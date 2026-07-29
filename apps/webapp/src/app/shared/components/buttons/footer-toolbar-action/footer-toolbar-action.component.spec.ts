@@ -1,6 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { FooterToolbarActionComponent } from './footer-toolbar-action.component';
+import {
+  commonTestImports,
+  commonTestProviders,
+  commonTestSchemas,
+} from '../../../../../testing/testing-support';
 
 describe('FooterToolbarActionComponent', () => {
   let component: FooterToolbarActionComponent;
@@ -8,7 +13,10 @@ describe('FooterToolbarActionComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [FooterToolbarActionComponent]
+      declarations: [FooterToolbarActionComponent],
+      imports: [...commonTestImports],
+      providers: [...commonTestProviders],
+      schemas: [...commonTestSchemas],
     }).compileComponents();
   });
 
