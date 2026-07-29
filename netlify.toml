@@ -1,19 +1,31 @@
-# Shared Netlify settings for every site built from this repository.
+# Netlify build configuration.
 #
-# Three sites are linked to it — dev-bella (webapp), dev-admin-bella (admin)
-# and api-bella — and a root-level [build] block applies to ALL of them, since
-# netlify.toml has no per-site scoping. Setting `command` and `publish` here
-# therefore made all three deploy the webapp, so those two keys deliberately
-# stay out of this file and belong in each site's own configuration:
+# A root-level [build] block applies to EVERY site linked to this repository,
+# because netlify.toml has no per-site scoping. Three sites are linked today:
 #
-#   dev-bella        npx nx build webapp   ->  dist/apps/webapp
-#   dev-admin-bella  npx nx build admin    ->  dist/apps/admin
-#   api-bella        (the API is a NestJS server, not a static site)
+#   dev-bella        the public webapp — the only one in service
+#   dev-admin-bella  the admin console — its production build did not compile
+#                    at all until recently, so it has never served anything
+#   api-bella        an early experiment at hosting the NestJS API here
 #
-# Only settings that are correct for every site live here.
+# So the settings below are the webapp's, and the other two sites currently
+# receive them too. That is deliberate and temporary: it costs nothing while
+# neither of them serves real traffic, and it lets the webapp deploy from a
+# versioned configuration instead of dashboard state that still described the
+# predecessor repository's layout.
 #
-# The SPA rewrite is not needed here either: apps/webapp/src/_redirects carries
+# Before the admin console goes live, this has to become per-site
+# configuration — each site needs its own build command and publish directory,
+# set on the site itself:
+#
+#   dev-admin-bella  npx nx build admin  ->  dist/apps/admin
+#
+# The SPA rewrite is not repeated here: apps/webapp/src/_redirects carries
 # `/* /index.html 200` and the build copies it into the output.
+
+[build]
+  command = "npx nx build webapp"
+  publish = "dist/apps/webapp"
 
 [build.environment]
   NODE_VERSION = "22"
