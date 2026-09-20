@@ -24,6 +24,7 @@
         <small id="usernameHelp" class="form-text text-muted"
           >Seul ce nom d'utilisateur sera visible des autres utilisateurs</small
         >
+        <bella-field-error [control]="form.get('username')" label="Nom d'utilisateur"></bella-field-error>
       </div>
       <div class="form-group">
         <label for="country">Pays de résidence</label>
@@ -50,6 +51,7 @@
         <small id="countryHelp" class="form-text text-muted"
           >Votre pays de résidence servira à pré-filtrer les annonces pour vous.</small
         >
+        <bella-field-error [control]="form.get('country')" label="Pays de résidence"></bella-field-error>
       </div>
       <div class="form-row">
         <div class="form-group col-md-6">
@@ -75,11 +77,13 @@
           <small id="mobilePhoneHelp" class="form-text text-muted"
             >Votre numéro de téléphone au format international (ex. +22995926532)</small
           >
+          <bella-field-error [control]="form.get('mobilePhone')" label="N° portable"></bella-field-error>
         </div>
 
         <div class="form-group col-md-6">
           <label for="email">Email</label>
           <input type="email" id="email" formControlName="email" class="form-control" />
+          <bella-field-error [control]="form.get('email')" label="Email"></bella-field-error>
         </div>
       </div>
       <fieldset>

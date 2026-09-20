@@ -9,7 +9,7 @@ import { ServiceWorkerModule } from '@angular/service-worker';
 import { AuthHttpInterceptor, AuthModule } from '@auth0/auth0-angular';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
-import { FormlyModule } from '@ngx-formly/core';
+import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core';
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { CollapseModule } from 'ngx-bootstrap/collapse';
@@ -26,6 +26,7 @@ import { WelcomeModule } from './pages/welcome/welcome.module';
 import { DrawerModule } from './shared/components/drawer/drawer.module';
 import { LoadingModule } from './shared/components/loading/loading.module';
 import { SidebarModule } from './shared/components/sidebar/sidebar.module';
+import { VALIDATION_MESSAGE_FORMATTERS } from './shared/form/validation-messages';
 
 registerLocaleData(localeFr);
 
@@ -107,7 +108,6 @@ registerLocaleData(localeFr);
 
     // Shared third party modules
     NgSelectModule, // For entry components (such as Modal)
-    // FormValidationModule.forRoot(),
     ReactiveFormsModule,
 
     ServiceWorkerModule.register('ngsw-worker.js', {
@@ -123,7 +123,12 @@ registerLocaleData(localeFr);
         deps: [HttpClient]
       }
     }),
-    FormlyModule.forRoot(),
+    FormlyModule.forRoot({
+      validationMessages: Object.entries(VALIDATION_MESSAGE_FORMATTERS).map(([name, format]) => ({
+        name,
+        message: (error: any, field: FormlyFieldConfig) => format(error, field.props?.label)
+      }))
+    }),
     FormlyBootstrapModule
   ],
   providers: [
