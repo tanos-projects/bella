@@ -15,10 +15,10 @@ export class AuthCustomService {
   }
 
   signup(): void {
-    this.auth.loginWithRedirect({ screen_hint: 'signup' });
+    this.auth.loginWithRedirect({ authorizationParams: { screen_hint: 'signup' } });
   }
 
   logout(): void {
-    this.auth.logout({ returnTo: environment.authConfig.logoutUrl });
+    this.auth.logout({ logoutParams: { returnTo: environment.authConfig.logoutUrl } });
   }
 }

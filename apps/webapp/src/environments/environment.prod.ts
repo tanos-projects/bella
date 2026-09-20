@@ -4,8 +4,10 @@ export const environment = {
   authConfig: {
     domain: 'dev-bata.eu.auth0.com',
     clientId: '53tGhIBsmv1zPnS7Zne8cBY9XqdySKi0',
-    redirectUri: 'https://www.dev.bellannonces.com/loggedIn',
-    audience: 'https://base-api/',
+    authorizationParams: {
+      redirect_uri: 'https://www.dev.bellannonces.com/loggedIn',
+      audience: 'https://base-api/'
+    },
     logoutUrl: 'https://www.dev.bellannonces.com'
   },
   apiBaseUrl: 'https://api-dev1.bellannonces.com/api',

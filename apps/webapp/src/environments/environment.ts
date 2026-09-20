@@ -8,8 +8,10 @@ export const environment = {
   authConfig: {
     domain: 'dev-bata.eu.auth0.com',
     clientId: '53tGhIBsmv1zPnS7Zne8cBY9XqdySKi0',
-    redirectUri: 'http://localhost:4200/loggedIn',
-    audience: 'https://base-api/',
+    authorizationParams: {
+      redirect_uri: 'http://localhost:4200/loggedIn',
+      audience: 'https://base-api/'
+    },
     logoutUrl: 'http://localhost:4200'
   },
   apiBaseUrl: 'http://localhost:3000/api',
