@@ -1,6 +1,4 @@
-import { DOCUMENT } from '@angular/common';
-import { Inject } from '@angular/core';
-import { Component } from '@angular/core';
+import { Component, DOCUMENT, Inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthCustomService } from '../../../../auth/auth-custom.service';
 import { Observable } from 'rxjs';

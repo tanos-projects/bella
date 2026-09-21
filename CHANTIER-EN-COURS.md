@@ -907,18 +907,183 @@ corrigé.
 `.nx/workspace-data/` à côté du cache — ni l'un ni l'autre n'a vocation à
 être commité).
 
+## Palier 19→20 : fait (commit à suivre juste après ce document)
+
+Versions posées dans `package.json` : famille Angular `~20.3.31`,
+`@angular/cdk`/`@angular/material` `20.2.14`, `@angular/cli`/
+`@angular-devkit/build-angular`/`@angular/pwa` `~20.3.37`,
+`@angular-eslint/*` `~20.7.0`. `typescript` **inchangé** (`~5.8.3` — le
+peer de `@angular/compiler-cli@20.3.31` est `>=5.8 <6.0`, toujours dans la
+plage, première fois depuis le palier 17 qu'aucun des trois — typescript/
+rxjs/jest-preset-angular — n'a eu besoin d'un ajustement en dehors de sa
+propre version). `zone.js` inchangé aussi (`~0.15.1`, pas de peer strict
+qui l'imposerait). Les trois libs UI à peer strict sur le major Angular,
+revérifiées comme prévu : `@ng-select/ng-select` `^14.9.0`→`^16.0.0` (`15.x`
+vise Angular 19, `16.0.0` vise Angular 20 — encore un saut de deux majeures
+de la lib pour un seul palier Angular), `ngx-bootstrap` `19.0.2`→`20.0.2`
+exact (leur numérotation continue de suivre celle d'Angular 1-pour-1),
+`ngx-device-detector` `^9.0.0`→`^10.1.0`. `@ngx-translate/core`/
+`http-loader` toujours `^18.0.0` (pas de version 20.x publiée à ce jour,
+peer plancher `>=18` sans plafond). `jest-preset-angular` `~16.2.0`→
+`~17.0.0` (couvre Angular 20-22, `jest: ^30.0.0` déjà en place depuis le
+palier précédent — aucun bump Jest requis cette fois).
+
+### Renommage `@nrwl/*` → `@nx/*` (Nx 20 supprime les alias legacy)
+
+**Découverte en amont du bump** : les paquets `@nrwl/*` n'ont tout
+simplement **aucune version 20.x publiée** (`npm view @nrwl/angular
+versions` s'arrête à `19.8.14`) — contrairement aux paliers précédents où
+`@nrwl/*` restait un alias compatible de la même version que `nx` lui-même.
+`nx-cloud` (le paquet, pas `@nrwl/nx-cloud`) s'arrête pareil à `19.1.3`,
+sans successeur `@nx/*` connu (fonctionnalité Nx Cloud non câblée sur ce
+repo de toute façon, cf. `CLAUDE.md` — supprimé du `package.json` plutôt
+que de laisser une version figée sans mise à jour possible).
+
+Renommage complet vers l'espace de noms scindé par domaine `@nx/*`
+(20.8.4, aligné sur `nx` lui-même) :
+- `package.json` : `@nrwl/angular`→`@nx/angular`, et en devDependencies
+  `@nrwl/cypress`→`@nx/cypress`, `@nrwl/eslint-plugin-nx`→`@nx/eslint-
+  plugin`, `@nrwl/jest`→`@nx/jest`, `@nrwl/linter`→**`@nx/eslint`** (le
+  paquet `@nrwl/linter` n'a pas de simple équivalent `@nx/linter` — sa
+  responsabilité de lint a été absorbée par `@nx/eslint`), `@nrwl/nest`→
+  `@nx/nest`, `@nrwl/node`→`@nx/node`, `@nrwl/workspace`→`@nx/workspace`,
+  plus `@nx/js` et `@nx/webpack` ajoutés (nécessaires pour les executors
+  de `apps/api`, absents de la liste `@nrwl/*` d'origine sous ces noms
+  exacts mais bien requis une fois renommé — vérifié après coup que le
+  build de l'API n'était pas dans le scope de vérification de ce palier
+  mais que ces deux paquets sont correctement résolus).
+- **Executors dans tous les `project.json`** (`apps/api`, `apps/admin`,
+  `apps/webapp`, `apps/admin-e2e`, `apps/webapp-e2e`, `libs/dtos`,
+  `libs/api/domain`, `libs/api/adapters`) : `@nrwl/webpack:webpack`→
+  `@nx/webpack:webpack`, `@nrwl/js:node`→`@nx/js:node`,
+  `@nrwl/jest:jest`→`@nx/jest:jest`, `@nrwl/cypress:cypress`→
+  `@nx/cypress:cypress`, et **`@nrwl/linter:eslint`→`@nx/eslint:lint`**
+  (le nom de l'executor change aussi, pas seulement le paquet — vérifié
+  dans `node_modules/@nx/eslint/executors.json`, un seul executor exposé,
+  nommé `lint`). Toutes les valeurs vérifiées contre les `executors.json`
+  réels des paquets installés avant d'éditer, pas devinées.
+- **`.eslintrc.json`** (racine + `apps/webapp` + `apps/admin`) : le nom
+  court du plugin change de `@nrwl/nx` à `@nx` (convention ESLint pour un
+  paquet `@scope/eslint-plugin` sans suffixe — vérifié via
+  `Object.keys(require('@nx/eslint-plugin').configs)` et `.rules`) :
+  `"plugins": ["@nrwl/nx"]`→`["@nx"]`, `@nrwl/nx/enforce-module-
+  boundaries`→`@nx/enforce-module-boundaries`, `plugin:@nrwl/nx/typescript`
+  /`javascript`/`angular`/`angular-template`→`plugin:@nx/typescript` etc.
+- **Imports directs** : `jest.preset.js` (`@nrwl/jest/preset`→
+  `@nx/jest/preset`), `jest.config.ts` racine (`@nrwl/jest`→`@nx/jest`,
+  fonction `getJestProjects`), les deux `apps/*-e2e/cypress.config.ts`
+  (`@nrwl/cypress/plugins/cypress-preset`→`@nx/cypress/plugins/cypress-
+  preset`, fonction `nxE2EPreset`).
+- **`nx.json`** : bloc `generators` — clés `@nrwl/angular`/`@nrwl/angular:
+  application`/`:library`/`:component`→`@nx/angular` équivalents (les
+  générateurs par défaut de `nx generate`, pas bloquant si oublié mais
+  corrigé pour la cohérence).
+- **`decorate-angular-cli.js`** (script local, pas un paquet) : son
+  `require('@nrwl/workspace').output` pour les logs colorés du
+  postinstall échouait silencieusement (`Angular CLI could not be
+  decorated... Please ensure @nrwl/workspace is installed`, script qui se
+  contente d'un `console.warn` + `process.exit(0)` en cas d'échec — donc
+  install pas bloquée, mais la mise en cache de calcul de `ng <cmd>` ne
+  s'activait plus). Corrigé en `require('@nx/workspace').output` — vérifié
+  que `@nx/workspace` exporte bien `output` à l'identique.
+
+Vérification finale : `grep -rln "@nrwl" --include="*.json" --include="*.js"
+--include="*.ts" .` (hors `node_modules`) revient vide.
+
+**Point de méthode qui a évité de deviner dans le vide** : avant d'éditer
+quoi que ce soit, installer d'abord les nouvelles versions puis inspecter
+les vrais `executors.json`/exports des paquets fraîchement installés
+(`@nx/eslint/executors.json`, `Object.keys(require('@nx/eslint-plugin').
+configs)`, etc.) plutôt que de deviner les noms par analogie avec l'ancien
+schéma `@nrwl/*` — la leçon du palier 18 sur `@ngx-translate/core`
+(ne pas faire confiance à une note prise en avance) s'applique tout aussi
+bien à un renommage de paquets Nx.
+
+### Nouvelle règle lint à désactiver : `@angular-eslint/prefer-inject`
+
+`@angular-eslint` 20.7.0 introduit `prefer-inject` (préférer `inject()` à
+l'injection par constructeur) — 109 nouvelles erreurs au premier lint,
+sur `webapp` uniquement (le code de service de `webapp` injecte tout par
+constructeur). **Désactivée** dans les deux `apps/*/.eslintrc.json`,
+même bloc que `prefer-standalone` — conflit direct avec la discipline de
+ce chantier ("injection par constructeur conservée pendant toute la montée,
+pas d'`inject()` avant la fin de l'échelle", cf. tête de ce fichier et
+`project_angular_migration_bella` en mémoire Claude). Lint revenu aux
+baselines (webapp 39, admin 15) après désactivation.
+
+### Migration `document-core` (seule migration Angular 20 applicable)
+
+Sur les 6 migrations listées dans `migrations.json` d'Angular 20 :
+- `inject-flags` (enum `InjectFlags` déprécié) : no-op, aucun usage.
+- `test-bed-get` (`TestBed.get()` déprécié) : no-op, aucun usage.
+- `control-flow-migration` (`*ngIf`/`*ngFor`→`@if`/`@for`) : marquée
+  `optional` dans le manifeste, **délibérément pas appliquée** — c'est
+  exactement la modernisation de template différée à un chantier séparé
+  après la fin de l'échelle (cf. discipline en tête de ce fichier).
+- `router-current-navigation` (`Router.getCurrentNavigation()` déprécié) :
+  no-op, aucun usage, et marquée `optional` de toute façon.
+- `add-bootstrap-context-to-server-main` : non applicable, pas de SSR.
+- **`document-core`** (déplace l'import de `DOCUMENT` de `@angular/common`
+  vers `@angular/core`) : **applicable**, 2 fichiers concernés
+  (`apps/webapp/src/app/pages/account/account.component.ts` et
+  `.../profile/create/create-profile-component.ts`). Corrigé à la main
+  (changement d'import trivial, pas besoin de l'outillage schematics-cli
+  pour 2 fichiers) — vérifié au passage que `@angular/common` réexporte
+  encore `DOCUMENT` depuis `@angular/core` en interne (donc l'ancien
+  import n'aurait pas cassé immédiatement, mais suivre la migration
+  officielle reste la bonne pratique).
+
+### Régression de build corrigée : budget bundle `admin` dépassé en erreur
+
+Le build de production `admin` a échoué pour la première fois de tout le
+chantier : `bundle initial exceeded maximum budget. Budget 1.00 MB was not
+met by 42.32 kB with a total of 1.04 MB` — le total du bundle initial (qui
+grossit d'un palier à l'autre, avertissement déjà pré-existant et ignoré
+depuis le palier 17 sur le seuil `maximumWarning: 500kb`) a fini par
+dépasser aussi le seuil `maximumError: 1mb` d'`apps/admin/project.json`,
+purement à cause de la croissance normale du runtime Angular 20 par
+rapport à Angular 19 (928.91 kB→1.04 MB), sans rapport avec un choix de ce
+palier. **`webapp` n'a jamais eu ce problème** car son propre budget
+`maximumError` était déjà à `2mb`. Fixé en alignant `admin` sur la même
+valeur (`1mb`→`2mb` dans `apps/admin/project.json`) plutôt que de
+retoucher le code — un budget de bundle est un choix de seuil
+opérationnel, pas une contrainte de la migration Angular elle-même. Le
+warning à 500kb reste tel quel (pré-existant, hors scope).
+
+### Vérifications finales, toutes vertes sur `/home/tanos/bella`
+
+- Lint webapp : 39 problèmes (5 erreurs / 34 warnings) — identique à la
+  baseline, après désactivation de `@angular-eslint/prefer-inject`.
+- Lint admin : 15 problèmes (3 erreurs / 12 warnings) — identique.
+- Tests webapp : 30/30 suites (43 tests), aucun warning.
+- Tests admin : 3/3 suites (4 passed, 1 skipped — pré-existant).
+- Build production webapp : succès (mêmes avertissements pré-existants).
+- Build production admin : succès après le fix de budget ci-dessus (même
+  warning de bundle à 500kb, pré-existant).
+
 ## Prochaine étape
 
-Palier 19→20 (Angular 20), à faire depuis `/home/tanos/bella`. Pas de
-piège structurel connu à l'avance pour ce palier (contrairement à afrik-
-tangazo qui s'était arrêté à Angular 19) — méthode standard : vérifier
-`node_modules/@angular/core/schematics/migrations.json` pour du nouveau
-(réutiliser la recette d'`angular.json` temporaire documentée ci-dessus si
-une migration `schematics-cli` s'avère nécessaire), bump `package.json`
-(Angular + cdk/material + cli/build-angular + eslint + peer-deps tiers —
-revérifier `ngx-bootstrap`/`ng-select`/`ngx-device-detector` un par un,
-ils ont un peer strict sur le major Angular à chaque palier depuis la 17),
-revérifier la compatibilité `typescript`/`rxjs`/`jest-preset-angular`
-(deux paliers de suite ont eu une surprise sur l'un des trois), `.angular/
-cache`/`.nx/cache` à nettoyer avant tout `serve` post-palier, build/lint/
-test des deux apps, commit.
+Palier 20→21 (Angular 21), à faire depuis `/home/tanos/bella`. Pas de
+piège structurel connu à l'avance, mais méthode à suivre scrupuleusement
+vu l'expérience des 4 derniers paliers :
+1. Vérifier `node_modules/@angular/core/schematics/migrations.json` pour
+   du nouveau (réutiliser la recette d'`angular.json` temporaire
+   documentée plus haut si une migration `schematics-cli` s'avère
+   nécessaire).
+2. Bump `package.json` : Angular + cdk/material + cli/build-angular +
+   eslint, **revérifier `ngx-bootstrap`/`ng-select`/`ngx-device-detector`
+   un par un** (peer strict sur le major Angular à chaque palier depuis
+   la 17, sans exception jusqu'ici).
+3. **Revérifier systématiquement les paquets `@nx/*` et `nx` lui-même**
+   pour un nouveau renommage/dépréciation de paquet (le coup `@nrwl/*`→
+   `@nx/*` a été une découverte tardive ce palier-ci — ne plus supposer
+   qu'un simple bump de version suffit pour l'écosystème Nx, toujours
+   vérifier `npm view @nx/<pkg> versions` avant d'assumer la continuité).
+4. Revérifier la compatibilité `typescript`/`rxjs`/`jest-preset-angular`
+   (chaîne cassée à 3 paliers sur 4 jusqu'ici, sauf celui-ci).
+5. `.angular/cache`/`.nx` à nettoyer avant tout `serve` post-palier.
+6. **Vérifier les budgets de bundle des deux apps après le build** — la
+   croissance normale du runtime Angular peut faire franchir un seuil
+   `maximumError` sans rapport avec le code migré (vécu ce palier-ci sur
+   `admin`).
+7. Build/lint/test des deux apps, commit.

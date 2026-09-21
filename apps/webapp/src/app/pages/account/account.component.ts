@@ -1,5 +1,4 @@
-import { DOCUMENT } from '@angular/common';
-import { Component, Inject } from '@angular/core';
+import { Component, DOCUMENT, Inject } from '@angular/core';
 import { finalize } from 'rxjs/operators';
 
 import { AuthUser } from '../../auth/auth-user.model';
