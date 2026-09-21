@@ -488,13 +488,128 @@ Build prod (webapp + admin), lint (uniquement les erreurs pré-existantes
 déjà documentées, aucune régression dans les fichiers touchés), et Jest
 (webapp 30/30 suites, admin 3/3 suites) tous verts.
 
+## Palier 16→17 : fait (commit à suivre juste après ce document)
+
+Versions posées dans `package.json` : famille Angular (animations/common/
+compiler/core/forms/platform-browser/platform-browser-dynamic/router/
+service-worker/compiler-cli/language-service) `~17.3.12`, `@angular/cdk`/
+`@angular/material` `17.3.10`, `@angular/cli`/`@angular-devkit/
+build-angular`/`@angular/pwa` `~17.3.17`, `@angular-eslint/*` `~17.5.3`,
+`zone.js` `~0.14.0`, `typescript` `~5.4.5`, `@ng-select/ng-select`
+`^12.0.7`, `ngx-bootstrap` `12.0.0` exact, `ngx-device-detector` `^7.0.0`,
+`nx`+tous les `@nrwl/*` `17.3.2`, `nx-cloud` (renommé depuis
+`@nrwl/nx-cloud` par un `nx repair` antérieur) `17.0.0`,
+`@typescript-eslint/eslint-plugin`/`parser` `^7.18.0` (avancé du palier 19
+initialement prévu, voir bug ci-dessous), `eslint` `~8.57.1`, `rxjs`
+`~7.8.2` (voir bug ci-dessous).
+
+### Deux vrais bugs de code trouvés et corrigés
+
+**1. Doublon `@typescript-eslint/utils`.** `@angular-eslint` 17.5.3
+embarque `@typescript-eslint/utils@7.11.0` alors que
+`@typescript-eslint/eslint-plugin@7.18.0` exige la 7.18.0 exacte — npm
+imbrique une deuxième copie au lieu d'échouer, et deux instances de classe
+différentes cassent `class extends` au chargement du plugin (`Class
+extends value undefined is not a constructor or null`). Corrigé via
+`"overrides": {"@typescript-eslint/utils": "7.18.0"}` dans `package.json`
+— confirmé : plus aucune copie imbriquée.
+
+**2. rxjs 7.5.7 incompatible avec TypeScript 5.4.5.** Pas une erreur de
+compilation — l'inférence de type de `.pipe()` dégrade silencieusement
+vers `unknown`, produisant des dizaines d'erreurs `Property 'X' does not
+exist on type 'unknown'` dans des fichiers sans rapport
+(`categories.service.ts`, `ads.service.ts`, `search.service.ts`,
+`home.component.ts`, `ad-detail.component.ts`...). Corrigé en montant
+`rxjs` à `~7.8.2`. **Leçon pour les paliers suivants : revérifier la
+compatibilité rxjs à chaque montée significative de TypeScript**, même en
+l'absence d'erreur de compilation explicite.
+
+### Petits fixes associés
+
+- `apps/webapp/src/test-setup.ts` et `apps/admin/src/test-setup.ts` : le
+  cast `(globalThis as any)` du polyfill `TextEncoder`/`TextDecoder`
+  remplacé par un cast typé, pour satisfaire
+  `@typescript-eslint/no-explicit-any` apparu avec typescript-eslint
+  7.18.0.
+- `nx.json` : migré au format Nx 17 (suppression de `npmScope` et
+  `tasksRunnerOptions`, ajout de `"cache": true` par cible) — migration
+  automatique normale de `nx repair`, pas une régression.
+- `apps/webapp/project.json` : `test.outputs` corrigé en
+  `["{workspaceRoot}/coverage/apps/webapp"]` (l'ancien chemin relatif
+  provoquait une erreur "invalid outputs" bloquant `nx test`).
+- `.prettierignore` : ajout de `/.nx/cache`.
+
+### Le blocage d'installation npm et sa résolution (2026-09-21 → 2026-09-21)
+
+Après le bump de versions ci-dessus, aucune installation npm complète ne
+se terminait proprement sur `/mnt/c` (DrvFs) : `node_modules/rxjs` et le
+`minimatch` imbriqué sous `node_modules/nx` échouaient systématiquement à
+s'extraire, avec une erreur `EACCES`/`rename` touchant un paquet différent
+et sans rapport à chaque tentative (`axobject-query`, `aria-query`,
+`dayjs`, `bootstrap`...). **9 stratégies de contournement épuisées sans
+succès** dans la session du 2026-09-21 (3 réinstallations complètes, 5
+réinstallations ciblées par paquet, 1 passe de comblement) — détail complet
+dans la mémoire Claude `reference_wsl2_sandbox_env_bella` si besoin de le
+revoir, mais **conservé comme référence historique uniquement : le
+problème est résolu, voir ci-dessous**, pas la peine de retenter cette
+recette sur `/mnt/c`.
+
+**Résolution (session suivante, 2026-09-21) : `bella` déplacé hors de
+`/mnt/c` vers le filesystem natif WSL2 (ext4), sur demande explicite de
+l'utilisateur après un rappel des 3 options possibles (retenter / déplacer
+/ mettre en pause).** Nouvel emplacement de travail : **`/home/tanos/bella`**
+— copie complète de l'arbre de travail (`node_modules`/`dist`/`.angular`/
+`.nx/cache`/`coverage`/`out-tsc`/`tmp` exclus, tout le reste identique,
+`git status --short` vérifié identique juste après copie). **L'ancienne
+copie `/mnt/c/.../bella` n'a pas été supprimée** (conservée intacte comme
+sauvegarde) mais **n'est plus la copie de travail** : toute la suite du
+chantier se fait dans `/home/tanos/bella`.
+
+Un `npm install --legacy-peer-deps` complet et direct (sans shim
+`copyfile-shim.js`, sans détour par npm→synp→yarn.lock — plus nécessaire
+sur ext4) a réussi du premier coup sur ce nouvel emplacement : 1614
+paquets installés en 8 minutes, exit code 0, **aucune erreur `EACCES`**.
+`nx --version`, `rxjs/dist/types/index.d.ts` et l'absence de copie
+imbriquée de `@typescript-eslint/utils` ont tous été revérifiés bons.
+**Confirme le diagnostic : le bug `EACCES`-on-rename était bien
+spécifique à DrvFs, pas au contenu du dependency tree.** `package-lock.json`
+généré par cet `npm install` a été supprimé après coup (le projet reste
+sur `yarn.lock`, qui contenait déjà l'état cible du palier 17 depuis la
+session précédente et n'a pas eu besoin d'être régénéré).
+
+**Point de vigilance pour les paliers suivants** : tous les contournements
+DrvFs documentés plus haut dans ce fichier (shim `copyfile-shim.js`,
+saga npm→synp→yarn.lock, `dangerouslyDisableSandbox` pour chmod/rename)
+sont probablement caducs maintenant qu'on travaille sur ext4 natif — **à
+confirmer palier par palier plutôt qu'à supposer** (garder les recettes
+sous la main en cas de résurgence, mais ne plus les appliquer par défaut).
+Le point Nx qui reste valable indépendamment du filesystem : l'appel
+réseau silencieux au démarrage de toute commande `nx` au-delà de `nx show
+projects`, à allowlister (`registry.npmjs.org`, `cloud.nx.app`,
+`cdn.nx.app`, `analytics.nx.app`) ou contourner via
+`dangerouslyDisableSandbox` pour un accès réseau non filtré.
+
+**Vérifications finales, toutes vertes sur `/home/tanos/bella`** :
+- Lint webapp : 39 problèmes (5 erreurs / 34 warnings) — identique à la
+  baseline du palier 16.
+- Lint admin : 15 problèmes (3 erreurs / 12 warnings) — identique.
+- Tests webapp : 30/30 suites (43 tests).
+- Tests admin : 3/3 suites (4 passed, 1 skipped — pré-existant).
+- Build production webapp : succès (warning de budget bundle pré-existant,
+  sans rapport avec la migration).
+- Build production admin : succès (mêmes avertissements pré-existants).
+
 ## Prochaine étape
 
-Palier 16→17. Vérifier l'usage de `@ngx-translate/core` dans bella (voir
-la leçon palier 17→18 ci-dessus sur afrik-tangazo — c'est en fait à ce
-palier 16→17 que les migrations schematics de `ng update` sont à vérifier
-manuellement dans `node_modules/@angular/core/schematics/migrations.json`,
-pas au 17→18). Revérifier les peer-dependencies de chaque lib tierce pour
-Angular 17, éditer `package.json`, réappliquer si besoin le shim
-`copyfile-shim.js` + les domaines réseau Nx documentés ci-dessus,
-build/lint/test des deux apps, commit.
+Palier 17→18 (Angular 18), à faire depuis `/home/tanos/bella`. Recherche
+déjà pré-scopée (voir aussi la mémoire Claude
+`project_angular_migration_bella` côté `/mnt/c` si accessible) :
+`@ngx-translate/core` 18.0.0 supprime `TranslateModule` (remplacer par
+`provideTranslateService()` dans `app.module.ts` + le pipe standalone
+`TranslatePipe` importé directement là où seul le pipe est utilisé, ex.
+`ad-detail.module.ts`) et supprime `TranslateService.setDefaultLang()`
+(remplacer par `.use('fr')`) — à vérifier contre l'usage réel de bella
+avant d'appliquer, le code n'est pas forcément identique à afrik-tangazo.
+Sinon : bump `package.json`, vérifier peer-deps de chaque lib tierce pour
+Angular 18, `.angular/cache`/`.nx/cache` à nettoyer avant tout `ng
+serve`/`nx serve` post-palier, build/lint/test des deux apps, commit.
