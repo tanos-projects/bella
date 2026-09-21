@@ -39,10 +39,10 @@ registerLocaleData(localeFr);
     AppRoutingModule,
 
     // NgxModule
-    CollapseModule.forRoot(),
-    ModalModule.forRoot(),
-    TabsModule.forRoot(),
-    ProgressbarModule.forRoot(),
+    CollapseModule,
+    ModalModule,
+    TabsModule,
+    ProgressbarModule,
 
     DrawerModule.forRoot(),
 

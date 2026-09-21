@@ -1061,29 +1061,171 @@ warning à 500kb reste tel quel (pré-existant, hors scope).
 - Build production admin : succès après le fix de budget ci-dessus (même
   warning de bundle à 500kb, pré-existant).
 
+## Palier 20→21 : fait (commit à suivre juste après ce document)
+
+Versions posées dans `package.json` : famille Angular `~21.2.23`,
+`@angular/cdk`/`@angular/material` `21.2.14`, `@angular/cli`/
+`@angular-devkit/build-angular`/`@angular/pwa` `~21.2.24`,
+`@angular-eslint/*` `~21.4.0`, `nx`+tous les `@nx/*` `21.6.11` (continuité
+confirmée cette fois, pas de nouveau renommage). `typescript`
+`~5.8.3`→`~5.9.3` (`@angular/compiler-cli@21.2.23` exige `>=5.9 <6.1`,
+`~5.8.3` était tombé hors plage — deuxième bump typescript de la chaîne
+14→21, après celui du palier 17). `jest-preset-angular` inchangé
+(`~17.0.0`, couvre déjà Angular 20-22). Troisième palier de suite pour les
+trois libs UI à peer strict : `@ng-select/ng-select` `^16.0.0`→`^21.8.2`
+(leur `17.0.0`/`18.0.0`/`19.0.0`/`20.x` visent tous encore Angular 20 — la
+lib a bumpé sa propre version plusieurs fois sans suivre Angular, seul le
+`21.x` vise Angular 21 ; **ne pas supposer qu'un numéro de version proche
+de celui d'Angular veut dire qu'elle le cible**, toujours vérifier le
+`peerDependencies` réel), `ngx-bootstrap` `20.0.2`→`21.2.2` exact (leur
+numérotation continue de suivre celle d'Angular 1-pour-1, sans exception
+jusqu'ici), `ngx-device-detector` `^10.1.0`→`^11.0.0`.
+
+### Deux vraies régressions trouvées et corrigées (pas des faux positifs de lint cette fois)
+
+**1. `moduleResolution: "node"` ne résout plus `@angular/core/testing`.**
+Jest a échoué à la compilation TypeScript avec `Cannot find module
+'@angular/core/testing'`, sur `apps/webapp` en premier lieu — `@angular/
+core`'s `package.json` n'expose ses sous-chemins (`./testing`, etc.) que
+via un champ `exports` (`{"types": "./types/testing.d.ts", "default":
+"./fesm2022/testing.mjs"}`), sans plus aucun fichier `.d.ts`/`.js` à plat
+à la racine du paquet pour servir de filet de sécurité aux résolveurs
+classiques. `moduleResolution: "node"` (résolution classique, en place
+depuis le tout début du chantier) **ignore entièrement le champ
+`exports`** — elle marchait uniquement parce que ce filet de sécurité
+existait encore dans les versions antérieures d'Angular. Il a disparu à
+un moment de la montée en version (pas identifié précisément à quel
+palier, découvert seulement ici parce que c'est la première fois qu'un
+import de sous-chemin comme `@angular/core/testing` était exercé dans un
+contexte affecté). **Fixé en passant `moduleResolution` à `"bundler"`**
+dans `tsconfig.base.json` — le mode recommandé par Angular lui-même
+depuis plusieurs versions pour les projets buildés par un bundler
+(`@angular-devkit/build-angular`/webpack ici), qui comprend `exports`
+comme le ferait un vrai bundler.
+
+**2. `swiper/angular` casse une fois `exports` pris en compte.** Corollaire
+immédiat du fix ci-dessus : le build de production de `webapp` s'est mis
+à échouer sur le composant carousel (`NG8001: 'swiper' is not a known
+element`, `NG1010: Value ... is not a reference` sur `SwiperModule` dans
+`carousel.module.ts`) — invisible en tests Jest car
+`commonTestSchemas = [NO_ERRORS_SCHEMA]` masque justement cette classe
+d'erreur, seul le build AOT la révèle. Cause : le `package.json` racine de
+`swiper` (v8.4.7, jamais mise à jour depuis le début du chantier — pas en
+cause) déclare un `exports["./angular"]` qui pointe directement vers
+`./angular/fesm2015/swiper_angular.mjs`, **sans condition `"types"` et
+sans `.d.ts` jumeau** à côté de ce fichier — les vraies déclarations de
+types vivent dans un dossier différent
+(`node_modules/swiper/angular/swiper_angular.d.ts`, via un `package.json`
+imbriqué dans `swiper/angular/` que la résolution `"node"` classique
+consultait directement en avant, mais qu'un `exports` map prioritaire
+rend invisible en `"bundler"`). Package trop ancien pour avoir jamais
+adopté la convention `"types"` dans `exports`. **Fixé sans toucher au
+paquet** : un alias `paths` dans `tsconfig.base.json` — `"swiper/angular":
+["node_modules/swiper/angular/swiper_angular.d.ts"]` — qui court-circuite
+la résolution `exports` uniquement pour ce sous-chemin précis. L'import
+racine `swiper` (sans sous-chemin) n'a pas eu besoin du même traitement :
+son `package.json` a un vrai champ `"typings": "swiper.d.ts"` de premier
+niveau, que `"bundler"` sait encore utiliser en repli pour le point
+d'entrée `"."` (contrairement aux sous-chemins, qui n'ont pas cette
+convention de repli).
+
+**Méthode pour la suite** : `moduleResolution: "bundler"` change la
+manière dont *tout* import de sous-chemin tiers est résolu par
+TypeScript (donc par Jest/ts-jest et par la vérification de types de
+l'AOT), pas seulement `@angular/core`. Si un futur palier fait apparaître
+une erreur `Cannot find module`/`is not a known element`/`NG1010` sur un
+import de sous-chemin d'un paquet tiers ancien (candidats connus :
+tout paquet publié avant l'adoption large du champ `exports`, ~2021-2022),
+soupçonner en premier ce changement de résolution plutôt qu'une régression
+du paquet lui-même — vérifier son `package.json` (`exports` sans condition
+`"types"` pour le sous-chemin concerné) avant de chercher ailleurs.
+
+### `ngx-bootstrap` 21.x supprime tous les `.forRoot()`
+
+Découverte en creusant l'erreur `ModalModule.forRoot` (`Property 'forRoot'
+does not exist`) qui a suivi le fix de résolution ci-dessus. Vérifié dans
+les types installés : `CollapseModule`, `ModalModule`, `TabsModule` et
+`ProgressbarModule` n'ont plus de méthode statique `forRoot()` du tout
+(leur services, ex. `BsModalService`, sont maintenant `providedIn: 'root'`
+— plus besoin de configuration au niveau du module). Corrigé dans
+`apps/webapp/src/app/app.module.ts` (les 4 imports passés de `XModule.
+forRoot()` à `XModule` simple) et `apps/webapp/src/testing/testing-
+support.ts` (`ModalModule.forRoot()`→`ModalModule`, commentaire mis à
+jour). `admin` n'utilise pas `ngx-bootstrap`, aucun changement nécessaire
+là-bas. Un `grep -rn "ngx-bootstrap"` avant de commencer aurait permis de
+répérer ces 4 usages sans attendre que le compilateur les révèle un par
+un — réflexe à prendre plus tôt au prochain bump majeur d'une lib UI
+tierce.
+
+### `control-flow-migration` n'est plus `optional` dans le manifeste Angular 21, mais reste hors scope
+
+`node_modules/@angular/core/schematics/migrations.json` liste 6 entrées ;
+`control-flow-migration` (`*ngIf`/`*ngFor`→`@if`/`@for`) a perdu son flag
+`"optional": true` par rapport au palier 20 — mais puisque ce chantier
+n'utilise jamais `ng update` (qui est le seul mécanisme qui lirait ce
+flag pour décider d'un prompt), ça n'a aucune incidence pratique ici.
+**Délibérément pas appliquée**, toujours pour la même raison que les
+paliers précédents (modernisation de template différée après la fin de
+l'échelle). Les 5 autres (`router-current-navigation`,
+`router-last-successful-navigation`, `application-config-core`,
+`add-bootstrap-context-to-server-main`, `bootstrap-options-migration`) :
+no-op, vérifié par grep — aucun usage de `getCurrentNavigation`/
+`lastSuccessfulNavigation`/`ApplicationConfig`, pas de SSR, et
+`platformBrowserDynamic().bootstrapModule(AppModule)` (sans second
+argument d'options) dans les deux `main.ts`.
+
+### Nouvelle règle lint : `@angular-eslint/template/prefer-control-flow`
+
+Contrepartie template de `control-flow-migration` ci-dessus : 84 nouvelles
+erreurs au premier lint de `webapp` (poussant vers `@if`/`@for`).
+**Désactivée** dans les deux `apps/*/.eslintrc.json`, cette fois dans les
+**deux** blocs d'override (`*.ts`, qui lint aussi les templates inline via
+`plugin:@angular-eslint/template/process-inline-templates`, **et** `*.html`)
+— contrairement à `prefer-standalone`/`prefer-inject` qui ne vivaient que
+dans le bloc `*.ts`. Lint revenu aux baselines après ce double ajout.
+
+### Vérifications finales, toutes vertes sur `/home/tanos/bella`
+
+- Lint webapp : 39 problèmes (5 erreurs / 34 warnings) — identique à la
+  baseline, après désactivation de `prefer-control-flow`.
+- Lint admin : 15 problèmes (3 erreurs / 12 warnings) — identique.
+- Tests webapp : 30/30 suites (43 tests).
+- Tests admin : 3/3 suites (4 passed, 1 skipped — pré-existant).
+- Build production webapp : succès après les deux fixes de résolution
+  ci-dessus (mêmes avertissements pré-existants, budget bundle à 1.56 MB
+  toujours sous le seuil `maximumError: 2mb`).
+- Build production admin : succès (bundle à 1.06 MB, toujours sous le
+  `maximumError: 2mb` relevé au palier précédent).
+
 ## Prochaine étape
 
-Palier 20→21 (Angular 21), à faire depuis `/home/tanos/bella`. Pas de
-piège structurel connu à l'avance, mais méthode à suivre scrupuleusement
-vu l'expérience des 4 derniers paliers :
+Palier 21→22 (Angular 22, **dernier palier de l'échelle 14→22**), à faire
+depuis `/home/tanos/bella`. Point de convergence attendu (cf. section
+"Leçons apprises sur afrik-tangazo" en tête de ce fichier) :
 1. Vérifier `node_modules/@angular/core/schematics/migrations.json` pour
-   du nouveau (réutiliser la recette d'`angular.json` temporaire
-   documentée plus haut si une migration `schematics-cli` s'avère
-   nécessaire).
+   du nouveau.
 2. Bump `package.json` : Angular + cdk/material + cli/build-angular +
-   eslint, **revérifier `ngx-bootstrap`/`ng-select`/`ngx-device-detector`
-   un par un** (peer strict sur le major Angular à chaque palier depuis
-   la 17, sans exception jusqu'ici).
-3. **Revérifier systématiquement les paquets `@nx/*` et `nx` lui-même**
-   pour un nouveau renommage/dépréciation de paquet (le coup `@nrwl/*`→
-   `@nx/*` a été une découverte tardive ce palier-ci — ne plus supposer
-   qu'un simple bump de version suffit pour l'écosystème Nx, toujours
-   vérifier `npm view @nx/<pkg> versions` avant d'assumer la continuité).
-4. Revérifier la compatibilité `typescript`/`rxjs`/`jest-preset-angular`
-   (chaîne cassée à 3 paliers sur 4 jusqu'ici, sauf celui-ci).
-5. `.angular/cache`/`.nx` à nettoyer avant tout `serve` post-palier.
-6. **Vérifier les budgets de bundle des deux apps après le build** — la
-   croissance normale du runtime Angular peut faire franchir un seuil
-   `maximumError` sans rapport avec le code migré (vécu ce palier-ci sur
-   `admin`).
-7. Build/lint/test des deux apps, commit.
+   eslint + tous les `@nx/*`/`nx`.
+3. **`decorate-angular-cli.js` va probablement casser ou devenir un
+   no-op** : le postinstall de ce palier a déjà averti `Decoration of the
+   Angular CLI is deprecated and will be removed in Nx v22`. Vérifier si
+   le mécanisme de décoration existe encore après le bump ; si non,
+   supprimer le script et la ligne `postinstall` de `package.json`
+   plutôt que de laisser un postinstall qui échoue silencieusement.
+4. **Revérifier `ngx-bootstrap`/`ng-select`/`ngx-device-detector` un par
+   un** — toujours vérifier le `peerDependencies` réel de la version
+   candidate plutôt que de supposer qu'un numéro de version proche
+   d'Angular la cible (leçon du palier 21 sur `ng-select`).
+5. Revérifier la compatibilité `typescript`/`rxjs`/`jest-preset-angular`.
+6. `.angular/cache`/`.nx` à nettoyer avant tout `serve` post-palier.
+7. Vérifier les budgets de bundle des deux apps après le build.
+8. **Après ce palier, c'est la fin de l'échelle de version** — prochaine
+   étape naturelle : geler ce chantier de migration et ouvrir le chantier
+   séparé de modernisation (standalone, signals, `@if`/`@for`, `inject()`)
+   explicitement différé depuis le début (cf. décision actée en tête de
+   ce fichier et mémoire Claude `angular-14-to-22-migration-bella`), en
+   réactivant au passage les règles lint désactivées pendant l'échelle
+   (`prefer-standalone`, `prefer-inject`, `prefer-control-flow`) au fur
+   et à mesure que le code modernisé les satisfait.
+9. Build/lint/test des deux apps, commit — dernier commit de palier avant
+   la passation vers le chantier de modernisation.

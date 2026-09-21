@@ -47,9 +47,9 @@ export const commonTestImports = [
   RouterTestingModule,
   ReactiveFormsModule,
   NoopAnimationsModule,
-  // BsModalService is injected by the upload component and pulls in
-  // RendererFactory2, which forRoot() wires up.
-  ModalModule.forRoot(),
+  // BsModalService is injected by the upload component; ngx-bootstrap 21
+  // dropped ModalModule.forRoot() (BsModalService is providedIn: 'root' now).
+  ModalModule,
 ];
 
 /**
