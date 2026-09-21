@@ -4,7 +4,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AuthService } from '@auth0/auth0-angular';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { EMPTY, of } from 'rxjs';
 
 import { ModalModule } from 'ngx-bootstrap/modal';
@@ -47,7 +47,6 @@ export const commonTestImports = [
   RouterTestingModule,
   ReactiveFormsModule,
   NoopAnimationsModule,
-  TranslateModule.forRoot(),
   // BsModalService is injected by the upload component and pulls in
   // RendererFactory2, which forRoot() wires up.
   ModalModule.forRoot(),
@@ -61,6 +60,7 @@ export const commonTestImports = [
  */
 export const commonTestProviders = [
   { provide: AuthService, useValue: mockAuthService },
+  provideTranslateService(),
   AuthCustomService,
   AuthUserService,
   DrawerService,

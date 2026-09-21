@@ -6,4 +6,6 @@ if (typeof globalThis.TextEncoder === 'undefined') {
   (globalThis as unknown as { TextDecoder: typeof TextDecoder }).TextDecoder = TextDecoder;
 }
 
-import 'jest-preset-angular/setup-jest';
+import { setupZoneTestEnv } from 'jest-preset-angular/setup-env/zone';
+
+setupZoneTestEnv();

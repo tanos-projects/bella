@@ -31,7 +31,7 @@ export class AppComponent implements OnDestroy {
     this.info = deviceService.getInfo();
 
     translate.addLangs(['fr']);
-    translate.setDefaultLang('fr');
+    translate.use('fr');
 
     this.router.events
       .pipe(

@@ -599,17 +599,200 @@ projects`, à allowlister (`registry.npmjs.org`, `cloud.nx.app`,
   sans rapport avec la migration).
 - Build production admin : succès (mêmes avertissements pré-existants).
 
+## Palier 17→18 : fait (commit à suivre juste après ce document)
+
+Versions posées dans `package.json` : famille Angular (animations/common/
+compiler/core/forms/platform-browser/platform-browser-dynamic/router/
+service-worker/compiler-cli/language-service) `~18.2.14`, `@angular/cdk`/
+`@angular/material` `18.2.14`, `@angular/cli`/`@angular-devkit/
+build-angular`/`@angular/pwa` `~18.2.21`, `@angular-eslint/*` `~18.4.3`,
+`nx`+tous les `@nrwl/*` `18.3.5`, `nx-cloud` `18.0.1`, `jest-preset-angular`
+`~14.6.2` (la `13.1.4` plafonnait son peer-range à `<18.0.0`, donc
+obligatoire à ce palier même si Jest lui-même n'a pas bougé). Les trois
+libs UI tierces qui déclarent un peer strict sur la version majeure
+d'Angular ont dû être bumpées **de version majeure propre**, pas juste de
+patch : `@ng-select/ng-select` `^12.0.7`→`^13.9.1` (14.0.0 vise déjà
+Angular 19, donc 13.9.1 est la dernière version exploitable ici),
+`ngx-bootstrap` `12.0.0`→`18.1.3` exact (leur numérotation de version
+s'est alignée sur celle d'Angular à partir de leur propre v18 — saut direct
+`12.0.0`→`18.0.0` chez eux, pas de version 13-17), `ngx-device-detector`
+`^7.0.0`→`^8.0.0`. `typescript` (`~5.4.5`) et `rxjs` (`~7.8.2`) inchangés —
+`@angular/compiler-cli@18.2.14` accepte `typescript >=5.4 <5.6`, aucune
+raison de bouger pour l'instant. `@typescript-eslint/*` et `eslint`
+inchangés aussi : `@angular-eslint@18.4.3` accepte toujours `@typescript-
+eslint/utils@^7.11.0 || ^8.0.0`, donc l'override `"@typescript-eslint/
+utils": "7.18.0"` posé au palier 17 reste valable tel quel (revérifié :
+toujours aucune copie imbriquée après cette install).
+
+### Breaking change `@ngx-translate/core` 18.0.0 — API bien plus large que prévu
+
+La recherche pré-scopée au palier précédent ("juste `TranslateModule` →
+`provideTranslateService()` + `setDefaultLang()` → `.use()`") s'est avérée
+trop optimiste une fois les types réels inspectés dans
+`node_modules/@ngx-translate/core/types/ngx-translate-core.d.ts` — la
+v18 réelle est une réécriture complète autour de signals, pas un simple
+renommage. Détail de ce qui a changé et pourquoi, pour ne pas re-découvrir
+tout ça au prochain palier touchant à l'i18n :
+
+- **`TranslateModule` a complètement disparu** (plus aucune trace dans les
+  exports) — remplacé par `provideTranslateService(config?)` (retourne des
+  `Provider[]`, à mettre dans `providers`, pas `imports`) pour le NgModule
+  racine, et `provideChildTranslateService()` pour un sous-arbre isolé.
+  Là où seul le pipe `| translate` était utilisé dans un module (ex.
+  `ad-detail.module.ts`), `TranslatePipe` (standalone) s'importe
+  directement dans `imports` — un NgModule peut importer un pipe/composant
+  standalone directement depuis Angular 14, donc pas de refactor plus
+  large nécessaire.
+- **`TranslateService.setDefaultLang()`/`getDefaultLang()` ont disparu**,
+  pas juste dépréciés. `addLangs()`/`getLangs()` existent toujours
+  (délèguent à un store interne inchangé dans l'esprit). `use(lang)`
+  reste la méthode pour activer une langue, mais son type de retour est
+  maintenant un `Observable` — **elle s'auto-souscrit en interne**
+  (`pending.pipe(take(1)).subscribe(...)` dans l'implémentation), donc
+  l'appeler sans s'abonner déclenche quand même le chargement réel ; en
+  prime elle positionne `_currentLang` **de façon synchrone** si aucune
+  langue n'était encore active, donc `getCurrentLang()` reflète bien 'fr'
+  immédiatement après l'appel dans le constructeur de `AppComponent`,
+  sans dépendre d'un flush HTTP en test. Remplacement fait dans
+  `app.component.ts` : `setDefaultLang('fr')` → `use('fr')` (gardé après
+  `addLangs(['fr'])`, comportement équivalent).
+  Le test associé (`app.component.spec.ts`, "registers French as the only
+  language") vérifiait `getDefaultLang()).toBe('fr')` — remplacé par
+  `getCurrentLang()).toBe('fr')`, seule méthode encore disponible qui
+  capture la même intention.
+- **`@ngx-translate/http-loader` a aussi été réécrit en profondeur** :
+  `TranslateHttpLoader` a maintenant un **constructeur sans argument**
+  (il fait son propre `inject(HttpClient)` en interne) — l'ancien pattern
+  `new TranslateHttpLoader(http)` ne compile plus. Le remplacement
+  idiomatique n'est pas de bricoler un provider `useFactory` pour
+  `TranslateLoader` à la main : la lib expose `provideTranslateHttpLoader
+  (config?)`, qui retourne un tableau de 2 providers (un
+  `TRANSLATE_HTTP_LOADER_CONFIG` + le `TranslateLoader` lui-même) — **à
+  spreader directement dans `providers`, après `provideTranslateService()`
+  pour que son provider de loader gagne** (un provider plus tardif dans
+  le même tableau `providers` écrase le précédent pour le même token
+  d'injection). Confirmé dans le code source que les valeurs par défaut
+  (`prefix: '/assets/i18n/'`, `suffix: '.json'`) sont identiques à l'ancien
+  comportement implicite, donc `provideTranslateHttpLoader()` sans
+  argument suffit. La fonction `HttpTranslateLoader()` (factory manuelle)
+  et l'import de `HttpClient` dans `app.module.ts` (devenu inutile) ont
+  été supprimés.
+- `apps/webapp/src/testing/testing-support.ts` : `TranslateModule.forRoot
+  ()` sorti de `commonTestImports` (n'existe plus), remplacé par
+  `provideTranslateService()` ajouté à `commonTestProviders` — les deux
+  tableaux étaient déjà spreadés séparément dans `imports`/`providers` par
+  chaque spec, donc déplacement direct sans toucher aux specs elles-mêmes.
+
+**Méthode pour ne pas se faire piéger une seconde fois par une note de
+recherche pré-scopée** : avant d'appliquer un breaking change documenté
+« à l'avance » dans ce fichier ou dans la mémoire Claude, relire les
+`.d.ts` réels du paquet fraîchement installé
+(`node_modules/<pkg>/types/*.d.ts` ou équivalent) plutôt que de
+faire confiance à la description sommaire — une note prise en avance
+décrit l'intention du changement, pas nécessairement sa forme finale
+exacte dans le paquet publié.
+
+### Migrations `@angular/core/schematics/migrations.json` (Angular 18)
+
+Vérifiées comme demandé à chaque palier. Deux candidates pertinentes pour
+une conversion Nx (pas de `angular.json`) :
+- `invalid-two-way-bindings` : **no-op ici** — aucune liaison bidirectionnelle
+  bidirectionnelle (`[(x)]="…"`) trouvée dans le code (`grep` sur les deux
+  apps, zéro résultat).
+- `migration-http-providers` (remplace `HttpClientModule` par
+  `provideHttpClient()`) : **délibérément pas appliquée** — `HttpClientModule`
+  reste déprécié-mais-fonctionnel, et ce migration est de la modernisation
+  d'API (function-based providers) plutôt qu'une correction requise,
+  explicitement hors du scope de cette montée de version tant qu'on n'est
+  pas stabilisé sur Angular 22 (voir la discipline actée en tête de ce
+  fichier). À reconsidérer dans le chantier de modernisation séparé prévu
+  après le palier 22.
+- Les deux autres entrées du manifeste (`migration-after-render-phase`,
+  `add-bootstrap-context-to-server-main`) ne s'appliquent pas à ce code
+  (pas d'`afterRender()`, pas de SSR/`main.server.ts`).
+- **Note d'outillage** : `npx @angular-devkit/schematics-cli
+  "<path>/migrations.json:<nom>"` échoue sur ce repo avec `Unable to
+  locate a workspace file` — cette CLI attend un `angular.json` classique,
+  absent d'un monorepo Nx (qui utilise `project.json` par projet). `nx
+  generate <collection>:<generator>` échoue aussi (Nx cherche le
+  générateur dans `collection.json`, pas `migrations.json`). Faute d'un
+  moyen direct de lancer ces migrations automatiquement sous Nx, la
+  vérification manuelle (grep ciblé + lecture du diff produit par une
+  version antérieure si un exemple existe) reste la méthode de facto pour
+  ce repo — documenté ici pour ne pas re-perdre de temps à re-tenter les
+  deux invocations au prochain palier.
+
+### Petit fix associé
+
+`apps/webapp/src/test-setup.ts` et `apps/admin/src/test-setup.ts` :
+`import 'jest-preset-angular/setup-jest'` émettait un nouveau warning de
+dépréciation avec `jest-preset-angular` 14.6.2 (« will be removed in the
+future… use `setupZoneTestEnv` instead »). Remplacé par `import {
+setupZoneTestEnv } from 'jest-preset-angular/setup-env/zone'; setupZoneTestEnv();`
+dans les deux fichiers — recommandation officielle du paquet, warning
+confirmé disparu après le changement.
+
+### Vérifications finales, toutes vertes sur `/home/tanos/bella`
+
+- Lint webapp : 39 problèmes (5 erreurs / 34 warnings) — identique à la
+  baseline.
+- Lint admin : 15 problèmes (3 erreurs / 12 warnings) — identique.
+- Tests webapp : 30/30 suites (43 tests), plus aucun warning de
+  dépréciation Jest.
+- Tests admin : 3/3 suites (4 passed, 1 skipped — pré-existant).
+- Build production webapp : succès (mêmes avertissements pré-existants —
+  budget bundle, dépendance CommonJS `dayjs`).
+- Build production admin : succès (mêmes avertissements pré-existants).
+
+**Point curieux non résolu** : `yarn.lock` s'est retrouvé correctement
+régénéré (1846 insertions / 1756 suppressions, toutes les entrées
+`resolved` vérifiées comme de vraies URLs `registry.npmjs.org`, aucune
+trace de la corruption `synp` historique) après le `npm install` de ce
+palier, **sans qu'aucune commande `yarn` n'ait été lancée explicitement**
+dans cette session. Contenu vérifié cohérent avec `package.json` et
+`node_modules` — commité tel quel — mais la cause exacte (Nx 18.3.5 qui
+synchroniserait le lockfile alternatif en tâche de fond ? un effet de
+bord d'un des `npx`/`nx generate` lancés pour les migrations ?) n'a pas
+été identifiée. À surveiller aux prochains paliers : si ce comportement
+se reproduit de façon prévisible, ça vaut la peine d'identifier la source
+exacte ; si `yarn.lock` ressort au contraire incohérent ou corrompu une
+fois, revenir à la recette manuelle npm→synp documentée plus haut dans ce
+fichier.
+
 ## Prochaine étape
 
-Palier 17→18 (Angular 18), à faire depuis `/home/tanos/bella`. Recherche
-déjà pré-scopée (voir aussi la mémoire Claude
-`project_angular_migration_bella` côté `/mnt/c` si accessible) :
-`@ngx-translate/core` 18.0.0 supprime `TranslateModule` (remplacer par
-`provideTranslateService()` dans `app.module.ts` + le pipe standalone
-`TranslatePipe` importé directement là où seul le pipe est utilisé, ex.
-`ad-detail.module.ts`) et supprime `TranslateService.setDefaultLang()`
-(remplacer par `.use('fr')`) — à vérifier contre l'usage réel de bella
-avant d'appliquer, le code n'est pas forcément identique à afrik-tangazo.
-Sinon : bump `package.json`, vérifier peer-deps de chaque lib tierce pour
-Angular 18, `.angular/cache`/`.nx/cache` à nettoyer avant tout `ng
-serve`/`nx serve` post-palier, build/lint/test des deux apps, commit.
+Palier 18→19 (Angular 19), à faire depuis `/home/tanos/bella`. C'est le
+palier où, sur afrik-tangazo, deux changements structurels avaient frappé
+(détail complet dans la section "Leçons apprises sur afrik-tangazo"
+au début de ce fichier, à relire avant de commencer) :
+1. **Angular 19 inverse le défaut du flag `standalone`** — tout composant
+   sans `standalone` explicite devient `standalone: true` au lieu de
+   `false`, cassant les composants déclarés dans un NgModule sans ce
+   flag. Fix : schematic officiel `explicit-standalone-flag` de
+   `@angular/core` — mais **la note d'outillage ci-dessus s'applique** :
+   l'invocation `@angular-devkit/schematics-cli` documentée pour
+   afrik-tangazo (repo non-Nx avec `angular.json`) échouera probablement
+   ici de la même façon (`Unable to locate a workspace file`). Prévoir de
+   soit générer un `angular.json` minimal temporaire pointant vers les
+   deux projets Angular (`apps/webapp`, `apps/admin`) juste pour cette
+   invocation, soit vérifier si une version plus récente de la CLI
+   supporte nativement un workspace Nx, soit appliquer le flag à la main
+   par une recherche/remplacement ciblée sur les décorateurs `@Component`/
+   `@Directive`/`@Pipe` sans `standalone:` — à trancher au moment venu.
+2. **`@angular-eslint` 19 force `@typescript-eslint/utils@^7.11.0 ||
+   ^8.0.0`** → l'override posé au palier 17 reste dans la plage
+   acceptée, mais il faudra très probablement bump `@typescript-eslint/*`
+   complet vers `^8.70.0` à ce palier (avancé depuis le palier 22
+   initialement prévu, comme ça avait été le cas sur afrik-tangazo) — ce
+   qui fera remonter `@angular-eslint/prefer-standalone` (à désactiver,
+   conflit avec la discipline NgModule) et fera passer
+   `@typescript-eslint/no-explicit-any` de `warn` à `error` (à rétrograder
+   si le volume de `any` pré-existants dépasse ce qui est raisonnable de
+   corriger dans ce palier — probablement le cas vu les ~15 occurrences
+   déjà dans la baseline lint actuelle).
+
+Sinon, méthode inchangée : bump `package.json` (Angular + cdk/material +
+cli/build-angular + eslint + peer-deps tiers), vérifier
+`node_modules/@angular/core/schematics/migrations.json` pour du nouveau,
+`.angular/cache`/`.nx/cache` à nettoyer avant tout `serve` post-palier,
+build/lint/test des deux apps, commit.

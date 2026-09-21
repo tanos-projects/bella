@@ -33,7 +33,7 @@ describe('AppComponent', () => {
 
     const translate = TestBed.inject(TranslateService);
     expect(translate.getLangs()).toEqual(['fr']);
-    expect(translate.getDefaultLang()).toBe('fr');
+    expect(translate.getCurrentLang()).toBe('fr');
   });
 
   it('completes its subscriptions on destroy', () => {

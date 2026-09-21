@@ -1,5 +1,5 @@
 import { registerLocaleData } from '@angular/common';
-import { HttpClient, HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import localeFr from '@angular/common/locales/fr';
 import { LOCALE_ID, NgModule } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -10,8 +10,8 @@ import { AuthHttpInterceptor, AuthModule } from '@auth0/auth0-angular';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core';
-import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
-import { TranslateHttpLoader } from '@ngx-translate/http-loader';
+import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { CollapseModule } from 'ngx-bootstrap/collapse';
 import { ModalModule } from 'ngx-bootstrap/modal';
 import { ProgressbarModule } from 'ngx-bootstrap/progressbar';
@@ -116,13 +116,6 @@ registerLocaleData(localeFr);
       // or after 30 seconds (whichever comes first).
       registrationStrategy: 'registerWhenStable:30000'
     }),
-    TranslateModule.forRoot({
-      loader: {
-        provide: TranslateLoader,
-        useFactory: HttpTranslateLoader,
-        deps: [HttpClient]
-      }
-    }),
     FormlyModule.forRoot({
       validationMessages: Object.entries(VALIDATION_MESSAGE_FORMATTERS).map(([name, format]) => ({
         name,
@@ -133,12 +126,10 @@ registerLocaleData(localeFr);
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: AuthHttpInterceptor, multi: true },
-    { provide: LOCALE_ID, useValue: 'fr' }
+    { provide: LOCALE_ID, useValue: 'fr' },
+    provideTranslateService(),
+    provideTranslateHttpLoader()
   ],
   bootstrap: [AppComponent]
 })
 export class AppModule {}
-
-export function HttpTranslateLoader(http: HttpClient): TranslateHttpLoader {
-  return new TranslateHttpLoader(http);
-}
