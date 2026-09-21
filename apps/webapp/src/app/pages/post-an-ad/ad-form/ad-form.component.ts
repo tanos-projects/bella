@@ -5,25 +5,24 @@ import {
   EventEmitter,
   Input,
   OnInit,
-  Output
+  Output,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormControl,
-  FormGroup
-} from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
 import { FormlyFieldConfig, FormlyFormOptions } from '@ngx-formly/core';
 import { of } from 'rxjs';
 import {
   concatMap,
   distinctUntilChanged,
   startWith,
-  tap
+  tap,
 } from 'rxjs/operators';
 
 import { AdDTO } from '../../../shared/models/ads.model';
 import { CountryDTO } from '../../../shared/models/countries.model';
-import { CategoriesService, NO_QUALITY_CATEGORIES } from '../../../shared/services/categories.service';
+import {
+  CategoriesService,
+  NO_QUALITY_CATEGORIES,
+} from '../../../shared/services/categories.service';
 import { CountriesService } from '../../../shared/services/countries.service';
 import { QualitiesService } from '../../../shared/services/qualities.service';
 import { UserSettingsService } from '../../../shared/services/user-settings.service';
@@ -43,6 +42,7 @@ interface AdFormModel {
   templateUrl: './ad-form.component.html',
   styleUrls: ['./ad-form.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class AdFormComponent implements OnInit {
   // private _submitting = false;

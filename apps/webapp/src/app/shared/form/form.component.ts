@@ -5,7 +5,8 @@ import { FormlyFormOptions, FormlyFieldConfig } from '@ngx-formly/core';
 @Component({
   selector: 'bella-form',
   templateUrl: './form.component.html',
-  styleUrls: ['./form.component.scss']
+  styleUrls: ['./form.component.scss'],
+  standalone: false,
 })
 export class FormComponent {
   @Input() form!: FormGroup;

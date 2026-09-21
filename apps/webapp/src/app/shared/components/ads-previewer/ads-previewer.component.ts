@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+} from '@angular/core';
 import Swiper from 'swiper';
 import { AdDTO } from '../../models/ads.model';
 import { MyDeviceService } from '../../services/my-device.service';
@@ -7,7 +13,8 @@ import { MyDeviceService } from '../../services/my-device.service';
   selector: 'bella-ads-previewer',
   templateUrl: './ads-previewer.component.html',
   styleUrls: ['./ads-previewer.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class AdsPreviewerComponent {
   @Input() adCategory: any;

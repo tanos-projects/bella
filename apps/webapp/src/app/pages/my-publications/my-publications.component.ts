@@ -9,6 +9,7 @@ import { MyDeviceService } from '../../shared/services/my-device.service';
   selector: 'bella-my-publications',
   templateUrl: './my-publications.component.html',
   styleUrls: ['./my-publications.component.scss'],
+  standalone: false,
 })
 export class MyPublicationsComponent implements OnInit {
   publications$: Observable<AdDTO[]>;

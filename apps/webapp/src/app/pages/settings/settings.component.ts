@@ -9,7 +9,8 @@ import { WelcomeService } from '../welcome/welcome.service';
   selector: 'bella-settings',
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.scss'],
-  providers: [WelcomeService]
+  providers: [WelcomeService],
+  standalone: false,
 })
 export class SettingsComponent {
   deviceInfo = this.deviceService.getInfo();

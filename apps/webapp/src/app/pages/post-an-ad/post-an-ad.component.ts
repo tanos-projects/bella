@@ -9,6 +9,7 @@ type ImageFile = File /*& { data: SafeUrl }*/;
 @Component({
   selector: 'bella-post-an-ad',
   templateUrl: './post-an-ad.component.html',
+  standalone: false,
 })
 export class PostAnAdComponent {
   submitting = false;

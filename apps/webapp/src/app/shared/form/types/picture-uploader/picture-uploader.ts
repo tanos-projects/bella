@@ -178,6 +178,7 @@ interface PictureUploaderFormFieldOptions {
       </div>
     </div>
   `,
+  standalone: false,
 })
 export class PictureUploaderFormFieldComponent
   extends FieldType<FieldTypeConfig & PictureUploaderFormFieldOptions>

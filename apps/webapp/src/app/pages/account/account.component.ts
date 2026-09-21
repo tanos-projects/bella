@@ -11,7 +11,8 @@ import { AuthCustomService } from '../../auth/auth-custom.service';
 @Component({
   selector: 'bella-account',
   templateUrl: './account.component.html',
-  styleUrls: ['./account.component.scss']
+  styleUrls: ['./account.component.scss'],
+  standalone: false,
 })
 export class AccountComponent {
   isAuthenticated$ = this.auth.isAuthenticated$;
@@ -40,7 +41,11 @@ export class AccountComponent {
   }
 
   deleteProfile(): void {
-    if (window.confirm('Votre compte sera supprimé et vos données seront perdues !')) {
+    if (
+      window.confirm(
+        'Votre compte sera supprimé et vos données seront perdues !'
+      )
+    ) {
       this.loadingService.show();
       this.userService
         .deleteProfile()
@@ -48,7 +53,7 @@ export class AccountComponent {
         .subscribe({
           next: () => {
             this.auth.logout();
-          }
+          },
         });
     }
   }

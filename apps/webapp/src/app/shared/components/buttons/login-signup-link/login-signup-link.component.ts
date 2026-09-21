@@ -4,7 +4,8 @@ import { AuthCustomService } from '../../../../auth/auth-custom.service';
 
 @Component({
   selector: 'bella-auth-login-signup-link',
-  templateUrl: './login-signup-link.component.html'
+  templateUrl: './login-signup-link.component.html',
+  standalone: false,
 })
 export class LoginSignupLinkComponent {
   constructor(protected auth: AuthCustomService) {}

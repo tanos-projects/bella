@@ -1,4 +1,12 @@
-import { Component, ElementRef, EventEmitter, HostListener, Input, Output, TemplateRef } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Input,
+  Output,
+  TemplateRef,
+} from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { BsModalRef, BsModalService } from 'ngx-bootstrap/modal';
 import { MyDeviceService } from '../../services/my-device.service';
@@ -15,9 +23,10 @@ import { MyDeviceService } from '../../services/my-device.service';
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: UploadComponent,
-      multi: true
-    }
-  ]
+      multi: true,
+    },
+  ],
+  standalone: false,
 })
 export class UploadComponent /*implements ControlValueAccessor*/ {
   @Input() multiple = false;
@@ -65,6 +74,8 @@ export class UploadComponent /*implements ControlValueAccessor*/ {
   }
 
   choosePicturesPicker(template: TemplateRef<any>): void {
-    this.modalRef = this.modalService.show(template, { class: 'modal-dialog modal-dialog-centered' });
+    this.modalRef = this.modalService.show(template, {
+      class: 'modal-dialog modal-dialog-centered',
+    });
   }
 }

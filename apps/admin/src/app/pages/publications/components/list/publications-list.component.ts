@@ -65,6 +65,7 @@ export class ApprobationEvent {
       }
     `,
   ],
+  standalone: false,
 })
 export class PublicationsListComponent {
   constructor(public dialog: MatDialog) {}

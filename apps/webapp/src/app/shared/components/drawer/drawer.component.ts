@@ -5,7 +5,8 @@ import { DrawerService } from './drawer.service';
 @Component({
   selector: 'bella-drawer',
   templateUrl: './drawer.component.html',
-  styleUrls: ['./drawer.component.scss']
+  styleUrls: ['./drawer.component.scss'],
+  standalone: false,
 })
 export class DrawerComponent implements OnDestroy {
   opened = false;
@@ -15,7 +16,7 @@ export class DrawerComponent implements OnDestroy {
     this.subscription = this.drawerService.opened$.subscribe({
       next: (opened) => {
         this.opened = opened;
-      }
+      },
     });
   }
 

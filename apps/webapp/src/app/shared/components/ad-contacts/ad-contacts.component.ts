@@ -9,6 +9,7 @@ const APP_BRAND_NAME = 'Bellannonces.com';
   selector: 'bella-ad-contacts',
   templateUrl: './ad-contacts.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class AdContactsComponent {
   @Input() contact: Contact | null = null;

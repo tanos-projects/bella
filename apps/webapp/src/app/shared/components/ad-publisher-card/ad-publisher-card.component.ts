@@ -5,6 +5,7 @@ import { AuthUser } from '../../../auth/auth-user.model';
   selector: 'bella-ad-publisher-card',
   templateUrl: './ad-publisher-card.component.html',
   styleUrls: ['./ad-publisher-card.component.scss'],
+  standalone: false,
 })
 export class AdPublisherCardComponent {
   @Input() user: AuthUser;

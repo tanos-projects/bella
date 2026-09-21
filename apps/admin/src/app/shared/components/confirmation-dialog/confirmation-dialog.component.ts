@@ -9,7 +9,8 @@ export interface DialogData {
 @Component({
   selector: 'bella-confirmation-dialog',
   templateUrl: './confirmation-dialog.component.html',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class ConfirmationDialogComponent {
   message!: string;

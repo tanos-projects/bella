@@ -80,6 +80,7 @@ import { environment } from '../../../../../environments/environment';
       </ng-container>
     </ng-container>
   `,
+  standalone: false,
 })
 export class SteppedFormFieldComponent extends FieldType {
   @ViewChild('staticTabs', { static: false }) staticTabs?: TabsetComponent;

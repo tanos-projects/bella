@@ -7,14 +7,12 @@ SwiperCore.use([Pagination, Navigation]);
 @Component({
   selector: 'bella-carousel',
   templateUrl: './carousel.component.html',
-  styleUrls: ['./carousel.component.scss']
+  styleUrls: ['./carousel.component.scss'],
+  standalone: false,
 })
 export class CarouselComponent implements OnInit {
-
   @Input() images: AdImageDTO[] = [];
-  constructor() { }
+  constructor() {}
 
-  ngOnInit(): void {
-  }
-
+  ngOnInit(): void {}
 }

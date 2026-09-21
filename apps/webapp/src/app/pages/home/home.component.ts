@@ -8,11 +8,14 @@ import { HomeService } from './home.service';
 @Component({
   selector: 'bella-home',
   templateUrl: './home.component.html',
-  styleUrls: ['./home.component.scss']
+  styleUrls: ['./home.component.scss'],
+  standalone: false,
 })
 export class HomeComponent {
   isMobileMode = this.device.isMobile();
-  adsByCategory$ = this.homeService.loadTopAds().pipe(finalize(() => this.loadingService.hide()));
+  adsByCategory$ = this.homeService
+    .loadTopAds()
+    .pipe(finalize(() => this.loadingService.hide()));
   noAds$ = this.adsByCategory$.pipe(
     mergeMap((adsByCategory) => adsByCategory.map((xx) => xx.ads)),
     reduce((acc, adsByCategory) => [...acc, ...adsByCategory]),

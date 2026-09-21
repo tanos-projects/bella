@@ -11,12 +11,15 @@ import { SearchFilterComponent } from '../search-filter/search-filter.component'
   selector: 'bella-search-filter-button',
   templateUrl: './search-filter-button.component.html',
   styleUrls: ['./search-filter-button.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class SearchFilterButtonComponent /*implements OnInit*/ {
   countries$ = this.searchService.countries$;
   // FIXME : Doesn't work when search has no result or ...
-  searchText$ = this.searchService.currentSearchFilter$.pipe(map((filter) => filter?.keyword));
+  searchText$ = this.searchService.currentSearchFilter$.pipe(
+    map((filter) => filter?.keyword)
+  );
   country$ = this.userSettingsService.country$;
   isSearchPage$ = this.searchService.isSearchPage$;
 
@@ -29,7 +32,9 @@ export class SearchFilterButtonComponent /*implements OnInit*/ {
   ) {}
 
   openFilter(): void {
-    this.modalService.show(SearchFilterComponent, { class: 'modal-dialog modal-lg mx-auto' });
+    this.modalService.show(SearchFilterComponent, {
+      class: 'modal-dialog modal-lg mx-auto',
+    });
   }
 
   onCountryChange(countryIso2: string): void {

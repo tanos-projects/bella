@@ -49,5 +49,6 @@ Thumbs.db
 !.env.dist
 /apps/**/.env
 
-# Nx local cache
-/.nx/cache
+# Nx local cache and daemon/workspace state (Nx 19+ adds workspace-data
+# alongside cache — none of .nx/ is meant to be committed)
+/.nx

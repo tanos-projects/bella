@@ -4,14 +4,19 @@ import { VALIDATION_MESSAGE_FORMATTERS } from '../validation-messages';
 
 @Component({
   selector: 'bella-field-error',
-  templateUrl: './field-error.component.html'
+  templateUrl: './field-error.component.html',
+  standalone: false,
 })
 export class FieldErrorComponent {
   @Input() control: AbstractControl | null = null;
   @Input() label?: string;
 
   get message(): string {
-    if (!this.control || this.control.valid || (!this.control.touched && !this.control.dirty)) {
+    if (
+      !this.control ||
+      this.control.valid ||
+      (!this.control.touched && !this.control.dirty)
+    ) {
       return '';
     }
     const errors = this.control.errors ?? {};

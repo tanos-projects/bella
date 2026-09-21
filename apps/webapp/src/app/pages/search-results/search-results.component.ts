@@ -7,15 +7,21 @@ import { SearchService } from '../../shared/services/search.service';
 
 @Component({
   selector: 'bella-search-results',
-  templateUrl: './search-results.component.html'
+  templateUrl: './search-results.component.html',
+  standalone: false,
 })
 export class SearchResultsComponent /*implements OnInit*/ {
   ads$ = this.route.queryParams.pipe(
-    switchMap((filter) => this.searchService.searchFromFilter(filter as SearchFilter)),
+    switchMap((filter) =>
+      this.searchService.searchFromFilter(filter as SearchFilter)
+    ),
     map((result) => result.records)
   );
 
-  constructor(private route: ActivatedRoute, private searchService: SearchService) {
+  constructor(
+    private route: ActivatedRoute,
+    private searchService: SearchService
+  ) {
     // this.ads$ = this.adsService.getAll(this.categoryCode);
   }
 

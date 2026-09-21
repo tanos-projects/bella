@@ -12,6 +12,7 @@ import { UserSettingsService } from '../../../../shared/services/user-settings.s
 @Component({
   selector: 'bella-create-profile',
   templateUrl: './create-profile.component.html',
+  standalone: false,
 })
 export class CreateProfileComponent {
   user$: Observable<AuthUser | null> = this.auth.user$.pipe(

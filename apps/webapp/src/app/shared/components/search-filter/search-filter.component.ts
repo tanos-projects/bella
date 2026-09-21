@@ -11,6 +11,7 @@ import { removeEmpty, SearchService } from '../../services/search.service';
 @Component({
   selector: 'bella-search-filter',
   templateUrl: './search-filter.component.html',
+  standalone: false,
 })
 export class SearchFilterComponent implements OnInit, OnDestroy {
   approximativeSearchCount$ = this.searchService.silentSearchCount$;

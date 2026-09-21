@@ -16,6 +16,7 @@ SwiperCore.use([Pagination, Navigation]);
   selector: 'bella-ad-detail',
   templateUrl: './ad-detail.component.html',
   styleUrls: ['./ad-detail.component.scss'],
+  standalone: false,
 })
 export class AdDetailComponent {
   isMobileMode: boolean = this.device.isMobile();

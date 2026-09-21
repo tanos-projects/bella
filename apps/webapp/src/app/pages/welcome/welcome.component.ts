@@ -7,10 +7,13 @@ import { WelcomeService } from './welcome.service';
 @Component({
   selector: 'bella-welcome',
   templateUrl: './welcome.component.html',
-  styleUrls: ['./welcome.component.scss']
+  styleUrls: ['./welcome.component.scss'],
+  standalone: false,
 })
 export class WelcomeComponent {
-  countries$ = this.countriesService.getAll().pipe(finalize(() => this.loadingService.hide()));
+  countries$ = this.countriesService
+    .getAll()
+    .pipe(finalize(() => this.loadingService.hide()));
 
   constructor(
     private welcomeService: WelcomeService,

@@ -9,7 +9,8 @@ import { AuthCustomService } from './auth-custom.service';
 
 @Component({
   selector: 'bella-logged-in-callback',
-  templateUrl: 'logged-in-callback.component.html'
+  templateUrl: 'logged-in-callback.component.html',
+  standalone: false,
 })
 export class LoggedInCallbackComponent implements OnInit {
   constructor(
@@ -46,7 +47,7 @@ export class LoggedInCallbackComponent implements OnInit {
           } else {
             this.router.navigate(['']);
           }
-        }
+        },
       });
   }
 }

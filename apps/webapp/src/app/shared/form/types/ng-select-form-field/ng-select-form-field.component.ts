@@ -9,6 +9,7 @@ import { Observable } from 'rxjs';
   templateUrl: './ng-select-form-field.component.html',
   styleUrls: ['./ng-select-form-field.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class NgSelectFormFieldComponent extends FieldType<FieldTypeConfig> {
   constructor() {

@@ -5,17 +5,16 @@ import { PublicationsActions } from '../../store/publications/publications.actio
 import { PublicationsState } from '../../store/publications/publications.state';
 import {
   ApprobationEvent,
-  ApprobationEventType
+  ApprobationEventType,
 } from './components/list/publications-list.component';
 
 @Component({
   selector: 'bella-publications',
   templateUrl: './publications.component.html',
+  standalone: false,
 })
 export class PublicationsComponent implements OnInit {
-
-  unpublishedPublications$ =
-    this.state.unpublished$.pipe(
+  unpublishedPublications$ = this.state.unpublished$.pipe(
     map((publications) =>
       publications.map((publication) => ({
         ...publication,
@@ -42,11 +41,17 @@ export class PublicationsComponent implements OnInit {
         break;
       }
       case ApprobationEventType.REJECTED: {
-        this.actions.rejectPublication(decision.publicationId, decision.message);
+        this.actions.rejectPublication(
+          decision.publicationId,
+          decision.message
+        );
         break;
       }
       case ApprobationEventType.ARCHIVED: {
-        this.actions.archivePublication(decision.publicationId, decision.message);
+        this.actions.archivePublication(
+          decision.publicationId,
+          decision.message
+        );
         break;
       }
       default:

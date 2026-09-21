@@ -3,19 +3,18 @@ import { Component } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 
-
 export enum routes {
   DASHBOARD = '/dashboard',
   PUBLICATIONS = '/publications',
   USERS = '/users',
-  LOGIN = '/login'
+  LOGIN = '/login',
 }
-
 
 @Component({
   selector: 'bella-navbar',
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.scss'],
+  standalone: false,
 })
 export class NavbarComponent {
   readonly routes = routes;
@@ -49,6 +48,6 @@ import { RouterModule } from '@angular/router';
     MatButtonModule,
   ],
   exports: [NavbarComponent],
-  declarations: [NavbarComponent]
+  declarations: [NavbarComponent],
 })
 export class NavbarModule {}

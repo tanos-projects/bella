@@ -5,5 +5,6 @@ import { LoginSignupLinkComponent } from '../login-signup-link/login-signup-link
 @Component({
   selector: 'bella-auth-login-signup',
   templateUrl: './login-signup.component.html',
+  standalone: false,
 })
 export class LoginSignupComponent extends LoginSignupLinkComponent {}

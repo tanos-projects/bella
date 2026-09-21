@@ -1,5 +1,9 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
+import {
+  UntypedFormBuilder,
+  UntypedFormGroup,
+  Validators,
+} from '@angular/forms';
 import * as dayjs from 'dayjs';
 
 import { AuthUser } from '../../../../auth/auth-user.model';
@@ -8,7 +12,8 @@ import { MyDeviceService } from '../../../../shared/services/my-device.service';
 
 @Component({
   selector: 'bella-profile-form',
-  templateUrl: './profile-form.component.html'
+  templateUrl: './profile-form.component.html',
+  standalone: false,
 })
 export class ProfileFormComponent implements OnInit {
   @Input() user!: AuthUser | null;
@@ -27,18 +32,26 @@ export class ProfileFormComponent implements OnInit {
     private countriesService: CountriesService
   ) {
     this.form = this.fb.group({
-      username: this.fb.control(null, { validators: Validators.required, updateOn: 'blur' }),
-      email: this.fb.control(null, { validators: [Validators.required, Validators.email], updateOn: 'blur' }),
+      username: this.fb.control(null, {
+        validators: Validators.required,
+        updateOn: 'blur',
+      }),
+      email: this.fb.control(null, {
+        validators: [Validators.required, Validators.email],
+        updateOn: 'blur',
+      }),
       lastname: this.fb.control(null, { updateOn: 'blur' }),
       firstname: this.fb.control(null, { updateOn: 'blur' }),
       mobilePhone: this.fb.control(null, {
         // TODO Add asyn validation depending on indicator
-        validators: [Validators.required /*, Validators.pattern(/[+]\d{2}[(]\d{2}[)]\d{4}[-]\d{4}/)*/],
-        updateOn: 'blur'
+        validators: [
+          Validators.required /*, Validators.pattern(/[+]\d{2}[(]\d{2}[)]\d{4}[-]\d{4}/)*/,
+        ],
+        updateOn: 'blur',
       }),
       // mobilePhoneIndicator: [null, Validators.required],
       birthdate: [null],
-      country: this.fb.control(null, { validators: Validators.required })
+      country: this.fb.control(null, { validators: Validators.required }),
     });
   }
 
@@ -54,7 +67,9 @@ export class ProfileFormComponent implements OnInit {
     if (this.user) {
       this.form.patchValue({
         ...this.user,
-        birthdate: this.user.birthdate ? this.formatDate(this.user.birthdate) : null
+        birthdate: this.user.birthdate
+          ? this.formatDate(this.user.birthdate)
+          : null,
       });
     }
   }

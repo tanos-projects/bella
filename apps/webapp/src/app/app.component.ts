@@ -12,7 +12,8 @@ import { SearchService } from './shared/services/search.service';
 @Component({
   selector: 'bella-root',
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss']
+  styleUrls: ['./app.component.scss'],
+  standalone: false,
 })
 export class AppComponent implements OnDestroy {
   isMobileMode = false;
@@ -35,11 +36,15 @@ export class AppComponent implements OnDestroy {
 
     this.router.events
       .pipe(
-        filter((event): event is NavigationStart => event instanceof NavigationStart),
+        filter(
+          (event): event is NavigationStart => event instanceof NavigationStart
+        ),
         takeUntil(this.unsubscribe$)
       )
       .subscribe((event: RouterEvent) => {
-        this.searchService.setIsCurrentPageSearch(event.url.includes('/recherche'));
+        this.searchService.setIsCurrentPageSearch(
+          event.url.includes('/recherche')
+        );
       });
   }
 

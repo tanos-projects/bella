@@ -4,7 +4,8 @@ import { AuthCustomService } from '../../../../auth/auth-custom.service';
 
 @Component({
   selector: 'bella-logout-btn',
-  templateUrl: './logout-button.component.html'
+  templateUrl: './logout-button.component.html',
+  standalone: false,
 })
 export class LogoutButtonComponent {
   constructor(private auth: AuthCustomService) {}

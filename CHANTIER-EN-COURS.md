@@ -759,40 +759,166 @@ exacte ; si `yarn.lock` ressort au contraire incohérent ou corrompu une
 fois, revenir à la recette manuelle npm→synp documentée plus haut dans ce
 fichier.
 
+## Palier 18→19 : fait (commit à suivre juste après ce document)
+
+Versions posées dans `package.json` : famille Angular `~19.2.25`,
+`@angular/cdk`/`@angular/material` `19.2.19`, `@angular/cli`/
+`@angular-devkit/build-angular`/`@angular/pwa` `~19.2.27`,
+`@angular-eslint/*` `~19.8.1`, `nx`+tous les `@nrwl/*` `19.8.14`,
+`nx-cloud` `19.1.3`, `zone.js` `~0.15.1`, `typescript` `~5.8.3`
+(`@angular/compiler-cli@19.2.25` exige `>=5.5 <5.9`, `~5.4.5` était devenu
+hors plage). Trois libs UI à peer strict sur le major Angular bumpées
+encore une fois : `@ng-select/ng-select` `^13.9.1`→`^14.9.0`,
+`ngx-bootstrap` `18.1.3`→`19.0.2` exact, `ngx-device-detector`
+`^8.0.0`→`^9.0.0`. `@ngx-translate/core`/`http-loader` **inchangés**
+(`^18.0.0` — la lib n'a pas encore de version 19.x publiée au moment de ce
+palier, et son peer `@angular/core: ">=18"` n'a pas de plafond, donc pas
+de blocage).
+
+### `@typescript-eslint` avancé à la v8 (comme anticipé)
+
+`@typescript-eslint/eslint-plugin`/`parser` `^7.18.0`→`^8.70.1`, override
+`@typescript-eslint/utils` mis à jour à `8.70.1` en cohérence (toujours
+aucune copie imbriquée après install — `@angular-eslint@19.8.1` accepte
+`@typescript-eslint/utils@^7.11.0 || ^8.0.0`, donc pas de conflit).
+Contrairement à la note prise en avance, **`@typescript-eslint/no-explicit-
+any` n'est pas remonté de `warn` à `error`** avec cette version précise
+(peut-être un détail de config `recommended` différent de celui rencontré
+sur afrik-tangazo, ou un changement entre 8.x mineurs) — vérifié par un
+lint complet après l'install, toujours 34 warnings sur ces occurrences,
+aucun nouveau `error`. **`@angular-eslint/prefer-standalone` est bien
+apparue comme prévu** (41 nouvelles erreurs au premier lint) — désactivée
+dans les deux `apps/*/​.eslintrc.json` (`"@angular-eslint/prefer-standalone":
+"off"`, dans le même bloc d'override `*.ts` que les règles de sélecteur),
+conflit direct avec la discipline "pas de standalone avant Angular 22".
+Lint revenu exactement aux baselines (webapp 39, admin 15) après ce
+changement.
+
+### Migration `explicit-standalone-flag` — la vraie difficulté du palier
+
+Comme anticipé, Angular 19 inverse le défaut du flag `standalone` : tout
+composant/directive/pipe sans `standalone` explicite devient
+`standalone: true` au lieu de `false`, cassant tout ce qui est déclaré
+dans un `NgModule` sans ce flag — 49 fichiers concernés ici (tous les
+composants de `webapp`+`admin` sauf un, voir plus bas), donc pas une
+migration qu'on peut se permettre de sauter.
+
+**Le blocage d'outillage anticipé s'est confirmé** : `npx
+@angular-devkit/schematics-cli "<path>/migrations.json:explicit-standalone-flag"`
+échoue sur ce monorepo Nx avec `Unable to locate a workspace file — Are
+you missing an angular.json?`, et `nx generate <collection>:<generator>`
+ne sait pas non plus lire les migrations d'un `migrations.json` (il
+cherche dans un `collection.json`). **Solution qui a marché** : générer un
+`angular.json` minimal et temporaire à la racine, listant `webapp` et
+`admin` comme deux `projectType: application` avec juste
+`root`/`sourceRoot`/`architect.build.options.tsConfig` (repris de leurs
+`project.json` Nx respectifs) — assez pour que le lecteur de workspace
+d'Angular DevKit s'en contente et que le schematic construise son
+`ts.Program` sur les deux apps. Invocation (immédiatement après, `--force`
+nécessaire car les fichiers ne sont pas dans un état "clean" git au sens
+du schematic) :
+```
+npx @angular-devkit/schematics-cli \
+  "./node_modules/@angular/core/schematics/migrations.json:explicit-standalone-flag" \
+  --no-debug --no-dry-run --force
+```
+47 fichiers mis à jour avec `standalone: false` (dry-run vérifié d'abord
+sans `--no-dry-run`). `angular.json` supprimé juste après (fichier
+temporaire, jamais commité — le monorepo reste piloté par Nx/`project.json`
+uniquement). Reformatage ensuite avec `npx prettier --write <fichiers>`
+(le schematic écrit en 4 espaces, comme sur afrik-tangazo).
+
+**Un seul fichier sur les 49 repérés par un grep initial n'a pas été
+touché** : `apps/webapp/src/app/pages/account/profile/view/
+view-profile.component.ts` — vérifié : c'est du code mort, jamais déclaré
+dans un `NgModule` ni importé nulle part (`grep -rn ViewProfileComponent`
+ne remonte que sa propre définition). Le schematic construit son
+`ts.Program` à partir du graphe de compilation réel atteignable depuis
+`main.ts`, donc un fichier non importé n'y figure jamais — cohérent, pas
+un bug du schematic. Laissé tel quel, hors scope de cette migration (dette
+antérieure, sans rapport).
+
+**Cette recette d'`angular.json` temporaire est réutilisable telle quelle
+pour toute future migration `@angular-devkit/schematics-cli` sur ce
+monorepo** — documenté ici pour ne pas re-découvrir le blocage
+`Unable to locate a workspace file` à chaque fois.
+
+### Bump forcé de l'écosystème Jest à la v30 (découverte en cours de route)
+
+`jest-preset-angular` `~14.6.2` plafonnait son peer-range Angular à
+`<19.0.0` (comme `13.1.4` avait plafonné à `<18.0.0` au palier précédent)
+— **mais sa version suivante compatible avec Angular 19 (`15.0.0`/`16.x`)
+exige `jest: ^30.0.0`**, une majeure entière plus loin que prévu par la
+recherche pré-scopée (qui ne mentionnait que jest-preset-angular, pas
+Jest lui-même). Bump en bloc : `jest` `29.7.0`→`30.5.2`,
+`jest-environment-jsdom` `29.7.0`→`30.5.2`, `@types/jest` `29.5.14`→
+`30.0.0`, `jest-preset-angular` `~14.6.2`→`~16.2.0` (couvre Angular 19-21,
+réduit les churns futurs comme au palier 16). `ts-jest` **inchangé**
+(`29.4.12` accepte déjà `jest: ^29.0.0 || ^30.0.0` en peer, pas de bump
+nécessaire). Aucune régression de test observée après le bump (30/30 puis
+3/3 suites, sans changement de code de test).
+
+### Deux petits fixes de dépréciation associés (mêmes fichiers qu'au palier précédent)
+
+- `apps/webapp/jest.config.ts` et `apps/admin/jest.config.ts` : le bloc
+  `globals: { 'ts-jest': {...} }` émettait un nouveau warning ts-jest
+  (« Define `ts-jest` config under `globals` is deprecated ») avec la
+  chaîne jest 30 / jest-preset-angular 16. Déplacé dans la forme tuple du
+  `transform` : `'^.+\\.(ts|mjs|js|html)$': ['jest-preset-angular', {
+  tsconfig: ..., stringifyContentPathRegex: ... }]`. Warning confirmé
+  disparu, mêmes suites vertes.
+
+### Migrations `@angular/core/schematics/migrations.json` (Angular 19) — les 3 autres
+
+- `pending-tasks` (`ExperimentalPendingTasks`→`PendingTasks`) : no-op,
+  aucun usage dans le code (`grep` vide sur les deux apps).
+- `provide-initializer` (`APP_INITIALIZER`/`ENVIRONMENT_INITIALIZER`/
+  `PLATFORM_INITIALIZER`→`provideAppInitializer`/etc.) : no-op, même
+  vérification, aucun usage.
+- `add-bootstrap-context-to-server-main` : non applicable, pas de SSR
+  (`main.server.ts` n'existe pas dans ce repo).
+
+### Nouveau avertissement de build (non bloquant, hors scope)
+
+Le build de production `webapp` fait apparaître de nouveaux warnings Sass
+(« `@import` rules are deprecated and will be removed in Dart Sass 3.0.0 »)
+sur 4 fichiers `.component.scss` qui utilisent encore `@import` au lieu de
+`@use`/`@forward` — conséquence du bump de la chaîne `sass`/`sass-loader`
+embarquée par `@angular-devkit/build-angular` 19. Non bloquant (warning,
+pas erreur), et une conversion `@import`→`@use` est un chantier Sass à
+part entière, sans rapport avec la montée de version Angular — noté ici
+pour ne pas le re-découvrir à chaque palier, mais délibérément pas
+corrigé.
+
+### Vérifications finales, toutes vertes sur `/home/tanos/bella`
+
+- Lint webapp : 39 problèmes (5 erreurs / 34 warnings) — identique à la
+  baseline, après désactivation de `@angular-eslint/prefer-standalone`.
+- Lint admin : 15 problèmes (3 erreurs / 12 warnings) — identique.
+- Tests webapp : 30/30 suites (43 tests), sans le code migré vers
+  `standalone: false` explicite.
+- Tests admin : 3/3 suites (4 passed, 1 skipped — pré-existant).
+- Build production webapp : succès (nouveaux warnings Sass `@import`
+  documentés ci-dessus, budget bundle pré-existant, dépendance CommonJS
+  `dayjs`).
+- Build production admin : succès (mêmes avertissements pré-existants).
+
+`.gitignore` élargi de `/.nx/cache` à `/.nx` (Nx 19 ajoute un dossier
+`.nx/workspace-data/` à côté du cache — ni l'un ni l'autre n'a vocation à
+être commité).
+
 ## Prochaine étape
 
-Palier 18→19 (Angular 19), à faire depuis `/home/tanos/bella`. C'est le
-palier où, sur afrik-tangazo, deux changements structurels avaient frappé
-(détail complet dans la section "Leçons apprises sur afrik-tangazo"
-au début de ce fichier, à relire avant de commencer) :
-1. **Angular 19 inverse le défaut du flag `standalone`** — tout composant
-   sans `standalone` explicite devient `standalone: true` au lieu de
-   `false`, cassant les composants déclarés dans un NgModule sans ce
-   flag. Fix : schematic officiel `explicit-standalone-flag` de
-   `@angular/core` — mais **la note d'outillage ci-dessus s'applique** :
-   l'invocation `@angular-devkit/schematics-cli` documentée pour
-   afrik-tangazo (repo non-Nx avec `angular.json`) échouera probablement
-   ici de la même façon (`Unable to locate a workspace file`). Prévoir de
-   soit générer un `angular.json` minimal temporaire pointant vers les
-   deux projets Angular (`apps/webapp`, `apps/admin`) juste pour cette
-   invocation, soit vérifier si une version plus récente de la CLI
-   supporte nativement un workspace Nx, soit appliquer le flag à la main
-   par une recherche/remplacement ciblée sur les décorateurs `@Component`/
-   `@Directive`/`@Pipe` sans `standalone:` — à trancher au moment venu.
-2. **`@angular-eslint` 19 force `@typescript-eslint/utils@^7.11.0 ||
-   ^8.0.0`** → l'override posé au palier 17 reste dans la plage
-   acceptée, mais il faudra très probablement bump `@typescript-eslint/*`
-   complet vers `^8.70.0` à ce palier (avancé depuis le palier 22
-   initialement prévu, comme ça avait été le cas sur afrik-tangazo) — ce
-   qui fera remonter `@angular-eslint/prefer-standalone` (à désactiver,
-   conflit avec la discipline NgModule) et fera passer
-   `@typescript-eslint/no-explicit-any` de `warn` à `error` (à rétrograder
-   si le volume de `any` pré-existants dépasse ce qui est raisonnable de
-   corriger dans ce palier — probablement le cas vu les ~15 occurrences
-   déjà dans la baseline lint actuelle).
-
-Sinon, méthode inchangée : bump `package.json` (Angular + cdk/material +
-cli/build-angular + eslint + peer-deps tiers), vérifier
-`node_modules/@angular/core/schematics/migrations.json` pour du nouveau,
-`.angular/cache`/`.nx/cache` à nettoyer avant tout `serve` post-palier,
-build/lint/test des deux apps, commit.
+Palier 19→20 (Angular 20), à faire depuis `/home/tanos/bella`. Pas de
+piège structurel connu à l'avance pour ce palier (contrairement à afrik-
+tangazo qui s'était arrêté à Angular 19) — méthode standard : vérifier
+`node_modules/@angular/core/schematics/migrations.json` pour du nouveau
+(réutiliser la recette d'`angular.json` temporaire documentée ci-dessus si
+une migration `schematics-cli` s'avère nécessaire), bump `package.json`
+(Angular + cdk/material + cli/build-angular + eslint + peer-deps tiers —
+revérifier `ngx-bootstrap`/`ng-select`/`ngx-device-detector` un par un,
+ils ont un peer strict sur le major Angular à chaque palier depuis la 17),
+revérifier la compatibilité `typescript`/`rxjs`/`jest-preset-angular`
+(deux paliers de suite ont eu une surprise sur l'un des trois), `.angular/
+cache`/`.nx/cache` à nettoyer avant tout `serve` post-palier, build/lint/
+test des deux apps, commit.

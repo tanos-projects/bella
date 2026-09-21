@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, Input, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  OnInit,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { AdDTO } from '../../models/ads.model';
 
@@ -6,7 +11,8 @@ import { AdDTO } from '../../models/ads.model';
   selector: 'bella-ad-card',
   templateUrl: './ad-card.component.html',
   styleUrls: ['./ad-card.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class AdCardComponent implements OnInit {
   @Input()
@@ -18,7 +24,11 @@ export class AdCardComponent implements OnInit {
 
   ngOnInit(): void {
     const data = this.data;
-    this.urlPath = [`/annonces/${data.category}/`, this.sanitizeTitle(data.title), data.id];
+    this.urlPath = [
+      `/annonces/${data.category}/`,
+      this.sanitizeTitle(data.title),
+      data.id,
+    ];
   }
 
   goToDetail(): void {

@@ -8,7 +8,8 @@ import { AdsService } from '../../shared/services/ads.service';
 @Component({
   selector: 'bella-ads-by-category',
   templateUrl: './ads-by-category.component.html',
-  styleUrls: ['./ads-by-category.component.scss']
+  styleUrls: ['./ads-by-category.component.scss'],
+  standalone: false,
 })
 export class AdsByCategoryComponent {
   ads$: Observable<AdDTO[]>;
