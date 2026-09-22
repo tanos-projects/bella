@@ -104,18 +104,57 @@ webapp + 5/5 suites admin vertes, build propre sur les deux apps
 (mêmes warnings préexistants qu'avant le sweep). 6 commits, un par lot
 vérifié (`8367741` à `bea7273`).
 
-### 2. `inject()` au lieu de l'injection par constructeur
+### 2. `inject()` au lieu de l'injection par constructeur — FAIT (2026-09-22)
 
-`@angular-eslint/prefer-inject` désactivée depuis le palier 19 (voir
-`CHANTIER-EN-COURS.md`, palier 18→19). **65 fichiers** `.ts` (hors specs)
-dans `apps/webapp/src/app` + `apps/admin/src/app` ont un `constructor(...)`
-(`grep -rlE "constructor\(" apps/webapp/src/app apps/admin/src/app
---include="*.ts" | grep -v spec | wc -l`). Mécanique par fichier
-(remplacer les paramètres de constructeur par des `private x = inject(X);`
-en champs de classe) mais 65 fichiers de blast radius est trop large pour
-une passe "triviale" dans cette session — et c'est précisément la
-discipline que l'échelle 14→22 avait actée de reporter à un chantier
-séparé plutôt que de la glisser au fil d'un palier de version.
+Initialement dimensionné à 65 fichiers et jugé trop large pour une passe
+"triviale" dans le même message que le sweep `@if`/`@for` — repris
+juste après sur demande explicite de l'utilisateur ("lance aussi le
+sweep inject() en parallèle"), en sous-agent isolé, concurrent au sweep
+`@if`/`@for` dans le même répertoire de travail (`/home/tanos/bella`).
+
+**Coordination inter-agents** : les deux sweeps travaillaient sur la même
+copie de travail en simultané. Deux fichiers avaient à la fois un
+template inline avec `*ngIf`/`*ngFor` et un constructeur injecté
+(`picture-uploader.ts`, `stepped-form-field.ts`) — exclus du sweep
+`inject()` tant que le sweep `@if`/`@for` n'avait pas fini de les
+toucher, puis traités séparément une fois l'autre sweep terminé
+(`stepped-form-field.ts` n'avait en fait aucune dépendance injectée à
+convertir — juste `super()` + un `uid`). Chaque sweep n'a fait que des
+`git add <fichiers précis>`, jamais `git add -A`, pour ne jamais
+embarquer les changements en cours de l'autre agent dans son propre
+commit.
+
+**Règle de périmètre appliquée** : seules les classes gérées par le DI
+Angular (`@Component`/`@Directive`/`@Injectable`/`@Pipe`, gardes de route)
+ont été converties — les classes utilitaires instanciées à la main via
+`new` (ex. `ApprobationEvent` dans `publications-list.component.ts`,
+`Picture`/`PicturesHolder` dans `picture-uploader.ts`) ont été
+délibérément laissées intactes, `inject()` n'ayant de sens que dans un
+contexte d'injection Angular actif.
+
+**Mécanique notable** : les paramètres de constructeur sans modificateur
+d'accès (donc jamais stockés en `this.x`, juste utilisés localement dans
+le corps du constructeur — ex. `deviceService`/`translate` dans
+`app.component.ts`) ont quand même été remontés en champs `private x =
+inject(X);`, `inject()` ayant besoin d'un contexte d'injection actif que
+seul un champ de classe ou le corps du constructeur fournit encore une
+fois celui-ci vidé de ses paramètres. Ordre de déclaration des champs
+respecté scrupuleusement : un champ `inject()`-backed référencé par un
+autre initialiseur de champ (`countries$ = this.countriesService.getAll()`)
+doit être déclaré avant lui — contrairement aux "parameter properties" de
+constructeur, les champs de classe s'exécutent strictement dans l'ordre
+d'écriture, pas dans un ordre spécial.
+
+Un fichier manqué en première passe (`home.service.ts`) a été repéré et
+corrigé grâce à la vérification finale : réactiver
+`@angular-eslint/prefer-inject` dans les deux `eslint.config.mjs` a fait
+remonter ses 2 erreurs, invisibles tant que la règle restait désactivée.
+
+`nx lint`/`test`/`build` vérifiés à chaque lot (5 lots webapp, 1 lot
+admin, plus le lot final des 2 fichiers réservés), tous revenus aux
+baselines documentées. `@angular-eslint/prefer-inject` réactivée dans
+`apps/webapp/eslint.config.mjs` et `apps/admin/eslint.config.mjs`,
+confirmée à zéro violation sur les deux apps.
 
 ### 3. Composants `standalone: true`
 
