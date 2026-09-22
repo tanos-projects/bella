@@ -137,16 +137,27 @@ dernières publiées sur le registre npm (vérifié 2026-09-22) :
 | `@nestjs/platform-express` | `^9.0.0` | aligné sur core |
 | `@nestjs/mongoose` | `^9.1.1` | `12.0.0` |
 | `@nestjs/swagger` | `^5.2.1` | `12.0.1` (saut énorme, 5→12) |
-| `@nestjs/config` | `^2.1.0` | à vérifier (probable v4+) |
-| `@nestjs/jwt` | `^8.0.1` | à vérifier |
-| `@nestjs/passport` | `^8.2.2` | à vérifier |
-| `@nestjs/terminus` | `^8.1.0` | à vérifier |
-| `@nestjs/axios` | `^0.0.8` | à vérifier |
+| `@nestjs/config` | `^2.1.0` | `12.0.0` |
+| `@nestjs/jwt` | `^8.0.1` | `12.0.2` |
+| `@nestjs/passport` | `^8.2.2` | `12.0.0` |
+| `@nestjs/terminus` | `^8.1.0` | `12.1.0` |
+| `@nestjs/axios` | `^0.0.8` | `12.0.1` |
 | `@nestjs/schematics`/`testing` (dev) | `^9.0.0` | alignés sur core |
-| `mongoose` (driver) | `^6.13.10` | à vérifier (7.x existe) |
-| `passport`/`passport-jwt`/`passport-local` | `^0.6.0`/`^4.0.0`/`^1.0.0` | à vérifier |
+| `mongoose` (driver) | `^6.13.10` | `9.10.1` — pas juste 6→7, il existe déjà des 7.x/8.x/9.x publiées, 3 majeures de retard comme le cœur Nest |
+| `passport` | `^0.6.0` | `0.7.0` (mineure) |
+| `passport-jwt` | `^4.0.0` | `4.0.1` (patch) |
+| `passport-local` | `^1.0.0` | `1.0.0` (déjà à jour) |
 | `rxjs` | `~7.8.2` | déjà à jour (aligné front) |
-| `reflect-metadata` | `^0.1.13` | à vérifier (0.2.x existe) |
+| `reflect-metadata` | `^0.1.13` | `0.2.2` |
+
+Vérifié : tous les paquets `@nestjs/*` convergent proprement sur la
+majeure 12 (aucun n'est resté en retrait, contrairement à ce qu'on
+aurait pu craindre pour les paquets moins maintenus comme `axios`/
+`terminus`) — un `nest upgrade`/bump groupé à 12.x pour toute la famille
+`@nestjs/*` est cohérent une fois la ladder terminée. `passport*` bougent
+à peine (aucune montée majeure requise là). `mongoose` (driver) est la
+vraie autre grosse dépendance à faire suivre le rythme, pas seulement le
+framework.
 
 **3 montées majeures de retard sur le cœur NestJS** (9→10→11→12), avec un
 cas particulier violent sur `@nestjs/swagger` (5→12, sûrement plusieurs
@@ -162,7 +173,135 @@ officiels plutôt que déduits de mémoire) — voir la section ci-dessous une
 fois son rapport revenu, ou relancer la recherche si cette section est
 restée à l'état de placeholder.
 
-<!-- SUBAGENT-NESTJS-RESEARCH: à remplacer par le plan de paliers une fois le rapport revenu -->
+### Plan de paliers 9→10→11→12 (recherche 2026-09-22)
+
+Vérifié via les guides de migration officiels NestJS (`docs.nestjs.com/
+migration-guide`, releases GitHub `nestjs/nest`) et la doc Mongoose
+officielle (`mongoosejs.com/docs/migrating_to_7.html` et suivants) par
+recherche web — cité ci-dessous ce qui est confirmé par une source vs.
+déduit. Le code actuel de `apps/api` a été relu (`main.ts`,
+`jwt.strategy.ts`, `permissions.guard.ts`, les 5 schémas Mongoose,
+`ads-repository-nest.ts`, `my-config.module.ts`, `mongodb.module.ts`,
+`health.controller.ts`) pour ne retenir que les breaking changes qui
+touchent vraiment ce que ce code utilise.
+
+**Palier 9→10** — cible `@nestjs/core`/`common`/`platform-express` `~10.x`
+dernier patch (revérifier la version exacte au moment de l'exécution,
+comme fait à chaque palier Angular). Risque faible pour ce code :
+- Node.js ≥ 16 et TypeScript ≥ 4.8 requis pour les plugins CLI — déjà
+  largement dépassé ici (`typescript` `~6.0.3` dans le repo).
+- Le transport microservices NATS change de paquet (`nats` →
+  `@nats-io/transport-node`) — **non applicable**, ce codebase n'utilise
+  pas de microservices Nest (confirmé : aucune trace de
+  `@nestjs/microservices` dans `package.json`).
+- Pas de breaking change identifié touchant Mongoose, Swagger, Passport,
+  ou l'auth JWT à ce palier précis.
+
+**Palier 10→11** — cible `~11.x` dernier patch. Points vérifiés qui
+touchent potentiellement ce code :
+- **Express v5 devient la valeur par défaut**, avec un moteur de routage
+  changé (`path-to-regexp` mis à jour) — le wildcard `*` autonome n'est
+  plus un joker gourmand, il doit être nommé (`/*splat` au lieu de `/*`).
+  **Vérifié sans risque ici** : `grep` sur tous les contrôleurs
+  (`apps/api/src/app/api/**/*.ts`, `main.ts`) ne trouve aucune route
+  avec un `'*'` littéral en chemin.
+- Node.js ≥ 20 requis (v16/v18 abandonnés) — à vérifier contre
+  `ecosystem.config.js`/l'environnement EC2 de prod avant ce palier,
+  CLAUDE.md ne précise pas la version Node du serveur PM2 actuel.
+- L'API "legacy" des health indicators est retirée, migration vers
+  `HealthIndicatorService` pour les indicateurs **custom**. **Risque
+  faible mais à vérifier au palier** : `health.controller.ts` n'utilise
+  que les indicateurs intégrés (`HealthCheckService`,
+  `HttpHealthIndicator`, `MongooseHealthIndicator` avec `.pingCheck()`)
+  — pas d'indicateur custom écrit dans ce repo — mais la signature exacte
+  de `.pingCheck()` sur les indicateurs intégrés doit être revérifiée
+  dans la doc de la version ciblée au moment de l'exécution (non confirmé
+  par la recherche si elle a changé).
+- Ordre d'exécution des middleware de modules globaux changé (exécutés en
+  premier désormais) — **impact non identifiable sans lire tous les
+  middlewares du repo**, `main.ts` n'a qu'un `app.enableCors(...)`, pas de
+  middleware custom visible dans les fichiers lus ; à revérifier plus
+  largement (`grep -rn "NestMiddleware\|app.use("`) au moment du palier.
+- Résolution de modules : nécessite un `moduleResolution` moderne dans
+  `tsconfig` sous peine d'erreurs au runtime — **déjà `"bundler"`** dans
+  `tsconfig.base.json`, donc déjà conforme.
+
+**Palier 11→12** — cible `~12.x` dernier patch. Le changement le plus
+spécifique à l'architecture de ce repo :
+- **Les paramètres de constructeur optionnels ne sont plus hérités par
+  une sous-classe qui définit son propre constructeur** (Nest lit les
+  marqueurs "optionnel" via `Reflect.getOwnMetadata`, qui ne remonte pas
+  la chaîne de prototypes comme `getMetadata`) — une sous-classe sans
+  constructeur propre garde les paramètres du parent mais perd leur statut
+  "optionnel". **C'est directement pertinent ici** : `CLAUDE.md` documente
+  que chaque `apps/api/src/app/infrastructure/<feature>/*.service.ts`
+  **étend** le service domaine correspondant
+  (`libs/api/domain/src/lib/<feature>/*.service.ts`) pour injecter le
+  repository Nest — exactement le pattern visé par ce changement. **À
+  vérifier fichier par fichier à ce palier** : est-ce qu'un des services
+  domaine a un paramètre de constructeur `@Optional()` ou marqué optionnel
+  (`param?: Type`) que la sous-classe infrastructure ne redéclare pas
+  explicitement ? Si oui, ce paramètre perdra son statut optionnel et Nest
+  pourrait lever une erreur de résolution DI au démarrage. C'est le
+  changement le plus risqué de toute l'échelle 9→12 pour ce codebase
+  précis.
+- Node.js ≥ 20.19 ou ≥ 22.12 requis (relevé par rapport à la v11).
+- Les paquets `@nestjs/*` deviennent ESM-first (mais les apps CommonJS
+  continuent de fonctionner sans migration forcée, confirmé par la
+  release note officielle) — pas de changement de code requis a priori,
+  mais **`@nestjs/swagger` en particulier est passé pur-ESM dans ses
+  dernières versions majeures** (imports profonds dans les internals du
+  paquet ne résolvent plus, les anciens shims `plugin.js`/`plugin.ts`
+  disparaissent) — `main.ts` de ce repo n'utilise que l'API publique
+  (`SwaggerModule`, `DocumentBuilder`, `SwaggerCustomOptions`), donc a
+  priori pas concerné, mais à valider par un build réel à ce palier
+  plutôt que supposé sûr sur la seule lecture du code.
+- `nest upgrade` (CLI officielle) fait la partie mécanique automatiquement
+  pour tous les paquets `@nestjs/*` en une fois si l'équipe préfère un
+  saut groupé à la fin plutôt que palier par palier — mentionné dans la
+  doc officielle mais **pas testé ici**, à évaluer comme raccourci
+  possible pour les paliers 2-3 une fois le palier 1 (le plus susceptible
+  de révéler des problèmes an amont) passé manuellement.
+
+**`@nestjs/swagger` 5→12 séparément** (ne suit pas le même rythme de
+version que le cœur Nest, donc à vérifier par palier avec son propre
+`npm view @nestjs/swagger dist-tags` plutôt que supposé aligné) :
+- Alignement sur OpenAPI 3.1 (v7+) — change potentiellement la façon dont
+  certains types de schéma nullable/enum sont émis dans le document
+  généré ; à vérifier visuellement sur `/api` (Swagger UI) après ce
+  palier plutôt que par lecture de code seule.
+- `swaggerUiEnabled` retiré des options — **non utilisé ici** (`main.ts`
+  ne passe que `swaggerOptions.persistAuthorization` et
+  `customSiteTitle`), donc sans impact.
+- ESM pur dans les toutes dernières versions (voir point ESM ci-dessus).
+
+**`mongoose` (driver) 6→9** — trois points concrets trouvés dans le code
+actuel :
+- `updateOne()` dans `ads-repository-nest.ts` passe encore
+  `useFindAndModify: false` à `findOneAndUpdate()` — **déjà mort depuis
+  Mongoose 6** (confirmé : Mongoose 6+ se comporte toujours comme si
+  l'option valait `false`, elle est silencieusement ignorée). Pas une
+  nouvelle rupture à ce chantier, mais un nettoyage gratuit à faire au
+  passage (supprimer la ligne).
+- Le type `AdDocument = Ad & mongoose.Document` (et son équivalent dans
+  les 4 autres schémas `category`/`city`/`country`/`user`) est le pattern
+  pré-Mongoose-7 ; la doc officielle recommande désormais
+  `HydratedDocument<Ad>` — la signature générique de `HydratedDocument`
+  lui-même a changé entre Mongoose 6 et 7 (`<DocType,
+  TMethodsAndOverrides, TVirtuals>` → `<DocType, TOverrides,
+  TQueryHelpers>`), donc migrer les 5 schémas est à faire ensemble, pas
+  fichier par fichier isolément, pour rester cohérent.
+- `filterToUse: any` dans `findAll()` (déjà signalé comme dette dans
+  `CLAUDE.md`/le TODO du fichier) — sans lien direct avec la montée de
+  version, mais un bon moment pour le typer si ce fichier est de toute
+  façon touché par la migration `HydratedDocument`.
+
+**Structure suggérée** : un commit par majeure Nest (9→10, 10→11, 11→12),
+plus un commit séparé pour le driver Mongoose (peut se faire en parallèle
+du palier 11→12 vu qu'ils ne sont pas couplés), `nx build api`/`nx test
+api`/`nx lint api` (+ `api-domain`/`api-adapters` vu que `CHANTIER-EN-
+COURS.md` note que ces libs n'étaient pas suivies systématiquement)
+vérifiés à chaque étape.
 
 ## Autres points déjà documentés dans `CHANTIER-EN-COURS.md`, toujours valables
 
