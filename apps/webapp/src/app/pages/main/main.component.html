@@ -2,4 +2,6 @@
 <main class="main-layout">
   <router-outlet></router-outlet>
 </main>
-<bella-footer *ngIf="isMobileMode"></bella-footer>
+@if (isMobileMode) {
+  <bella-footer></bella-footer>
+}

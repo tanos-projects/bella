@@ -1,7 +1,9 @@
 <!-- <bella-navbar></bella-navbar> -->
 
-<bella-drawer *ngIf="!isMobileMode">
-  <bella-sidebar></bella-sidebar>
-</bella-drawer>
+@if (!isMobileMode) {
+  <bella-drawer>
+    <bella-sidebar></bella-sidebar>
+  </bella-drawer>
+}
 <router-outlet></router-outlet>
 <bella-loading></bella-loading>

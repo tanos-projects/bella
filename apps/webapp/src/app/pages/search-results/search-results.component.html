@@ -1,8 +1,12 @@
-<div class="container mt-2" *ngIf="(ads$ | async) as ads">
-  <h3 class="mb-3">Annonces trouvées ({{ads.length | number}})</h3>
-  <div class="row">
-    <div class="col-4 col-sm-3 col-md-2" *ngFor="let ad of ads">
-      <div class="mb-2"><bella-ad-card [data]="ad"></bella-ad-card></div>
+@if ((ads$ | async); as ads) {
+  <div class="container mt-2">
+    <h3 class="mb-3">Annonces trouvées ({{ads.length | number}})</h3>
+    <div class="row">
+      @for (ad of ads; track ad.id) {
+        <div class="col-4 col-sm-3 col-md-2">
+          <div class="mb-2"><bella-ad-card [data]="ad"></bella-ad-card></div>
+        </div>
+      }
     </div>
   </div>
-</div>
+}

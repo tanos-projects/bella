@@ -4,7 +4,9 @@
   <div class="rounded-circle profile-picture me-3">
 
   </div>
-  <a class="text-decoration-none" *ngIf="user" [routerLink]="['/profil', user.id, user.username]">{{
-    user.username
-  }}</a>
+  @if (user) {
+    <a class="text-decoration-none" [routerLink]="['/profil', user.id, user.username]">{{
+      user.username
+    }}</a>
+  }
 </div>

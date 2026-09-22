@@ -1,1 +1,3 @@
-<div *ngIf="message" class="invalid-feedback" style="display: block">{{ message }}</div>
+@if (message) {
+  <div class="invalid-feedback" style="display: block">{{ message }}</div>
+}

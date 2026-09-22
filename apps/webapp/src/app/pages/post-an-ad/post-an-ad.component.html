@@ -1,31 +1,38 @@
 <bella-titled-page [title]="'Publier une annonce'">
   <div class="">
-    <div
-      *ngIf="message"
-      class="alert"
-      [ngClass]="{ 'alert-danger': error, 'alert-success': !error }"
-      role="alert"
-    >
-      {{ message }}
-      <pre *ngIf="error">{{ error | json }}</pre>
-    </div>
-    <div *ngIf="!postedAd">
-      <bella-ad-form
-        [submitting]="submitting"
-        (submitData)="submit($event)"
-      ></bella-ad-form>
-    </div>
-    <div *ngIf="postedAd">
-      <h5>Et ensuite ?</h5>
-      <p>
-        Merci, nous avons bien reçu votre demande de publication d'annonce. Si elle respecte les
-        <a href="#"> conditions générales </a>, elle sera publiée dans les
-        meilleurs délais.
-      </p>
-      <!-- FIXME comme l'annonce passe en attente de validation on ne peut plus y accéder immédiatement -->
-      <!-- <div class="d-flex justify-content-center">
-        <a [routerLink]="postedAdUrlPath">Visualiser mon annonce</a>
-      </div> -->
-    </div>
+    @if (message) {
+      <div
+        class="alert"
+        [ngClass]="{ 'alert-danger': error, 'alert-success': !error }"
+        role="alert"
+      >
+        {{ message }}
+        @if (error) {
+          <pre>{{ error | json }}</pre>
+        }
+      </div>
+    }
+    @if (!postedAd) {
+      <div>
+        <bella-ad-form
+          [submitting]="submitting"
+          (submitData)="submit($event)"
+        ></bella-ad-form>
+      </div>
+    }
+    @if (postedAd) {
+      <div>
+        <h5>Et ensuite ?</h5>
+        <p>
+          Merci, nous avons bien reçu votre demande de publication d'annonce. Si elle respecte les
+          <a href="#"> conditions générales </a>, elle sera publiée dans les
+          meilleurs délais.
+        </p>
+        <!-- FIXME comme l'annonce passe en attente de validation on ne peut plus y accéder immédiatement -->
+        <!-- <div class="d-flex justify-content-center">
+          <a [routerLink]="postedAdUrlPath">Visualiser mon annonce</a>
+        </div> -->
+      </div>
+    }
   </div>
 </bella-titled-page>

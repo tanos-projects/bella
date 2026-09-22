@@ -3,8 +3,10 @@
     Merci de bien vouloir compléter votre profil utilisateur pour accéder à votre compte.
   </div>
   <div>
-    <bella-profile-form *ngIf="user$ | async as user" [user]="user" [cancelable]="false" (userChange)="save($event)">
-    </bella-profile-form>
+    @if (user$ | async; as user) {
+      <bella-profile-form [user]="user" [cancelable]="false" (userChange)="save($event)">
+      </bella-profile-form>
+    }
   </div>
   <div class="text-center mt-5">
     <bella-logout-btn></bella-logout-btn>
