@@ -61,33 +61,48 @@ Le message qui a ouvert cette session demandait de corriger ce qui est
 sur le modèle de `CHANTIER-EN-COURS.md` (un commit vérifié build/lint/test
 par étape), pas une sweep en un seul passage.
 
-### 1. Conversion `*ngIf`/`*ngFor` → `@if`/`@for`
+### 1. Conversion `*ngIf`/`*ngFor` → `@if`/`@for` — FAIT (2026-09-22)
 
-`@angular-eslint/template/prefer-control-flow` est désactivée dans
-`webapp` et `admin` depuis le palier 22 (les deux `eslint.config.mjs`).
-**29 fichiers** `.html` utilisent encore `*ngIf`/`*ngFor` (`grep -rlE
-'\*ngIf|\*ngFor' apps/webapp/src apps/admin/src --include="*.html"`,
-28 dans webapp + 1 dans admin). Pas homogène : certains fichiers ont un
-`*ngIf` simple et convertiraient en un `@if` mécanique et sûr, mais
-d'autres usages rencontrés dans ce périmètre (ex.
-`search-filter.component.html`, `ad-card.component.html`) combinent
-`*ngIf="(x$ | async) as y"` (binding `as`), des `ngIf...then...else`
-avec des `ng-template` référencés par `#nom` (le nouveau `@if/@else` ne
-supporte pas nativement le pattern `then/else` par référence de template,
-il faut inliner le contenu), et du `*ngFor` avec `trackBy` (dont la
-sémantique change : l'ancien `trackBy` est une fonction `(index, item) =>
-clé`, le nouveau `track` est une expression par item, en général
-`track item.id` ou `track trackByFn(item)` — nécessite de vérifier au cas
-par cas que chaque liste a bien un identifiant stable). Distinguer les cas
-triviaux des cas piégeux fichier par fichier est exactement le travail
-qui rend la conversion non triviale en bloc, même si chaque conversion
-individuelle une fois triée l'est.
+Exécuté en sous-agent isolé (fork), sur demande explicite de
+l'utilisateur ("lance le sweep @if/@for en sous-agent isolé. attaque
+tout ce que tu peux"). Les 29 fichiers `.html` initialement recensés
+ont été convertis, **plus 2 fichiers supplémentaires** que le grep scopé
+à `*.html` avait manqués : `picture-uploader.ts` et
+`stepped-form-field.ts` ont un template inline (`template:` dans le
+décorateur `@Component`), pas de fichier `.html` séparé — repéré via un
+second grep sur `*.ts` avant de clore le sweep. Les cas piégeux anticipés
+ont tous été traités, pas contournés :
+- **`then`/`else` par référence de template** (`ad-detail.component.html`,
+  `ad-card.component.html`) : inlinés directement dans les blocs
+  `@if {} @else {}`, les `ng-template` nommés désormais inutiles supprimés.
+- **`*ngIf="... as x"`** : devenu `@if (...; as x)` partout.
+- **`*ngFor` avec ou sans `trackBy`** : `track` choisi au cas par cas —
+  `ad.id`/`publication.id` pour les listes d'annonces (identifiant stable
+  du DTO), `country.iso2` pour la liste de pays, `adsByCategory.category.code`
+  pour les groupes par catégorie, identité d'objet (`track step`/
+  `track picture`) pour les `FormlyFieldConfig`/`Picture` sans champ
+  unique garanti, `track $index` pour un tableau de simples emplacements
+  vides (`remainingImagePlaceHolders`, où les éléments n'ont pas
+  d'identité propre).
 
-**Suggestion d'exécution** : chantier dédié, palier par sous-ensemble de
-fichiers (ex. par module Angular), `nx lint`/`test`/`build` vérifiés à
-chaque étape comme sur l'échelle 14→22 — bon candidat pour un sous-agent
-en `isolation: worktree` étant donné le caractère mécanique-une-fois-trié
-et vérifiable par build/lint/test.
+**Seul renoncement, documenté et volontaire** : les deux boucles de
+slides swiper (`carousel.component.html`, `ads-previewer.component.html`)
+sont restées en `*ngFor`/`*ngIf` sur des `<ng-template swiperSlide>` —
+le wrapper Angular de swiper lit un `TemplateRef` par instance de
+`ng-template` via `ContentChildren(SwiperSlideDirective)` pour son API de
+projection de contenu, et rien dans la suite de tests ne permet de
+vérifier que `@for`/`@if` produirait exactement le même comportement de
+projection par itération. Commentaire explicatif + `eslint-disable-next-line
+@angular-eslint/template/prefer-control-flow` posés sur ces 4 lignes
+plutôt que de désactiver la règle globalement.
+
+`@angular-eslint/template/prefer-control-flow` réactivée dans les deux
+`eslint.config.mjs` (suppression du `'off'`, blocs `.ts` et `.html`).
+Vérifié : lint webapp revenu exactement à la baseline (39 problèmes :
+5 erreurs / 34 warnings), lint admin idem (15 : 3/12), 30/30 suites
+webapp + 5/5 suites admin vertes, build propre sur les deux apps
+(mêmes warnings préexistants qu'avant le sweep). 6 commits, un par lot
+vérifié (`8367741` à `bea7273`).
 
 ### 2. `inject()` au lieu de l'injection par constructeur
 
