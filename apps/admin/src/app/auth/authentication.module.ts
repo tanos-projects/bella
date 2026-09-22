@@ -4,6 +4,7 @@ import { AuthModule } from '@auth0/auth0-angular';
 import { environment } from '../../environments/environment';
 import { AuthCustomService } from './auth-custom.service';
 import { AuthUserService } from './auth-user.service';
+import { PermissionsGuard } from './permissions.guard';
 
 @NgModule({
   imports: [
@@ -39,7 +40,7 @@ export class AuthenticationModule {
   static forRoot(): ModuleWithProviders<AuthenticationModule> {
     return {
       ngModule: AuthenticationModule,
-      providers: [AuthUserService, AuthCustomService],
+      providers: [AuthUserService, AuthCustomService, PermissionsGuard],
     };
   }
 }

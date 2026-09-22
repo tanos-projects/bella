@@ -78,14 +78,13 @@ and `.decorator.ts`); `AdsController`'s `publish` endpoint now checks
 ownership or that same permission instead of accepting any authenticated
 caller; the admin app's routes have `AuthGuard` back on `dashboard` and
 `publications`, and `AuthenticationModule`'s `httpInterceptor.allowedList`
-covers the four admin API calls.
-
-**Documented remaining debt**: the admin app's route guard only checks that
-the caller is logged in (`AuthGuard`), not that they hold
-`manage:publications` — a logged-in user without that permission can still
-load the moderation UI, even though every mutation it triggers is rejected
-server-side by `PermissionsGuard`. Add a permission-aware route guard on the
-front end if that UX gap needs closing.
+covers the four admin API calls. `dashboard` and `publications` also carry
+`PermissionsGuard` (`apps/admin/src/app/auth/permissions.guard.ts`), which
+decodes the `permissions` claim off the Auth0 access token
+(`getAccessTokenSilently()`) and redirects to `/access-denied` when
+`manage:publications` is missing — the front-end UX gap noted below is
+closed, mirroring the API's `PermissionsGuard` rather than duplicating its
+trust boundary (the API guard is still what actually enforces this).
 
 ## Front-end architecture (webapp and admin)
 
