@@ -1197,35 +1197,268 @@ dans le bloc `*.ts`. Lint revenu aux baselines après ce double ajout.
 - Build production admin : succès (bundle à 1.06 MB, toujours sous le
   `maximumError: 2mb` relevé au palier précédent).
 
-## Prochaine étape
+## Palier 21→22 : fait — **dernier palier de l'échelle 14→22** (commit à suivre)
 
-Palier 21→22 (Angular 22, **dernier palier de l'échelle 14→22**), à faire
-depuis `/home/tanos/bella`. Point de convergence attendu (cf. section
-"Leçons apprises sur afrik-tangazo" en tête de ce fichier) :
-1. Vérifier `node_modules/@angular/core/schematics/migrations.json` pour
-   du nouveau.
-2. Bump `package.json` : Angular + cdk/material + cli/build-angular +
-   eslint + tous les `@nx/*`/`nx`.
-3. **`decorate-angular-cli.js` va probablement casser ou devenir un
-   no-op** : le postinstall de ce palier a déjà averti `Decoration of the
-   Angular CLI is deprecated and will be removed in Nx v22`. Vérifier si
-   le mécanisme de décoration existe encore après le bump ; si non,
-   supprimer le script et la ligne `postinstall` de `package.json`
-   plutôt que de laisser un postinstall qui échoue silencieusement.
-4. **Revérifier `ngx-bootstrap`/`ng-select`/`ngx-device-detector` un par
-   un** — toujours vérifier le `peerDependencies` réel de la version
-   candidate plutôt que de supposer qu'un numéro de version proche
-   d'Angular la cible (leçon du palier 21 sur `ng-select`).
-5. Revérifier la compatibilité `typescript`/`rxjs`/`jest-preset-angular`.
-6. `.angular/cache`/`.nx` à nettoyer avant tout `serve` post-palier.
-7. Vérifier les budgets de bundle des deux apps après le build.
-8. **Après ce palier, c'est la fin de l'échelle de version** — prochaine
-   étape naturelle : geler ce chantier de migration et ouvrir le chantier
-   séparé de modernisation (standalone, signals, `@if`/`@for`, `inject()`)
-   explicitement différé depuis le début (cf. décision actée en tête de
-   ce fichier et mémoire Claude `angular-14-to-22-migration-bella`), en
-   réactivant au passage les règles lint désactivées pendant l'échelle
-   (`prefer-standalone`, `prefer-inject`, `prefer-control-flow`) au fur
-   et à mesure que le code modernisé les satisfait.
-9. Build/lint/test des deux apps, commit — dernier commit de palier avant
-   la passation vers le chantier de modernisation.
+Versions posées dans `package.json` : famille Angular `~22.1.7`,
+`@angular/cdk`/`@angular/material` `22.1.7`, `@angular/cli`/
+`@angular-devkit/build-angular`/`@angular/pwa` `~22.1.8`,
+`@angular-eslint/*` `~22.5.0`, `nx`+tous les `@nx/*` `22.7.12`. `typescript`
+`~5.9.3`→`~6.0.3` (`@angular/compiler-cli@22.1.7` exige `>=6.0 <6.1`, plage
+particulièrement étroite). `ng-select` `^21.8.2`→`^24.1.2` (24.1.2 exige
+maintenant `@angular/cdk` en peer, déjà présent au bon numéro dans ce
+repo), `ngx-bootstrap` `21.2.2`→`22.0.0` exact (toujours 1-pour-1 avec
+Angular), `ngx-device-detector` `^11.0.0`→`^12.0.0`. `eslint` `~8.57.1`→
+`~9.39.5` — **forcé** cette fois : `@angular-eslint@22.5.0` exige
+`eslint: ^9.0.0 || ^10.0.0`, `8.x` n'est plus accepté du tout. Choisi 9.x
+plutôt que 10.x pour rester sur une majeure plus établie ;
+`eslint-plugin-cypress` `^2.10.3`→`^6.4.4` (la 7.x exige déjà `eslint
+>=10`), `eslint-config-prettier` `8.1.0`→`^10.1.8` (peer `eslint >=7.0.0`,
+sans rapport avec le reste — juste très en retard, jamais retouché depuis
+le tout début du chantier).
+
+### ESLint 9 = flat config obligatoire — le plus gros morceau de ce palier
+
+ESLint 9 supprime le support du format `.eslintrc.json` par défaut.
+Conversion faite avec le générateur officiel Nx plutôt qu'à la main :
+```
+node node_modules/nx/dist/bin/nx.js generate @nx/eslint:convert-to-flat-config --no-interactive
+```
+(dry-run d'abord sans `--no-interactive` pour voir le plan). Il a
+supprimé tous les `.eslintrc.json` (racine + 2 apps + 2 e2e + 3 libs),
+créé un `eslint.config.mjs` par projet, mis à jour chaque `project.json`
+(executor déjà `@nx/eslint:lint` depuis le palier 20, mais
+`lintFilePatterns` a gagné `**/*.html` en plus de `**/*.ts` — l'ancien
+executor `@nrwl/linter`/`@nx/eslint:lint` en mode eslintrc ne linthait
+apparemment jamais les templates externes via cette option, une lacune
+comblée par la conversion), `nx.json` (`inputs` pointant vers
+`eslint.config.mjs` au lieu de `.eslintrc.json`), et a ajouté au
+`package.json` : `@eslint/js`, `@eslint/eslintrc` (pont de compatibilité
+legacy→flat) et le méta-paquet `typescript-eslint` (bundle
+`@typescript-eslint/*`, requis par `@nx/eslint-plugin`'s flat configs).
+**Une dépendance manquante non ajoutée par le générateur** : le
+méta-paquet analogue `angular-eslint` (bundle `@angular-eslint/*`) —
+`@nx/eslint-plugin`'s `flat/angular`/`flat/angular-template` en ont
+besoin en interne (`require('angular-eslint')`), le lint plantait avec
+`Cannot find module 'angular-eslint'` tant qu'il n'était pas ajouté à la
+main. **Le générateur ne fait aucun `npm install` lui-même** — après
+génération, `npm install` a dû être relancé deux fois (une fois pour les
+paquets qu'il a ajoutés, une fois après l'ajout manuel d'`angular-eslint`).
+
+**Deux blocs générés ont dû être corrigés à la main** (le générateur a
+fidèlement porté toutes nos règles custom depuis les `.eslintrc.json` —
+sélecteurs, `prefer-standalone`/`prefer-inject`/`prefer-control-flow`
+désactivés — mais un détail de transposition legacy→flat était cassé) :
+1. Le bloc `compat.config({extends: ['plugin:@angular-eslint/template/
+   process-inline-templates']})` généré pour `apps/webapp`/`apps/admin`
+   échouait avec `Failed to load config "plugin:@angular-eslint/
+   template/process-inline-templates"` — **redondant en plus d'être
+   cassé** : `nx.configs['flat/angular']` (déjà utilisé juste au-dessus
+   dans le même fichier) configure déjà `processor: angular.
+   processInlineTemplates` nativement pour tous les `**/*.ts`, à travers
+   le méta-paquet `angular-eslint`. Supprimé tout le bloc `FlatCompat`
+   redondant, gardé seulement nos règles custom dans un bloc simple
+   `{ files: ['**/*.ts'], rules: {...} }`.
+2. Aucun autre correctif structurel nécessaire — `nx.configs['flat/base']`,
+   `['flat/typescript']`, `['flat/javascript']`, `['flat/angular']`,
+   `['flat/angular-template']` couvrent fidèlement l'équivalent de
+   `plugin:@nx/typescript`/`javascript`/`angular`/`angular-template`.
+
+**Nouveau : `flat/angular-template` embarque aussi les règles
+d'accessibilité, pas seulement `recommended`.** Vérifié dans le source de
+`@nx/eslint-plugin` (`flat-configs/angular-template.js`) : `extends:
+[...angular-eslint.configs.templateRecommended, ...angular-eslint.configs.
+templateAccessibility]` — l'ancien `plugin:@nx/angular-template` en mode
+eslintrc n'étendait que `recommended`. Ce changement fait remonter des
+erreurs a11y réelles et jamais vues avant (`no-autofocus`,
+`label-has-associated-control`, `click-events-have-key-events`,
+`interactive-supports-focus`, `alt-text`) sur 4 fichiers de `webapp`. Un
+cas (`carousel.component.html`, `<img>` de repli sans `alt`) était un
+correctif trivial et sûr, appliqué directement (`alt="Aucune image
+disponible"`). **Les 4 autres, désactivées explicitement par leur nom**
+(pas un blanket-disable de toute la catégorie a11y) dans le bloc
+`**/*.html` des deux `eslint.config.mjs` — ce sont de vrais manques
+d'accessibilité (label sans `for`/association, clic sans équivalent
+clavier) qui touchent au comportement UI et méritent une vraie revue
+plutôt qu'un fix mécanique en fin de ladder ; **recommandé comme premier
+chantier séparé après celui de modernisation** (voir plus bas), pas
+oublié.
+
+**Petit nettoyage associé** : `jest.config.ts` (racine, `webapp`, `admin`,
+`api`, `libs/dtos`, `libs/api/domain`, `libs/api/adapters`) portait tous
+un `/* eslint-disable */` en tête de fichier ou un bloc `globals: {
+'ts-jest': {...} }` déprécié (même avertissement ts-jest que celui corrigé
+pour webapp/admin au palier 19, jamais refait pour `api`/les libs faute de
+les avoir eues dans le scope de vérification jusqu'ici). Les deux corrigés
+partout : `/* eslint-disable */` retiré (n'était plus nécessaire, flat
+config confirmé), config `ts-jest` déplacée dans la forme tuple du
+`transform`.
+
+### `nx build api` cassé — jamais vérifié avant ce palier, corrigé
+
+**Découverte importante** : ce chantier n'a jamais fait tourner `nx build
+api`/`nx test api` à aucun des 6 paliers précédents (seuls `webapp` et
+`admin` étaient dans le scope de vérification établi). En le testant pour
+la première fois ce palier-ci par prudence (les changements de
+`tsconfig.base.json` touchent tout le workspace), `nx build api` a échoué
+avec `Module not found: Error: Can't resolve './src' in
+'/home/tanos/bella'`. Root cause identifiée en lisant le source de
+`@nx/webpack:webpack` (`webpack.impl.js`, fonction `getWebpackConfigs`) :
+**à partir de Nx 22, cet executor ne dérive plus du tout de config
+webpack à partir des options `main`/`tsConfig`/`assets` du `project.json`
+quand aucun `webpackConfig` n'est fourni — il retourne un objet `{}` vide
+au lieu de construire un config par défaut**, contrairement à tous les
+paliers précédents où ce zéro-config marchait. Résultat : un webpack
+sans `entry` défini retombe sur son propre défaut (`./src`), résolu
+depuis la racine du workspace — d'où l'erreur.
+
+**Ce n'est très probablement pas une régression de ce palier précis** :
+le renommage `@nrwl/webpack:webpack`→`@nx/webpack:webpack` du palier 20
+n'a jamais été vérifié par un vrai build, donc ce cassage silencieux
+remonte peut-être à 3 paliers en arrière. Bonne nouvelle : personne n'a
+eu besoin de builder l'API entre-temps, mais ça aurait bloqué un déploiement
+réel si quelqu'un l'avait tenté.
+
+**Fix** : créé `apps/api/webpack.config.js` avec le pattern officiel Nx
+`composePlugins(withNx({target: 'node'}), config => config)` (repris du
+template `@nx/node`'s propre générateur d'application,
+`node_modules/@nx/node/src/generators/application/files/common/
+webpack.config.js__tmpl__`) — `withNx()` relit et applique en interne
+exactement les mêmes options que celles déjà dans `project.json`
+(`main`, `tsConfig`, `assets`, `fileReplacements` par configuration), donc
+**aucune autre valeur de `project.json` n'a eu besoin de changer**, juste
+l'ajout d'une clé `"webpackConfig": "apps/api/webpack.config.js"` dans
+`targets.build.options`. Vérifié : `nx build api` et `nx build api
+--configuration production` passent, `nx test api` (5/5 suites,
+inchangé), `nx lint api` (0 erreur, warnings pré-existants inchangés).
+
+**Leçon retenue** : quand un renommage d'executor Nx (`@nrwl/x`→`@nx/x`)
+est fait à un palier, vérifier immédiatement par un vrai `nx build`/`nx
+test`/`nx lint` du projet concerné plutôt que de supposer que le
+renommage seul suffit — un changement de comportement interne de
+l'executor lui-même (pas juste son nom) peut se cacher derrière un
+renommage en apparence anodin. **`api` et les libs (`api-domain`,
+`api-adapters`, `dtos`) devraient rejoindre `webapp`/`admin` dans le
+scope de vérification systématique des paliers futurs**, maintenant que
+c'est fait une première fois ici.
+
+### `decorate-angular-cli.js` supprimé (comme anticipé)
+
+Le postinstall a échoué avec `Decoration of the Angular CLI did not
+complete successfully` (`node_modules/nx/src/adapter/decorate-cli`
+n'existe plus dans le paquet `nx` à cette version — confirmé par
+recherche directe). Script `decorate-angular-cli.js` et la ligne
+`"postinstall": "node ./decorate-angular-cli.js"` de `package.json`
+supprimés plutôt que laissés en échec silencieux. Aucune perte de
+fonctionnalité réelle : le script ne faisait que symlinker `ng`→`nx` et
+activer un cache de calcul pour l'invocation `ng <cmd>`, mais ce repo
+n'utilise déjà que des commandes `nx <cmd>` (`package.json` scripts,
+`CLAUDE.md`), jamais `ng` directement.
+
+### Deux vrais bugs TypeScript trouvés par le bump 5.9→6.0 (pas des faux positifs)
+
+**1. `strict` implicitement plus permissif jusqu'ici, TS 6.0 le resserre.**
+`tsconfig.base.json` n'avait jamais fixé `strict` explicitement (juste
+commenté `// "strict": true,` dans les tsconfig par app) — TypeScript
+6.0 a fait remonter deux erreurs `strictNullChecks`/
+`strictPropertyInitialization` (`TS2532`/`TS2564`) qui ne s'étaient
+jamais manifestées aux versions précédentes de TypeScript avec exactement
+la même configuration. Plutôt que de traquer fichier par fichier tous les
+manques de null-safety d'un coup (modernisation hors scope de cette
+échelle), **`"strict": false` posé explicitement** dans
+`tsconfig.base.json` pour figer le comportement historique du projet
+indépendamment de ce que TypeScript 6.0 pourrait décider par défaut.
+Les deux erreurs ont bien disparu après ce fix, confirmant l'hypothèse.
+**Un `.find(...).label` non protégé dans `ads.service.ts` corrigé quand
+même** (`?.label ?? ad.category`) — bug latent réel indépendamment de
+`strict`, un `.find()` qui ne trouve rien aurait planté à l'exécution.
+2. **`import * as dayjs from 'dayjs'` appelé comme une fonction** —
+`TS2349: This expression is not callable`. Toujours fonctionné aux
+versions précédentes de TypeScript malgré l'incorrection technique du
+pattern (un import namespace n'est pas censé être appelable). Corrigé en
+`import dayjs from 'dayjs'` (import par défaut, le message d'erreur
+suggérait exactement ce fix) dans le seul fichier concerné
+(`profile-form.component.ts` — vérifié par grep, aucune autre occurrence).
+
+### `baseUrl` déprécié en TS 6.0 — tentative de suppression propre, annulée
+
+TS 6.0 fait de `"baseUrl"` un `TS5101` (erreur, pas juste un warning) sans
+`"ignoreDeprecations": "6.0"`. Première tentative : supprimer `baseUrl`
+entièrement et préfixer chaque entrée de `paths` par `./` (cense marcher
+depuis TS 4.1, "paths sans baseUrl") — a cassé avec `TS5090: Non-relative
+paths are not allowed when 'baseUrl' is not set` malgré le préfixe
+(retenir : au moins dans cette version de TS, une entrée `paths` sans
+`baseUrl` doit être relative, mais un simple `./` en tête n'a pas suffi
+dans ce cas précis, pas creusé plus loin pourquoi). **Solution retenue,
+plus simple** : garder `"baseUrl": "."` et ajouter
+`"ignoreDeprecations": "6.0"` (exactement l'échappatoire suggérée par le
+message d'erreur `TS5101` lui-même) — accepté comme dette technique
+explicite plutôt que game de refactor supplémentaire en toute fin
+d'échelle. **À refaire proprement avant que TypeScript 7.0 ne rende
+`baseUrl` totalement non-fonctionnel** (pas de version cible connue à ce
+jour) — noter cette dette dans un futur chantier.
+
+### Vérifications finales, toutes vertes sur `/home/tanos/bella`
+
+- Lint webapp : 39 problèmes (5 erreurs / 34 warnings) — identique à la
+  baseline.
+- Lint admin : 15 problèmes (3 erreurs / 12 warnings) — identique.
+- Lint api / api-domain / api-adapters / dtos : 0 erreur partout
+  (warnings pré-existants uniquement) — vérifiés pour la première fois.
+- Tests webapp : 30/30 suites (43 tests).
+- Tests admin : 3/3 suites (4 passed, 1 skipped — pré-existant).
+- Tests api : 5/5 suites (20 tests) — vérifié pour la première fois.
+- Tests api-domain : 2/2 suites (14 tests), api-adapters/dtos : aucun
+  test présent (0 échec) — vérifiés pour la première fois.
+- Build production webapp : succès (bundle 1.64 MB, sous `maximumError:
+  2mb`).
+- Build production admin : succès (bundle 1.07 MB, sous `maximumError:
+  2mb`).
+- Build api (dev + production) : succès — vérifié et corrigé pour la
+  première fois ce palier (voir plus haut).
+
+## Fin de l'échelle 14→22 — état et suite
+
+**Les 8 paliers de la montée de version Angular 14→22 sont faits et
+commités** (14→15 à 21→22, voir l'historique de ce fichier pour le détail
+complet de chacun). Discipline respectée de bout en bout : NgModules +
+injection par constructeur conservés, aucun standalone/signal/`@if`/
+`@for`/`inject()` introduit dans le code applicatif (seules les règles
+lint correspondantes ont été désactivées le temps de l'échelle : `@angular-
+eslint/prefer-standalone`, `@angular-eslint/prefer-inject`,
+`@angular-eslint/template/prefer-control-flow`), un commit par palier,
+build/lint/test vérifiés à chaque fois avant de passer au suivant.
+
+**Dette technique explicitement identifiée et documentée en cours de
+route, pas oubliée, mais délibérément pas traitée dans cette échelle** :
+- Les 3 règles lint de modernisation désactivées ci-dessus (à réactiver
+  au fur et à mesure que le futur chantier de modernisation les satisfait).
+- 4 règles d'accessibilité de template désactivées au palier 22
+  (`no-autofocus`, `label-has-associated-control`,
+  `click-events-have-key-events`, `interactive-supports-focus`) — de
+  vrais manques d'a11y sur 4 fichiers de `webapp`, candidats pour un
+  chantier a11y séparé.
+- Avertissements Sass `@import` dépréciés (plusieurs fichiers `.scss`
+  depuis le palier 19) — conversion vers `@use`/`@forward`, hors scope.
+- `"ignoreDeprecations": "6.0"` sur `baseUrl` dans `tsconfig.base.json` —
+  à refaire proprement (suppression complète de `baseUrl`) avant TS 7.0.
+- Avertissement de dépréciation `@angular-devkit/build-angular`/
+  `@ngtools/webpack` observé au palier 22 (« Use the esbuild and
+  Vite-based "@angular/build" package instead ») — pas un blocage
+  aujourd'hui, mais Angular semble pousser vers un changement d'exécuteur
+  de build à terme ; à surveiller, migration probablement hors scope
+  d'un simple chantier de modernisation de code (changerait l'outillage
+  de build lui-même).
+- `nx build api`/`nx test api`/lint des libs `api-domain`/`api-adapters`/
+  `dtos` n'étaient pas dans le scope de vérification systématique avant
+  ce palier — désormais vérifiés une fois, mais pas suivis palier par
+  palier comme `webapp`/`admin` l'ont été ; à intégrer dans la routine de
+  vérification de tout chantier futur touchant ce repo.
+
+**Prochaine étape naturelle** : chantier de modernisation séparé
+(standalone components, signals, `@if`/`@for`, `inject()`), explicitement
+différé depuis le lancement de ce chantier (décision actée en tête de ce
+fichier et dans la mémoire Claude `angular-14-to-22-migration-bella`). À
+lancer comme un chantier distinct, pas une suite immédiate — ce fichier
+(`CHANTIER-EN-COURS.md`) aura rempli son rôle une fois ce dernier commit
+poussé ; le prochain chantier mérite son propre document de suivi plutôt
+que d'accumuler indéfiniment dans celui-ci.

@@ -4,7 +4,7 @@ import {
   UntypedFormGroup,
   Validators,
 } from '@angular/forms';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 
 import { AuthUser } from '../../../../auth/auth-user.model';
 import { CountriesService } from '../../../../shared/services/countries.service';

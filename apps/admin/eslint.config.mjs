@@ -1,0 +1,38 @@
+import baseConfig from '../../eslint.config.mjs';
+import nx from '@nx/eslint-plugin';
+
+export default [
+  ...baseConfig,
+  ...nx.configs['flat/angular'],
+  {
+    files: ['**/*.ts'],
+    rules: {
+      '@angular-eslint/directive-selector': [
+        'error',
+        {
+          type: 'attribute',
+          prefix: 'bella',
+          style: 'camelCase',
+        },
+      ],
+      '@angular-eslint/component-selector': [
+        'error',
+        {
+          type: 'element',
+          prefix: 'bella',
+          style: 'kebab-case',
+        },
+      ],
+      '@angular-eslint/prefer-standalone': 'off',
+      '@angular-eslint/prefer-inject': 'off',
+      '@angular-eslint/template/prefer-control-flow': 'off',
+    },
+  },
+  ...nx.configs['flat/angular-template'],
+  {
+    files: ['**/*.html'],
+    rules: {
+      '@angular-eslint/template/prefer-control-flow': 'off',
+    },
+  },
+];

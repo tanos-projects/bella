@@ -36,7 +36,7 @@ export class AdsService {
           ...ad,
           category: categories.find(
             (category) => category.code === ad.category
-          ).label,
+          )?.label ?? ad.category,
         };
         return adWithCategoryLabel;
       })
@@ -51,7 +51,7 @@ export class AdsService {
           ...ad,
           category: categories.find(
             (category) => category.code === ad.category
-          ).label,
+          )?.label ?? ad.category,
         };
         return adWithCategoryLabel;
       })

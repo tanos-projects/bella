@@ -4,6 +4,7 @@
   "projectType": "application",
   "sourceRoot": "apps/admin/src",
   "prefix": "bella",
+  "tags": [],
   "targets": {
     "build": {
       "executor": "@angular-devkit/build-angular:browser",
@@ -88,6 +89,5 @@
         "passWithNoTests": true
       }
     }
-  },
-  "tags": []
+  }
 }
