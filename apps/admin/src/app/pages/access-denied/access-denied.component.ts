@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { AuthCustomService } from '../../auth/auth-custom.service';
 
 @Component({
@@ -8,5 +8,5 @@ import { AuthCustomService } from '../../auth/auth-custom.service';
   standalone: false,
 })
 export class AccessDeniedComponent {
-  constructor(public auth: AuthCustomService) {}
+  public auth = inject(AuthCustomService);
 }

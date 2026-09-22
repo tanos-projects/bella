@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { AdDTO } from '@bella/dtos';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { PublicationsEffects } from './publications.effects';
@@ -22,7 +22,9 @@ export class PublicationsStore {
   private readonly _loadUnpublishedAction$ = new BehaviorSubject<any>({});
   readonly loadUnpublishedAction$ = this._loadUnpublishedAction$.asObservable();
 
-  constructor(private effects: PublicationsEffects) {
+  private effects = inject(PublicationsEffects);
+
+  constructor() {
     this.runEffects();
   }
 

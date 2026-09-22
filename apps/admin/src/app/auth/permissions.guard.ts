@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivate, Router, UrlTree } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { Observable, of } from 'rxjs';
@@ -13,7 +13,8 @@ import { catchError, map } from 'rxjs/operators';
  */
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(private auth: AuthService, private router: Router) {}
+  private auth = inject(AuthService);
+  private router = inject(Router);
 
   canActivate(route: ActivatedRouteSnapshot): Observable<boolean | UrlTree> {
     const required: string[] = route.data['permissions'] ?? [];

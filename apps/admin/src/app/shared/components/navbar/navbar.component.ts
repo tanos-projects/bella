@@ -1,5 +1,5 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 
@@ -17,6 +17,8 @@ export enum routes {
   standalone: false,
 })
 export class NavbarComponent {
+  private breakpointObserver = inject(BreakpointObserver);
+
   readonly routes = routes;
   isHandset$: Observable<boolean> = this.breakpointObserver
     .observe(Breakpoints.Handset)
@@ -24,8 +26,6 @@ export class NavbarComponent {
       map((result) => result.matches),
       shareReplay()
     );
-
-  constructor(private breakpointObserver: BreakpointObserver) {}
 }
 
 import { NgModule } from '@angular/core';

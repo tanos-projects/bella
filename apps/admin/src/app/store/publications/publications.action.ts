@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 
 import { creationAction, props } from '../utils';
 import { PublicationsStore } from './publications.store';
@@ -21,7 +21,7 @@ export const archivePublication = creationAction(
 
 @Injectable()
 export class PublicationsActions {
-  constructor(private store: PublicationsStore) {}
+  private store = inject(PublicationsStore);
 
   approveUnpublishedPublication(publicationId: string) {
     this.store.dispatch(approveUnpublishedPublication({ publicationId }));

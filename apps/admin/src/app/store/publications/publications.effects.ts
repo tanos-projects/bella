@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { switchMap } from 'rxjs';
 
 import { AdminPublicationsService } from '../../shared/services/publications.service';
@@ -13,7 +13,7 @@ import { PublicationsStore } from './publications.store';
 
 @Injectable()
 export class PublicationsEffects {
-  constructor(private service: AdminPublicationsService) {}
+  private service = inject(AdminPublicationsService);
 
   start(store: PublicationsStore): void {
     console.log('Init effects');

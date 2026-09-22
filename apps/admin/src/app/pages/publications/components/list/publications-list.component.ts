@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { AdDTO } from '@bella/dtos';
 import { of } from 'rxjs';
@@ -68,7 +68,7 @@ export class ApprobationEvent {
   standalone: false,
 })
 export class PublicationsListComponent {
-  constructor(public dialog: MatDialog) {}
+  public dialog = inject(MatDialog);
 
   @Input() publications: AdDTO[] = [];
 

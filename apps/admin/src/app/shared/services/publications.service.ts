@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { AdDTO } from '@bella/dtos';
 import { Observable } from 'rxjs';
 
@@ -7,8 +7,8 @@ import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AdminPublicationsService {
+  private http = inject(HttpClient);
   private readonly baseUrl = environment.apiBaseUrl;
-  constructor(private http: HttpClient) {}
 
   getUnplished(): Observable<AdDTO[]> {
     return this.http.get<AdDTO[]>(`${this.baseUrl}/publications/unpublished`);

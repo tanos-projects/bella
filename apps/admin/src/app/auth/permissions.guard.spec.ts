@@ -1,3 +1,4 @@
+import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, Router, UrlTree } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { of, throwError } from 'rxjs';
@@ -20,7 +21,15 @@ describe('PermissionsGuard', () => {
     auth = { getAccessTokenSilently: jest.fn() };
     deniedTree = {} as UrlTree;
     router = { createUrlTree: jest.fn().mockReturnValue(deniedTree) };
-    guard = new PermissionsGuard(auth as unknown as AuthService, router as unknown as Router);
+
+    TestBed.configureTestingModule({
+      providers: [
+        PermissionsGuard,
+        { provide: AuthService, useValue: auth },
+        { provide: Router, useValue: router },
+      ],
+    });
+    guard = TestBed.inject(PermissionsGuard);
   });
 
   function route(permissions?: string[]): ActivatedRouteSnapshot {

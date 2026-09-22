@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { map } from 'rxjs';
 
 import { PublicationsActions } from '../../store/publications/publications.action';
@@ -14,6 +14,9 @@ import {
   standalone: false,
 })
 export class PublicationsComponent implements OnInit {
+  private state = inject(PublicationsState);
+  private actions = inject(PublicationsActions);
+
   unpublishedPublications$ = this.state.unpublished$.pipe(
     map((publications) =>
       publications.map((publication) => ({
@@ -23,10 +26,7 @@ export class PublicationsComponent implements OnInit {
     )
   );
 
-  constructor(
-    private state: PublicationsState,
-    private actions: PublicationsActions
-  ) {
+  constructor() {
     this.actions.loadUnpublished();
   }
 
