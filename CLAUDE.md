@@ -68,18 +68,24 @@ Feature domains: `ads`, `categories`, `cities`, `countries`, `users`. Adding one
 
 `AdsService.submit`/`publish`/`reject`/`archive` are marked with `FIXME` comments and are **not** in a trustworthy state: `publish()`, `reject()` and `archive()` have their originating-state lookup commented out entirely, so they transition an ad from whatever state it happens to be in, and `submit()` spreads the result of a lookup that it never checks matched (`{...null}` is `{}` in JavaScript, so a missed guard still runs the update). Treat any change here as a state-machine change and cover it with tests.
 
-### Authorization gaps to be aware of
+### Authorization (issue #49)
 
-Across the admin controller, the admin app's routes and one of the public
-endpoints, several authorization guards are **commented out rather than absent**
-— which is easy to misread as intentional when editing nearby code. There is
-also no role or permission model anywhere yet: `JwtAuthGuard` only proves the
-caller holds *a* valid Auth0 token, not that they are an administrator.
+The gaps issue #49 tracked are closed: `AdminPublicationController` is guarded
+by `JwtAuthGuard` + `PermissionsGuard`, requiring the `manage:publications`
+Auth0 RBAC permission (`AuthUser.permissions`, populated from the access
+token's `permissions` claim — see `apps/api/src/app/auth/permissions.guard.ts`
+and `.decorator.ts`); `AdsController`'s `publish` endpoint now checks
+ownership or that same permission instead of accepting any authenticated
+caller; the admin app's routes have `AuthGuard` back on `dashboard` and
+`publications`, and `AuthenticationModule`'s `httpInterceptor.allowedList`
+covers the four admin API calls.
 
-Before touching anything under `api/admin/`, `apps/admin/src/app/app.routes.ts`,
-or the publish endpoint, read **issue #49** — it inventories what is disabled,
-explains why re-enabling the guards on their own is not enough, and tracks the
-decision on how roles should work.
+**Documented remaining debt**: the admin app's route guard only checks that
+the caller is logged in (`AuthGuard`), not that they hold
+`manage:publications` — a logged-in user without that permission can still
+load the moderation UI, even though every mutation it triggers is rejected
+server-side by `PermissionsGuard`. Add a permission-aware route guard on the
+front end if that UX gap needs closing.
 
 ## Front-end architecture (webapp and admin)
 

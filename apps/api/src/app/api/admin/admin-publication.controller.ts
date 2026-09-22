@@ -8,20 +8,21 @@ import {
   Body,
   Controller, Get,
   Param,
-  Patch
+  Patch,
+  UseGuards
 } from '@nestjs/common';
 import { map, Observable } from 'rxjs';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { Permissions } from '../../auth/permissions.decorator';
+import { PermissionsGuard } from '../../auth/permissions.guard';
 import { AdsService } from '../../infrastructure/ads/ads.service';
 import { mapAdTransitionError } from '../../utils/ad-transition-error.operator';
 
-// ADMIN ROLES
-// publications : can manage publications (approve, reject, delete) ?
-// users : can manage user
-//
-
+// Requires the caller's Auth0 access token to carry the `manage:publications`
+// permission (RBAC role assigned in the Auth0 dashboard) — see issue #49.
 @Controller('admin/publications')
-// TODO add ADMIN Guards here
-// @UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@Permissions('manage:publications')
 export class AdminPublicationController {
   constructor(private adsService: AdsService) {}
 

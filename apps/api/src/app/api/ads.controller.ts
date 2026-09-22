@@ -4,6 +4,7 @@ import { AdDTO, CreateAdDTO } from '@bella/dtos';
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   NotFoundException,
   Param,
@@ -134,15 +135,35 @@ export class AdsController {
     );
   }
 
-  // FIXME : guarded by JwtAuthGuard alone, so any authenticated user can
-  // publish any ad — this needs an ownership or role check.
+  // Only the ad's owner, or a caller with the `manage:publications`
+  // permission (see issue #49), may publish it — anyone else is rejected
+  // before the transition is attempted.
   @UseGuards(JwtAuthGuard)
   @Post(':id/publish')
   @ApiBearerAuth()
-  publishAd(@Param('id') id: string): Observable<AdDTO> {
-    return this.adsService
-      .publish(id)
-      .pipe(mapAdTransitionError(), map(AdMapper.modelToDTO));
+  publishAd(
+    @Param('id') id: string,
+    @Request() req: RequestWithUser
+  ): Observable<AdDTO> {
+    if ((req.user.permissions ?? []).includes('manage:publications')) {
+      return this.adsService
+        .publish(id)
+        .pipe(mapAdTransitionError(), map(AdMapper.modelToDTO));
+    }
+    return this.getUser(req.user).pipe(
+      switchMap((caller) =>
+        this.adsService.findOne(id).pipe(
+          switchMap((ad) => {
+            if (!ad.owner || ad.owner.id !== caller.id) {
+              throw new ForbiddenException('Only the ad owner can publish it');
+            }
+            return this.adsService
+              .publish(id)
+              .pipe(mapAdTransitionError(), map(AdMapper.modelToDTO));
+          })
+        )
+      )
+    );
   }
 
   private fakeMostRecentAds(

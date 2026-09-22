@@ -8,12 +8,29 @@ import { AuthUserService } from './auth-user.service';
 @NgModule({
   imports: [
     HttpClientModule,
-    // AuthModule.forRoot({
-    //   ...environment.authConfig,
-    //   httpInterceptor: {
-    //     allowedList: [],
-    //   },
-    // }),
+    AuthModule.forRoot({
+      ...environment.authConfig,
+      httpInterceptor: {
+        allowedList: [
+          {
+            uri: `${environment.apiBaseUrl}/publications/unpublished`,
+            httpMethod: 'GET'
+          },
+          {
+            uri: `${environment.apiBaseUrl}/publications/unpublished/*/approve`,
+            httpMethod: 'PATCH'
+          },
+          {
+            uri: `${environment.apiBaseUrl}/publications/*/reject`,
+            httpMethod: 'PATCH'
+          },
+          {
+            uri: `${environment.apiBaseUrl}/publications/*/archive`,
+            httpMethod: 'PATCH'
+          }
+        ]
+      }
+    }),
   ],
   declarations: [],
   exports: [AuthModule],

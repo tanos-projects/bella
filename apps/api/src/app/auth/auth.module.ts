@@ -4,6 +4,7 @@ import { MyConfigModule } from '../infrastructure/config/my-config.module';
 import { UsersModule } from '../infrastructure/users/users.module';
 import { JwtStrategy } from '../auth/jwt.strategy';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { PermissionsGuard } from './permissions.guard';
 
 @Module({
   imports: [
@@ -11,7 +12,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     UsersModule,
   ],
-  providers: [JwtStrategy, JwtAuthGuard],
-  exports: [PassportModule],
+  providers: [JwtStrategy, JwtAuthGuard, PermissionsGuard],
+  exports: [PassportModule, PermissionsGuard],
 })
 export class AuthModule {}

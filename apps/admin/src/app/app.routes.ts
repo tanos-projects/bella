@@ -8,7 +8,7 @@ export const appRoutes: Route[] = [
       import('./pages/dashboard/dashboard.module').then(
         (m) => m.DashboardModule
       ),
-    // canActivate: [AuthGuard],
+    canActivate: [AuthGuard],
   },
   {
     path: 'publications',
@@ -16,7 +16,7 @@ export const appRoutes: Route[] = [
       import('./pages/publications/publications.module').then(
         (m) => m.PublicationsModule
       ),
-      // canActivate: [AuthGuard],
+    canActivate: [AuthGuard],
   },
   {
     path: '**',
