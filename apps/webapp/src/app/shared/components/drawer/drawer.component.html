@@ -3,7 +3,7 @@
   <div *ngIf="opened" class="drawer-sidebar">
     <ng-content></ng-content>
   </div>
-  <div class="drawer-close-area ps-0" *ngIf="opened" (click)="close()">
-    <span class="btn btn-primary mt-2">X</span>
+  <div class="drawer-close-area ps-0" *ngIf="opened">
+    <button type="button" class="btn btn-primary mt-2" (click)="close()">X</button>
   </div>
 </div>

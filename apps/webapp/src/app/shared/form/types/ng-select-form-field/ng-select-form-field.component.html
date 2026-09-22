@@ -1,6 +1,7 @@
 <div [formGroup]="formGroup" class="form-group mb-3">
-  <label class="form-label">{{ field?.props?.label }}<span *ngIf="field?.props?.required" class="ms-1">*</span></label>
+  <label [attr.for]="field.key" class="form-label">{{ field?.props?.label }}<span *ngIf="field?.props?.required" class="ms-1">*</span></label>
   <ng-select
+    [id]="field.key"
     formControlName="{{ field.key }}"
     [items]="options$ | async"
     [bindLabel]="field?.props['labelProp']"

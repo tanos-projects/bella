@@ -138,9 +138,9 @@ interface PictureUploaderFormFieldOptions {
   ],
   template: `
     <div class="form-group">
-      <label [class.error]="field.formControl.errors?.['images']"
+      <span [class.error]="field.formControl.errors?.['images']"
         >{{ field.props['label'] }} ({{ pictureManager.getLength() }} /
-        {{ pictureManager.getMaxAllowed() }})</label
+        {{ pictureManager.getMaxAllowed() }})</span
       >
     </div>
     <div class="alert alert-info" *ngIf="pictureManager.isMaxAllowedReached()">
@@ -169,6 +169,10 @@ interface PictureUploaderFormFieldOptions {
         <div class="d-flex align-items-center picture-viewer rounded">
           <img
             (click)="removePicture(i)"
+            (keydown.enter)="removePicture(i)"
+            (keydown.space)="removePicture(i)"
+            role="button"
+            tabindex="0"
             [src]="picture.url"
             width="100"
             [title]="'Supprimer ' + picture.name"

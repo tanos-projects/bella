@@ -22,14 +22,14 @@
           type="text"
           class="form-control"
           placeholder="Mots clés"
-          [autofocus]="true"
         />
       </div>
     </div>
     <div class="row g-2 mt-0">
       <div class="col-6 col-md-4">
-        <label class="form-label">Pays</label>
+        <label for="country" class="form-label">Pays</label>
         <ng-select
+          id="country"
           formControlName="country"
           [items]="(countries$ | async) || []"
           bindLabel="name"

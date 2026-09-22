@@ -9,6 +9,10 @@
         <div
           [title]="country.name"
           (click)="validate(country.iso2)"
+          (keydown.enter)="validate(country.iso2)"
+          (keydown.space)="validate(country.iso2)"
+          role="button"
+          tabindex="0"
           class="country-flag-btn me-2 mb-2"
           *ngFor="let country of countries"
         >

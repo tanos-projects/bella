@@ -33,15 +33,6 @@ export default [
     files: ['**/*.html'],
     rules: {
       '@angular-eslint/template/prefer-control-flow': 'off',
-      // The flat "flat/angular-template" preset bundles the accessibility
-      // ruleset for the first time (the legacy .eslintrc.json config only
-      // extended "recommended") - these are real, pre-existing template
-      // issues it newly caught, not touched here to keep this palier scoped
-      // to the version migration. See CHANTIER-EN-COURS.md.
-      '@angular-eslint/template/no-autofocus': 'off',
-      '@angular-eslint/template/label-has-associated-control': 'off',
-      '@angular-eslint/template/click-events-have-key-events': 'off',
-      '@angular-eslint/template/interactive-supports-focus': 'off',
     },
   },
 ];

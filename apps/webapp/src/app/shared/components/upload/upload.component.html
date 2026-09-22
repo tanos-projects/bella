@@ -34,7 +34,13 @@
 
     <div class="d-grid gap-2">
       <div class="fs-5">
-        <label for="mobile-input-file" (click)=" modalRef?.hide()">
+        <label
+          for="mobile-input-file"
+          tabindex="0"
+          (click)="modalRef?.hide()"
+          (keydown.enter)="modalRef?.hide()"
+          (keydown.space)="modalRef?.hide()"
+        >
           <i class="bi bi-camera-fill me-2"></i>
 
           <span class="action">Prendre une photo</span>
@@ -42,7 +48,13 @@
       </div>
 
       <div class="fs-5">
-        <label for="desktop-input-file" (click)="modalRef?.hide()">
+        <label
+          for="desktop-input-file"
+          tabindex="0"
+          (click)="modalRef?.hide()"
+          (keydown.enter)="modalRef?.hide()"
+          (keydown.space)="modalRef?.hide()"
+        >
           <i class="bi bi-images me-2"></i>
 
           <span class="action">A partir de ma galérie</span>

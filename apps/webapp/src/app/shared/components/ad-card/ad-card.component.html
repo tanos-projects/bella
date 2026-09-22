@@ -1,4 +1,11 @@
-<div class="post-card rounded" (click)="goToDetail()">
+<div
+  class="post-card rounded"
+  (click)="goToDetail()"
+  (keydown.enter)="goToDetail()"
+  (keydown.space)="goToDetail()"
+  role="button"
+  tabindex="0"
+>
   <div class="image d-flex justify-content-center align-items-center">
     <ng-container *ngIf="data.images?.length; then coverImageTemplate; else noCoverImageTemplate"></ng-container>
     <ng-template #coverImageTemplate>
