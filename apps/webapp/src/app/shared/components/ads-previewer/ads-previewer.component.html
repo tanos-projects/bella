@@ -7,7 +7,7 @@
   </div>
   <div class="position-relative">
     <!-- <div *ngIf="isSwipeBeginning" class="prev-scroll-indicator"></div> -->
-    <swiper
+    <swiper-container
       [autoplay]="{
         delay: 2500,
         disableOnInteraction: false
@@ -54,25 +54,22 @@
       [spaceBetween]="spaceBetween"
       [preventClicks]="true"
       [preventClicksPropagation]="true"
-      (swiper)="onSwiper($event)"
-      (slideChange)="onSlideChange($event)"
+      (init)="onSwiperInit($event)"
+      (slidechange)="onSlideChange($event)"
     >
-      <!-- Left as *ngFor/*ngIf: swiper's ContentChildren(SwiperSlideDirective) query
-           reads a TemplateRef per ng-template instance for its slide-projection API;
-           not converted to @for/@if in this pass to avoid an unverifiable behavior
-           change in that third-party content-projection mechanism, and to keep the
-           legacy trackBy untouched. See CHANTIER-MODERNISATION.md. -->
-      <!-- eslint-disable-next-line @angular-eslint/template/prefer-control-flow -->
-      <ng-template swiperSlide *ngFor="let ad of ads; trackBy: trackByAdIdFn">
-        <bella-ad-card [data]="ad"></bella-ad-card>
-      </ng-template>
-      <!-- eslint-disable-next-line @angular-eslint/template/prefer-control-flow -->
-      <ng-template swiperSlide *ngIf="isMobileMode">
-        <div class="mb-3">
-          <a [routerLink]="['/annonces/', adCategory]">Voir toutes les annonces</a>
-        </div>
-      </ng-template>
-    </swiper>
+      @for (ad of ads; track ad.id) {
+        <swiper-slide>
+          <bella-ad-card [data]="ad"></bella-ad-card>
+        </swiper-slide>
+      }
+      @if (isMobileMode) {
+        <swiper-slide>
+          <div class="mb-3">
+            <a [routerLink]="['/annonces/', adCategory]">Voir toutes les annonces</a>
+          </div>
+        </swiper-slide>
+      }
+    </swiper-container>
     <!-- {{ isSwipeEnd }} -->
     <!-- <div *ngIf="isSwipeEnd" class="next-scroll-indicator"></div> -->
   </div>

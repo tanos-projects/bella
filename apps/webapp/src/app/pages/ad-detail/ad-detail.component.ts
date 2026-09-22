@@ -7,11 +7,6 @@ import { AdsService } from '../../shared/services/ads.service';
 import { ContactService } from '../../shared/services/contact.service';
 import { MyDeviceService } from '../../shared/services/my-device.service';
 
-import SwiperCore, { Pagination, Navigation } from 'swiper';
-
-// install Swiper modules
-SwiperCore.use([Pagination, Navigation]);
-
 @Component({
   selector: 'bella-ad-detail',
   templateUrl: './ad-detail.component.html',

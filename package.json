@@ -57,7 +57,7 @@
     "reflect-metadata": "^0.1.13",
     "rxjs": "~7.8.2",
     "swagger-ui-express": "^4.4.0",
-    "swiper": "^8.0.7",
+    "swiper": "~14.2.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.1"
   },

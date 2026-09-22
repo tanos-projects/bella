@@ -33,20 +33,13 @@ export class AdsPreviewerComponent {
   // isSwipeEnd = false;
   swiper!: Swiper;
 
-  trackByAdIdFn(index: number, ad: AdDTO): string {
-    return ad.id;
+  onSwiperInit(event: CustomEvent<[Swiper]>): void {
+    this.swiper = event.detail[0];
   }
 
-  onSwiper(swiper: Swiper): void {
-    // console.log(swiper, 'coucou');
-    this.swiper = swiper;
-  }
-
-  onSlideChange(swiper: any): void {
+  onSlideChange(event: CustomEvent<[Swiper]>): void {
     // this.isSwipeBeginning = swiper.isBeginning;
     // this.isSwipeEnd = swiper.isEnd;
-    // console.log('isSwipeEnd : ', this.isSwipeEnd);
-    // this.swiper = swiper;
   }
 
   onViewAll(): void {

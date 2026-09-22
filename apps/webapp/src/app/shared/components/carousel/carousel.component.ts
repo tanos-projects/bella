@@ -1,8 +1,5 @@
 import { Component, Input, OnInit, Output } from '@angular/core';
 import { AdImageDTO } from '../../models/ads.model';
-import SwiperCore, { Pagination, Navigation } from 'swiper';
-
-SwiperCore.use([Pagination, Navigation]);
 
 @Component({
   selector: 'bella-carousel',

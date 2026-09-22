@@ -1,7 +1,6 @@
-import { NgModule } from '@angular/core';
+import { CUSTOM_ELEMENTS_SCHEMA, NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CarouselComponent } from './carousel.component'
-import { SwiperModule } from 'swiper/angular';
 
 
 @NgModule({
@@ -9,11 +8,11 @@ import { SwiperModule } from 'swiper/angular';
     CarouselComponent
   ],
   imports: [
-    CommonModule,
-    SwiperModule
+    CommonModule
   ],
   exports: [
     CarouselComponent
-  ]
+  ],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class CarouselModule { }
