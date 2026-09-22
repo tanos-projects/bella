@@ -200,17 +200,50 @@ déduit. Le code actuel de `apps/api` a été relu (`main.ts`,
 `health.controller.ts`) pour ne retenir que les breaking changes qui
 touchent vraiment ce que ce code utilise.
 
-**Palier 9→10** — cible `@nestjs/core`/`common`/`platform-express` `~10.x`
-dernier patch (revérifier la version exacte au moment de l'exécution,
-comme fait à chaque palier Angular). Risque faible pour ce code :
-- Node.js ≥ 16 et TypeScript ≥ 4.8 requis pour les plugins CLI — déjà
-  largement dépassé ici (`typescript` `~6.0.3` dans le repo).
-- Le transport microservices NATS change de paquet (`nats` →
-  `@nats-io/transport-node`) — **non applicable**, ce codebase n'utilise
-  pas de microservices Nest (confirmé : aucune trace de
-  `@nestjs/microservices` dans `package.json`).
-- Pas de breaking change identifié touchant Mongoose, Swagger, Passport,
-  ou l'auth JWT à ce palier précis.
+**Palier 9→10 : fait** (commit `db2c79a`). Cible posée :
+`@nestjs/core`/`common`/`platform-express` `~10.4.19`, `@nestjs/schematics`
+`~10.2.3` (dev), `@nestjs/testing` `~10.4.22` (dev). Confirmé sans risque
+comme prévu : pas de microservices Nest dans ce codebase (aucune trace de
+`@nestjs/microservices`), `typescript` déjà largement au-dessus du plancher
+requis.
+
+**Écart par rapport au plan initial** : le scope "3 paquets seulement"
+s'est révélé infaisable tel quel — `@nestjs/mongoose@^9.1.1` et
+`@nestjs/terminus@^8.1.0` verrouillent leur peer sur `@nestjs/core`
+`^8||^9`, donc toute la famille `@nestjs/*` a dû suivre : `mongoose`
+`~10.1.0`, `terminus` `~10.3.0`, `config` `~4.0.4` (sa propre numérotation
+saute de 4.x direct à 12.x, aucune version 10.x/11.x n'existe), `passport`
+`~10.0.3`, `jwt` `~12.0.2` (déjà compatible `core ^10` à sa dernière
+version, pas de raison de la retenir).
+
+**Piège trouvé en vérifiant, pas juste en lisant le code** :
+`@nestjs/axios` a nécessité un pin précis, pas son dernier majeur — le
+`HttpHealthIndicator` de `terminus@10.3.0` déclare un peer
+`"^1.0.0 || ^2.0.0 || ^3.0.0"` pour `@nestjs/axios` (indépendant du propre
+cycle de version d'axios, qui est déjà à 12.x). Utiliser la dernière
+version d'`@nestjs/axios` a fait planter la suite de tests du health check
+à l'exécution (`process.exit(1)` interne à `checkPackages()` de terminus —
+ce n'est pas une validation semver, juste un `require()` qui échoue, donc
+l'incompatibilité de version remonte comme un crash runtime et pas comme
+un avertissement d'install). Fixé en pinnant `@nestjs/axios` à `~3.1.3` et
+en ajoutant `axios` (la lib HTTP brute, peer d'`@nestjs/axios`) `~1.20.0`
+en dépendance explicite — elle n'était en fait **jamais installée**
+avant, alors même que l'ancien `@nestjs/axios@0.0.8` la réclamait déjà ;
+le test du health check ne passait avant que parce qu'il n'exerçait pas
+ce chemin de code avant ce palier.
+
+`npm install` a nécessité `--legacy-peer-deps`, mais pour une raison sans
+rapport avec ce palier : `@angular-devkit/build-angular@~22.1.8` vs le
+peer range déclaré par `@nx/angular` (`>=19 <22`) sont incohérents depuis
+la migration Angular 22 elle-même (`cf57dcd`) — jamais remonté avant
+faute d'un `npm install` complet à froid depuis. Laissé tel quel, hors
+scope d'un palier NestJS ; à regarder séparément.
+
+Vérifié vert : `nx build/test/lint api` (tests 5/5 suites, 20/20 tests ;
+lint baseline inchangée, 24 problèmes / 0 erreur / 24 warnings) — plus,
+pour la première fois, `api-domain`/`api-adapters`/`dtos` intégrés à la
+routine de vérification comme le suggérait `CHANTIER-EN-COURS.md` (tous
+verts).
 
 **Palier 10→11** — cible `~11.x` dernier patch. Points vérifiés qui
 touchent potentiellement ce code :
