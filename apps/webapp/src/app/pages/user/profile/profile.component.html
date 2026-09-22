@@ -1,18 +1,22 @@
 <bella-header></bella-header>
 <main class="main-layout">
-  <div class="container mt-2" *ngIf="data$ | async as userData">
-    <div class="d-flex align-items-center p-2">
-      <div class="rounded-circle profile-picture me-3"></div>
-      <div>
-        <div class="fw-bold fs-4">{{ userData.username }}</div>
+  @if (data$ | async; as userData) {
+    <div class="container mt-2">
+      <div class="d-flex align-items-center p-2">
+        <div class="rounded-circle profile-picture me-3"></div>
         <div>
-          <i class="bi bi-geo-alt-fill me-1"></i> {{ userData.country }}
+          <div class="fw-bold fs-4">{{ userData.username }}</div>
+          <div>
+            <i class="bi bi-geo-alt-fill me-1"></i> {{ userData.country }}
+          </div>
         </div>
       </div>
+      <div class="mt-5 d-flex align-items-center justify-content-center">
+        <div class="ad-square-area"></div>
+      </div>
     </div>
-    <div class="mt-5 d-flex align-items-center justify-content-center">
-      <div class="ad-square-area"></div>
-    </div>
-  </div>
+  }
 </main>
-<bella-footer *ngIf="isMobileMode"></bella-footer>
+@if (isMobileMode) {
+  <bella-footer></bella-footer>
+}

@@ -21,13 +21,12 @@
   </div>
   <hr />
   <div class="text-center">
-    <ng-container *ngIf="isAuthenticationLoading$">
-      <ng-container *ngIf="isAuthenticated$ | async; else notConnectedTemplate">
+    @if (isAuthenticationLoading$) {
+      @if (isAuthenticated$ | async) {
         <bella-logout-btn></bella-logout-btn>
-      </ng-container>
-      <ng-template #notConnectedTemplate>
+      } @else {
         <bella-auth-login-signup></bella-auth-login-signup>
-      </ng-template>
-    </ng-container>
+      }
+    }
   </div>
 </div>

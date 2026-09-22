@@ -3,26 +3,34 @@
     <div class="container mt-2">
       <h3 class="mb-3">Mes annonces publiées</h3>
       <div class="row">
-        <div class="col-4 col-sm-3 col-md-2" *ngFor="let publication of (publications$ | async)">
-          <div class="mb-2"><bella-ad-card [data]="publication"></bella-ad-card></div>
-        </div>
+        @for (publication of (publications$ | async); track publication.id) {
+          <div class="col-4 col-sm-3 col-md-2">
+            <div class="mb-2"><bella-ad-card [data]="publication"></bella-ad-card></div>
+          </div>
+        }
       </div>
       <hr />
       <h3 class="mb-3">Mes annonces non validées</h3>
       <div class="row">
-        <div class="col-4 col-sm-3 col-md-2" *ngFor="let publication of (submittedPublications$ | async)">
-          <div class="mb-2"><bella-ad-card [data]="publication"></bella-ad-card></div>
-        </div>
+        @for (publication of (submittedPublications$ | async); track publication.id) {
+          <div class="col-4 col-sm-3 col-md-2">
+            <div class="mb-2"><bella-ad-card [data]="publication"></bella-ad-card></div>
+          </div>
+        }
       </div>
       <hr />
       <h3 class="mb-3">Mes brouillons</h3>
       <div class="row">
-        <div class="col-4 col-sm-3 col-md-2" *ngFor="let publication of (drafts$ | async)">
-          <div class="mb-2"><bella-ad-card [data]="publication"></bella-ad-card></div>
-        </div>
+        @for (publication of (drafts$ | async); track publication.id) {
+          <div class="col-4 col-sm-3 col-md-2">
+            <div class="mb-2"><bella-ad-card [data]="publication"></bella-ad-card></div>
+          </div>
+        }
       </div>
     </div>
 </main>
-<bella-footer *ngIf="isMobileMode"></bella-footer>
+@if (isMobileMode) {
+  <bella-footer></bella-footer>
+}
 
   
