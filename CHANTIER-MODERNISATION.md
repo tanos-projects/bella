@@ -292,9 +292,16 @@ touchent potentiellement ce code :
   **Vérifié sans risque ici** : `grep` sur tous les contrôleurs
   (`apps/api/src/app/api/**/*.ts`, `main.ts`) ne trouve aucune route
   avec un `'*'` littéral en chemin.
-- Node.js ≥ 20 requis (v16/v18 abandonnés) — à vérifier contre
-  `ecosystem.config.js`/l'environnement EC2 de prod avant ce palier,
-  CLAUDE.md ne précise pas la version Node du serveur PM2 actuel.
+- Node.js ≥ 20 requis (v16/v18 abandonnés). **Décision actée avec
+  l'utilisateur (2026-09-22) : ne pas bloquer ce palier sur la version
+  Node du serveur EC2/PM2 de prod (`ecosystem.config.js` ne la précise
+  toujours pas, et ce n'est pas le sujet pour l'instant) — viser
+  directement la dernière LTS Node disponible au moment de l'exécution du
+  palier** (vérifier via `node --version` sur l'environnement de dev/CI et
+  `nvm ls-remote --lts`/le site nodejs.org au moment de s'y mettre, pas
+  supposé à l'avance). La compatibilité avec le serveur de prod reste à
+  vérifier avant un déploiement réel, mais ça ne doit plus retarder le
+  développement du palier lui-même.
 - L'API "legacy" des health indicators est retirée, migration vers
   `HealthIndicatorService` pour les indicateurs **custom**. **Risque
   faible mais à vérifier au palier** : `health.controller.ts` n'utilise
