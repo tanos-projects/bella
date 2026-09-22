@@ -1,18 +1,25 @@
-<swiper
-  *ngIf="images.length > 0"
-  [centeredSlides]="true"
-  [pagination]="{
-  type: 'bullets',
-  clickable: true
-}"
-  [navigation]="true"
-  [loop]="true"
-  class="image"
->
-  <ng-template *ngFor="let image of images; let indexOfelement=index;" swiperSlide>
-    <img [src]="image.url" height="100%" alt="Image {{indexOfelement}}" />
-  </ng-template>
-</swiper>
-<div class="image" *ngIf="images.length === 0">
-  <img class="image" height="100%" src="../../../../assets/images/no-picture.svg" alt="Aucune image disponible" />
-</div>
+@if (images.length > 0) {
+  <swiper
+    [centeredSlides]="true"
+    [pagination]="{
+    type: 'bullets',
+    clickable: true
+  }"
+    [navigation]="true"
+    [loop]="true"
+    class="image"
+  >
+    <!-- Left as *ngFor: swiper's ContentChildren(SwiperSlideDirective) query reads
+         a TemplateRef per ng-template instance for its slide-projection API; not
+         converted to @for in this pass to avoid an unverifiable behavior change
+         in that third-party content-projection mechanism. See CHANTIER-MODERNISATION.md. -->
+    <ng-template *ngFor="let image of images; let indexOfelement=index;" swiperSlide>
+      <img [src]="image.url" height="100%" alt="Image {{indexOfelement}}" />
+    </ng-template>
+  </swiper>
+}
+@if (images.length === 0) {
+  <div class="image">
+    <img class="image" height="100%" src="../../../../assets/images/no-picture.svg" alt="Aucune image disponible" />
+  </div>
+}

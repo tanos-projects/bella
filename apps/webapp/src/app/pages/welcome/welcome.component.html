@@ -4,27 +4,30 @@
     <!-- <div id="logo"></div> -->
     <h5>Bienvenue à toi sur Bella !</h5>
     <p>Dis nous, dans quel pays souhaites-tu faire tes plus belles affaires ?</p>
-    <div class="row" *ngIf="(countries$ | async) as countries">
-      <div id="country-flags" class="col-lg-6 mx-auto d-flex justify-content-center flex-wrap">
-        <div
-          [title]="country.name"
-          (click)="validate(country.iso2)"
-          (keydown.enter)="validate(country.iso2)"
-          (keydown.space)="validate(country.iso2)"
-          role="button"
-          tabindex="0"
-          class="country-flag-btn me-2 mb-2"
-          *ngFor="let country of countries"
-        >
-          <img
-            class="d-inline-block country-flag-img rounded-circle"
-            [src]="'../../../assets/flags/png/'+ country.iso2.toUpperCase() + '.png'"
-            [alt]="'drapeau du '+country.name"
-          />
-          <span class="d-block text-wrap">{{ country.name }} </span>
+    @if (countries$ | async; as countries) {
+      <div class="row">
+        <div id="country-flags" class="col-lg-6 mx-auto d-flex justify-content-center flex-wrap">
+          @for (country of countries; track country.iso2) {
+            <div
+              [title]="country.name"
+              (click)="validate(country.iso2)"
+              (keydown.enter)="validate(country.iso2)"
+              (keydown.space)="validate(country.iso2)"
+              role="button"
+              tabindex="0"
+              class="country-flag-btn me-2 mb-2"
+            >
+              <img
+                class="d-inline-block country-flag-img rounded-circle"
+                [src]="'../../../assets/flags/png/'+ country.iso2.toUpperCase() + '.png'"
+                [alt]="'drapeau du '+country.name"
+              />
+              <span class="d-block text-wrap">{{ country.name }} </span>
+            </div>
+          }
         </div>
       </div>
-    </div>
+    }
     <hr />
     <!-- <p>
       Si tu as déjà un compte ou si tu souhaites en créer un

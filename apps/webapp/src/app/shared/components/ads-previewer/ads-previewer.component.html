@@ -1,7 +1,9 @@
-<ng-container *ngIf="ads.length">
+@if (ads.length) {
   <div class="d-flex justify-content-between">
     <h5><a class="category-title" [routerLink]="['/annonces/', adCategory]">{{ title }}</a></h5>
-    <a [routerLink]="['annonces/', adCategory]" *ngIf="!isMobileMode">Voir plus</a>
+    @if (!isMobileMode) {
+      <a [routerLink]="['annonces/', adCategory]">Voir plus</a>
+    }
   </div>
   <div class="position-relative">
     <!-- <div *ngIf="isSwipeBeginning" class="prev-scroll-indicator"></div> -->
@@ -55,6 +57,11 @@
       (swiper)="onSwiper($event)"
       (slideChange)="onSlideChange($event)"
     >
+      <!-- Left as *ngFor/*ngIf: swiper's ContentChildren(SwiperSlideDirective) query
+           reads a TemplateRef per ng-template instance for its slide-projection API;
+           not converted to @for/@if in this pass to avoid an unverifiable behavior
+           change in that third-party content-projection mechanism, and to keep the
+           legacy trackBy untouched. See CHANTIER-MODERNISATION.md. -->
       <ng-template swiperSlide *ngFor="let ad of ads; trackBy: trackByAdIdFn">
         <bella-ad-card [data]="ad"></bella-ad-card>
       </ng-template>
@@ -67,4 +74,4 @@
     <!-- {{ isSwipeEnd }} -->
     <!-- <div *ngIf="isSwipeEnd" class="next-scroll-indicator"></div> -->
   </div>
-</ng-container>
+}
