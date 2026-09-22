@@ -7,20 +7,20 @@
   tabindex="0"
 >
   <div class="image d-flex justify-content-center align-items-center">
-    <ng-container *ngIf="data.images?.length; then coverImageTemplate; else noCoverImageTemplate"></ng-container>
-    <ng-template #coverImageTemplate>
+    @if (data.images?.length) {
       <!-- TODO manage image -->
       <!-- <img [src]="data.coverImage" class="card-img-top" alt="..."> -->
       <img [src]="data.images && data.images[0].url" class="ad-image" alt="ad's cover image" />
-    </ng-template>
-    <ng-template #noCoverImageTemplate
-      ><img class="no-cover" src="../../../../assets/images/no-picture.svg" alt="Aucune image"
-    /></ng-template>
+    } @else {
+      <img class="no-cover" src="../../../../assets/images/no-picture.svg" alt="Aucune image" />
+    }
 
-    <div *ngIf="data.images?.length" class="count d-flex align-items-center justify-content-center">
-      <i class="bi bi-camera"></i>
-      <span class="ms-1">{{ data.images?.length }}</span>
-    </div>
+    @if (data.images?.length) {
+      <div class="count d-flex align-items-center justify-content-center">
+        <i class="bi bi-camera"></i>
+        <span class="ms-1">{{ data.images?.length }}</span>
+      </div>
+    }
   </div>
   <div class="info w-100 font-weight-bold">
     <!-- TODO add currency in ad -->

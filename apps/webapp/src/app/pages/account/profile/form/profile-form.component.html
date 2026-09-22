@@ -1,15 +1,17 @@
 <div class="container">
   <form [formGroup]="form">
     <div class="d-flex justify-content-end pt-2" [class.sticky-top]="isMobileMode">
-      <a *ngIf="readonlyMode" [routerLink]="['/profil', user.id, user.username]" type="button" class="btn btn-sm btn-outline-primary me-1" (click)="toggleEditMode()">
-        <i class="bi bi-pencil me-1"></i>Mon profil
-      </a>
-      <button *ngIf="readonlyMode" type="button" class="btn btn-sm btn-primary" (click)="toggleEditMode()">
-        <i class="bi bi-pencil me-1"></i>Editer
-      </button>
-      <ng-container *ngIf="isMobileMode">
+      @if (readonlyMode) {
+        <a [routerLink]="['/profil', user.id, user.username]" type="button" class="btn btn-sm btn-outline-primary me-1" (click)="toggleEditMode()">
+          <i class="bi bi-pencil me-1"></i>Mon profil
+        </a>
+        <button type="button" class="btn btn-sm btn-primary" (click)="toggleEditMode()">
+          <i class="bi bi-pencil me-1"></i>Editer
+        </button>
+      }
+      @if (isMobileMode) {
         <ng-container *ngTemplateOutlet="saveButtonsTemplate; context: { smBtn: true }"></ng-container>
-      </ng-container>
+      }
     </div>
     <fieldset [disabled]="readonlyMode">
       <div class="form-group">
@@ -38,13 +40,14 @@
           [clearable]="false"
         >
           <ng-template ng-label-tmp let-item="item">
-            <img
-              *ngIf="item.iso2"
-              height="15"
-              width="15"
-              [src]="'assets/flags/png/'+item.iso2.toUpperCase()+'.png'"
-              [alt]="'drapeau'+item.name "
-            />
+            @if (item.iso2) {
+              <img
+                height="15"
+                width="15"
+                [src]="'assets/flags/png/'+item.iso2.toUpperCase()+'.png'"
+                [alt]="'drapeau'+item.name "
+              />
+            }
             {{item.name}}
           </ng-template>
         </ng-select>
@@ -109,20 +112,21 @@
     </div>
   </form>
   <ng-template #saveButtonsTemplate let-smBtn="smBtn">
-    <ng-container *ngIf="!readonlyMode">
-      <button
-        *ngIf="cancelable"
-        type="button"
-        class="btn btn-outline-secondary me-2"
-        [class.btn-sm]="smBtn"
-        (click)="cancel()"
-        [disabled]="form.invalid"
-      >
-        Annuler
-      </button>
+    @if (!readonlyMode) {
+      @if (cancelable) {
+        <button
+          type="button"
+          class="btn btn-outline-secondary me-2"
+          [class.btn-sm]="smBtn"
+          (click)="cancel()"
+          [disabled]="form.invalid"
+        >
+          Annuler
+        </button>
+      }
       <button type="button" class="btn btn-primary" [class.btn-sm]="smBtn" (click)="save()" [disabled]="form.invalid">
         Valider
       </button>
-    </ng-container>
+    }
   </ng-template>
 </div>
