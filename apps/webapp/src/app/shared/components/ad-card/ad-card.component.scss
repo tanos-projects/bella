@@ -1,4 +1,4 @@
-@import '../../../../scss/variables';
+@use '../../../../scss/variables' as *;
 
 $link-color: $secondary;
 $city-color: gray; // TODO Theme

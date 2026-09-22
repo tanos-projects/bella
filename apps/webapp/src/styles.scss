@@ -1,10 +1,10 @@
 /* You can add global styles to this file, and also import other style files */
 /* You can add global styles to this file, and also import other style files */
-@import 'bootstrap/scss/bootstrap';
-@import 'bootstrap-icons/font/bootstrap-icons.css';
-@import '@ng-select/ng-select/themes/default.theme.css';
-@import 'swiper/css/bundle';
-@import 'scss/variables';
+@use 'bootstrap/scss/bootstrap';
+@use 'scss/variables' as *;
+@use 'bootstrap-icons/font/bootstrap-icons.css';
+@use '@ng-select/ng-select/themes/default.theme.css';
+@use 'swiper/css/bundle';
 
 .no-scroll {
   overflow: hidden;

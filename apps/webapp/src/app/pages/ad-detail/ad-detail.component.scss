@@ -1,4 +1,4 @@
-@import '../../../scss/variables';
+@use '../../../scss/variables' as *;
 
 .ad-detail-content {
   .ad-detail-actions-top {
