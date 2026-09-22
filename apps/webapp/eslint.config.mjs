@@ -25,14 +25,7 @@ export default [
       ],
       '@angular-eslint/prefer-standalone': 'off',
       '@angular-eslint/prefer-inject': 'off',
-      '@angular-eslint/template/prefer-control-flow': 'off',
     },
   },
   ...nx.configs['flat/angular-template'],
-  {
-    files: ['**/*.html'],
-    rules: {
-      '@angular-eslint/template/prefer-control-flow': 'off',
-    },
-  },
 ];

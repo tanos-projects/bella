@@ -13,6 +13,7 @@
          a TemplateRef per ng-template instance for its slide-projection API; not
          converted to @for in this pass to avoid an unverifiable behavior change
          in that third-party content-projection mechanism. See CHANTIER-MODERNISATION.md. -->
+    <!-- eslint-disable-next-line @angular-eslint/template/prefer-control-flow -->
     <ng-template *ngFor="let image of images; let indexOfelement=index;" swiperSlide>
       <img [src]="image.url" height="100%" alt="Image {{indexOfelement}}" />
     </ng-template>

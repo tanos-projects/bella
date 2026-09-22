@@ -143,43 +143,44 @@ interface PictureUploaderFormFieldOptions {
         {{ pictureManager.getMaxAllowed() }})</span
       >
     </div>
-    <div class="alert alert-info" *ngIf="pictureManager.isMaxAllowedReached()">
-      Vous avez atteint le maximum de photos autorisé !
-    </div>
-    <div
-      *ngIf="field.formControl.errors"
-      class="alert alert-danger"
-      role="alert"
-    >
-      Seules des photos JPG et PNG sont autorisées
-    </div>
+    @if (pictureManager.isMaxAllowedReached()) {
+      <div class="alert alert-info">
+        Vous avez atteint le maximum de photos autorisé !
+      </div>
+    }
+    @if (field.formControl.errors) {
+      <div class="alert alert-danger" role="alert">
+        Seules des photos JPG et PNG sont autorisées
+      </div>
+    }
     <div class="d-flex flex-wrap align-items-center mt-3">
-      <div class="mx-1 mt-1" *ngFor="let picture of remainingImagePlaceHolders">
-        <bella-upload
-          (files)="onFileSelected($event)"
-          [multiple]="pictureManager.getMaxAllowed() > 1"
-          [accept]="field.props['accept'] || ''"
-          [enabled]="!pictureManager.isMaxAllowedReached()"
-        ></bella-upload>
-      </div>
-      <div
-        *ngFor="let picture of pictureManager.getPictures(); let i = index"
-        class="mx-1 mt-1"
-      >
-        <div class="d-flex align-items-center picture-viewer rounded">
-          <img
-            (click)="removePicture(i)"
-            (keydown.enter)="removePicture(i)"
-            (keydown.space)="removePicture(i)"
-            role="button"
-            tabindex="0"
-            [src]="picture.url"
-            width="100"
-            [title]="'Supprimer ' + picture.name"
-            [alt]="picture.name"
-          />
+      @for (picture of remainingImagePlaceHolders; track $index) {
+        <div class="mx-1 mt-1">
+          <bella-upload
+            (files)="onFileSelected($event)"
+            [multiple]="pictureManager.getMaxAllowed() > 1"
+            [accept]="field.props['accept'] || ''"
+            [enabled]="!pictureManager.isMaxAllowedReached()"
+          ></bella-upload>
         </div>
-      </div>
+      }
+      @for (picture of pictureManager.getPictures(); track picture; let i = $index) {
+        <div class="mx-1 mt-1">
+          <div class="d-flex align-items-center picture-viewer rounded">
+            <img
+              (click)="removePicture(i)"
+              (keydown.enter)="removePicture(i)"
+              (keydown.space)="removePicture(i)"
+              role="button"
+              tabindex="0"
+              [src]="picture.url"
+              width="100"
+              [title]="'Supprimer ' + picture.name"
+              [alt]="picture.name"
+            />
+          </div>
+        </div>
+      }
     </div>
   `,
   standalone: false,
