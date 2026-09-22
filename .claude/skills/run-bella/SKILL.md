@@ -138,18 +138,36 @@ the apps actually run, which `test` doesn't.
   immediately** — Nx can serve a cached project graph. If a fix to
   `project.json` doesn't change the error `nx serve` produces,
   `rm -rf /home/tanos/bella/.nx/cache` and retry.
-- **A full browser-driven screenshot (Cypress) doesn't work in this
-  specific container.** `npx cypress run` fails with `error while
-  loading shared libraries: libgobject-2.0.so.0` and this container has
-  no passwordless `sudo`, so the missing system lib can't be installed
-  from here. `.claude/skills/run-bella/screenshot.cy.ts` is a minimal
-  spec (`cy.visit('/'); cy.screenshot(...)`) that will work once
-  `libglib2.0-0` (or equivalent) is installed — run it against a
-  running dev server with:
-  `npx cypress run --config-file apps/webapp-e2e/cypress.config.ts --browser electron --headless --spec .claude/skills/run-bella/screenshot.cy.ts --config baseUrl=http://localhost:4200,screenshotsFolder=.claude/skills/run-bella/screenshots/webapp,video=false`.
-  Until then, `driver.sh`'s curl checks (real HTML `<title>`, real
-  proxied JSON) are the verification path — they proved webapp/admin
-  correctly render and correctly talk to the live API in this session.
+- **A full browser-driven screenshot (Cypress) doesn't fully work in
+  this specific container, in two separate stages.** `npx cypress run`
+  first fails with `error while loading shared libraries:
+  libgobject-2.0.so.0` (and about 40 more missing shared libs, one at a
+  time — Chromium's whole GTK/X11/font/wayland dependency chain).
+  There's no passwordless `sudo`, but every missing lib **can** be
+  fetched without root: `apt-get download <pkg>` doesn't need
+  privileges, then `dpkg-deb -x <pkg>.deb <dir>` extracts it, then run
+  Cypress with `LD_LIBRARY_PATH=<dir>/usr/lib/x86_64-linux-gnu`. Debian
+  13 (trixie) renamed several of these with a `t64` suffix
+  (`libasound2t64`, `libgtk-3-0t64`, `libatk1.0-0t64`, etc.) — use
+  `apt-cache search "^<name>"` to find the current name.
+  `npx cypress verify` **does** succeed this way (confirmed
+  2026-09-22). But actually running a spec still fails at a second,
+  different stage: the Electron renderer crashes
+  (`ERR_FAILED (-2) loading '.../specs/runner?...'`) even after every
+  library is present — Cypress 10.11.0's `before:browser:launch` hook
+  rejects `launchOptions.args` for `browser.family === 'electron'`
+  ("not supported by electron"), and `ELECTRON_EXTRA_LAUNCH_ARGS=
+  --no-sandbox` didn't unblock it either. Not resolved this session —
+  likely needs `xvfb-run` (no X server exists in this container at
+  all) or a newer Cypress that accepts Electron launch args
+  differently. `.claude/skills/run-bella/screenshot.cy.ts` and
+  `.claude/skills/run-bella/cypress.config.ts` (a minimal standalone
+  config — the webapp-e2e/admin-e2e projects' own `cypress.config.ts`
+  fights the CLI over `supportFile`, use these instead) are ready for
+  whoever picks this back up. Until then, `driver.sh`'s curl checks
+  (real HTML `<title>`, real proxied JSON) are the verification path —
+  they proved webapp/admin correctly render and correctly talk to the
+  live API in this session.
 - **`apps/webapp-e2e/src/e2e/app.cy.ts` and `apps/admin-e2e/.../app.cy.ts`
   are unmodified Nx generator boilerplate** (`cy.login(...)`,
   `getGreeting().contains('Welcome webapp')`) — they don't match the
@@ -175,3 +193,30 @@ the apps actually run, which `test` doesn't.
 - **`Port <N> is already in use`**: something else is already listening
   — see the "stray processes" Gotcha above before assuming it's your
   own previous attempt.
+- **Browser console shows `Cannot read properties of undefined
+  (reading 'ngModule')` in `isModuleWithProviders`, pointing at some
+  `*.module.ts`**: that module imports a third-party `NgModule` whose
+  Ivy partial-compile declaration can't link cleanly against this
+  Angular version — happened with `swiper/angular`'s `SwiperModule`
+  (built against Angular 13.3.11, broken at runtime on Angular 22).
+  Fixed by dropping `swiper/angular` entirely and migrating to Swiper's
+  framework-agnostic custom elements (`swiper/element/bundle`'s
+  `register()`, `<swiper-container>`/`<swiper-slide>` +
+  `CUSTOM_ELEMENTS_SCHEMA`) — see `apps/webapp/src/main.ts` and
+  `apps/webapp/src/app/shared/components/{carousel,ads-previewer}/`.
+  If a *different* third-party `NgModule` hits this, the general fix is
+  the same shape: check whether the library ships a non-NgModule
+  (usually custom-element or standalone) integration for current
+  Angular and migrate to that, don't just bump the library's version
+  number and hope.
+- **`nx serve` (any project) suddenly fails with `Module not found:
+  Error: Can't resolve '.../node_modules/<pkg>/<deep/path>'` for a
+  package that demonstrably exists**, right after a `yarn add`/`yarn
+  upgrade` elsewhere in the repo: `.angular/cache` (Angular's
+  persistent webpack build cache, ~600MB+) can hold a stale resolved
+  path from before the dependency change reshuffled `node_modules`
+  hoisting. `rm -rf /home/tanos/bella/.angular/cache` and restart the
+  dev server. Hit once with `sass-loader` (two versions coexist —
+  `@angular-devkit/build-angular` nests its own `17.0.0`, something
+  else hoists `16.0.7` to the top level — the cache pointed at a
+  since-gone path after an unrelated `yarn add`).
