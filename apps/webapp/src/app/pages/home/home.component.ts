@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { finalize, map, mergeMap, reduce } from 'rxjs/operators';
 
 import { LoadingService } from '../../shared/components/loading/loading.service';
@@ -12,6 +12,10 @@ import { HomeService } from './home.service';
   standalone: false,
 })
 export class HomeComponent {
+  private homeService = inject(HomeService);
+  private device = inject(MyDeviceService);
+  private loadingService = inject(LoadingService);
+
   isMobileMode = this.device.isMobile();
   adsByCategory$ = this.homeService
     .loadTopAds()
@@ -22,12 +26,8 @@ export class HomeComponent {
     map((totalAds) => totalAds.length)
   );
 
-  constructor(
-    private homeService: HomeService,
-    private device: MyDeviceService,
-    private loadingService: LoadingService
-  ) {
-    loadingService.show();
+  constructor() {
+    this.loadingService.show();
   }
 
   viewAllMostRecentAds(): void {

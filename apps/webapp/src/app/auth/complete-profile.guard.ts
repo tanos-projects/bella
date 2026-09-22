@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { CanActivate, Router, UrlTree } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { concatMap, finalize, map } from 'rxjs/operators';
@@ -8,12 +8,10 @@ import { AuthCustomService } from './auth-custom.service';
 
 @Injectable()
 export class CompleteProfileGuard implements CanActivate {
-  constructor(
-    private router: Router,
-    private authUser: AuthUserService,
-    private auth: AuthCustomService,
-    private loadingService: LoadingService
-  ) {}
+  private router = inject(Router);
+  private authUser = inject(AuthUserService);
+  private auth = inject(AuthCustomService);
+  private loadingService = inject(LoadingService);
 
   canActivate(): Observable<boolean | UrlTree> {
     this.loadingService.show();

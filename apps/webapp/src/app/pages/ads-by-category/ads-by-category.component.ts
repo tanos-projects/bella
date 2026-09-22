@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
 
@@ -12,10 +12,13 @@ import { AdsService } from '../../shared/services/ads.service';
   standalone: false,
 })
 export class AdsByCategoryComponent {
+  private route = inject(ActivatedRoute);
+  private adsService = inject(AdsService);
+
   ads$: Observable<AdDTO[]>;
   categoryCode!: string;
 
-  constructor(private route: ActivatedRoute, private adsService: AdsService) {
+  constructor() {
     this.categoryCode = this.route.snapshot.paramMap.get('category');
     this.ads$ = this.adsService.getAll(this.categoryCode);
   }

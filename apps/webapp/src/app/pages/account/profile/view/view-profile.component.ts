@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { AuthUserService } from '../../../../auth/auth-user.service';
 
 @Component({
@@ -7,9 +7,9 @@ import { AuthUserService } from '../../../../auth/auth-user.service';
 })
 export class ViewProfileComponent {
   //implements OnInit {
+  private userService = inject(AuthUserService);
 
   currentUser$ = this.userService.getProfile();
-  constructor(private userService: AuthUserService) {}
   // ngOnInit(): void {
   //   // sdfsdf
   // }

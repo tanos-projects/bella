@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
 import {
   UntypedFormBuilder,
   UntypedFormGroup,
@@ -16,6 +16,10 @@ import { MyDeviceService } from '../../../../shared/services/my-device.service';
   standalone: false,
 })
 export class ProfileFormComponent implements OnInit {
+  private fb = inject(UntypedFormBuilder);
+  private deviceService = inject(MyDeviceService);
+  private countriesService = inject(CountriesService);
+
   @Input() user!: AuthUser | null;
   @Input() readonlyMode = false;
   @Input() cancelable = true;
@@ -26,11 +30,7 @@ export class ProfileFormComponent implements OnInit {
 
   isMobileMode = this.deviceService.isMobile();
 
-  constructor(
-    private fb: UntypedFormBuilder,
-    private deviceService: MyDeviceService,
-    private countriesService: CountriesService
-  ) {
+  constructor() {
     this.form = this.fb.group({
       username: this.fb.control(null, {
         validators: Validators.required,

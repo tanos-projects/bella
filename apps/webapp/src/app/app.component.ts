@@ -1,4 +1,4 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { NavigationStart, Router, RouterEvent } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { DeviceInfo } from 'ngx-device-detector';
@@ -16,23 +16,23 @@ import { SearchService } from './shared/services/search.service';
   standalone: false,
 })
 export class AppComponent implements OnDestroy {
+  private router = inject(Router);
+  private searchService = inject(SearchService);
+  private deviceService = inject(MyDeviceService);
+  private translate = inject(TranslateService);
+
   isMobileMode = false;
   info!: Readonly<DeviceInfo>;
   profile!: AuthUser;
 
   private unsubscribe$ = new Subject<void>();
 
-  constructor(
-    deviceService: MyDeviceService,
-    translate: TranslateService,
-    private router: Router,
-    private searchService: SearchService
-  ) {
-    this.isMobileMode = deviceService.isMobile();
-    this.info = deviceService.getInfo();
+  constructor() {
+    this.isMobileMode = this.deviceService.isMobile();
+    this.info = this.deviceService.getInfo();
 
-    translate.addLangs(['fr']);
-    translate.use('fr');
+    this.translate.addLangs(['fr']);
+    this.translate.use('fr');
 
     this.router.events
       .pipe(

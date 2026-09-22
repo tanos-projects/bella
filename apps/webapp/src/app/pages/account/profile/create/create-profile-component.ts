@@ -1,4 +1,4 @@
-import { Component, DOCUMENT, Inject } from '@angular/core';
+import { Component, DOCUMENT, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthCustomService } from '../../../../auth/auth-custom.service';
 import { Observable } from 'rxjs';
@@ -13,6 +13,12 @@ import { UserSettingsService } from '../../../../shared/services/user-settings.s
   standalone: false,
 })
 export class CreateProfileComponent {
+  private auth = inject(AuthCustomService);
+  private userService = inject(AuthUserService);
+  private userSettingsService = inject(UserSettingsService);
+  private doc = inject<Document>(DOCUMENT);
+  private router = inject(Router);
+
   user$: Observable<AuthUser | null> = this.auth.user$.pipe(
     map((user) => {
       let authUser: AuthUser;
@@ -30,13 +36,6 @@ export class CreateProfileComponent {
       return authUser;
     })
   );
-  constructor(
-    private auth: AuthCustomService,
-    private userService: AuthUserService,
-    private userSettingsService: UserSettingsService,
-    @Inject(DOCUMENT) private doc: Document,
-    private router: Router
-  ) {}
 
   save(user: AuthUser): void {
     this.userService.createProfile(user).subscribe({

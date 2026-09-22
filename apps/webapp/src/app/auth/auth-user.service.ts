@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
@@ -11,9 +11,8 @@ interface CheckProfileResponse {
 
 @Injectable()
 export class AuthUserService {
+  private http = inject(HttpClient);
   private baseUrl = environment.apiBaseUrl;
-
-  constructor(private http: HttpClient) {}
 
   isProfileCompletionNeeded(): Observable<boolean> {
     return this.http

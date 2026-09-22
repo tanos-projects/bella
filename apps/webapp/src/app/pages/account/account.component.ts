@@ -1,4 +1,4 @@
-import { Component, DOCUMENT, Inject } from '@angular/core';
+import { Component, DOCUMENT, inject } from '@angular/core';
 import { finalize } from 'rxjs/operators';
 
 import { AuthUser } from '../../auth/auth-user.model';
@@ -14,17 +14,15 @@ import { AuthCustomService } from '../../auth/auth-custom.service';
   standalone: false,
 })
 export class AccountComponent {
+  public auth = inject(AuthCustomService);
+  private doc = inject<Document>(DOCUMENT);
+  private userService = inject(AuthUserService);
+  private loadingService = inject(LoadingService);
+  private userSettingsService = inject(UserSettingsService);
+
   isAuthenticated$ = this.auth.isAuthenticated$;
   user$ = this.auth.user$;
   currentUser$ = this.userService.getProfile();
-
-  constructor(
-    public auth: AuthCustomService,
-    @Inject(DOCUMENT) private doc: Document,
-    private userService: AuthUserService,
-    private loadingService: LoadingService,
-    private userSettingsService: UserSettingsService
-  ) {}
 
   updateProfile(update: AuthUser): void {
     this.loadingService.show();

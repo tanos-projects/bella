@@ -1,5 +1,5 @@
 import { Location } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs/operators';
 
@@ -19,19 +19,19 @@ SwiperCore.use([Pagination, Navigation]);
   standalone: false,
 })
 export class AdDetailComponent {
+  private routeParams = inject(ActivatedRoute);
+  private device = inject(MyDeviceService);
+  private adsService = inject(AdsService);
+  private contactService = inject(ContactService);
+  private location = inject(Location);
+
   isMobileMode: boolean = this.device.isMobile();
   id: string = this.routeParams.snapshot.params['id'];
   ad$ = this.adsService.getPublishedOne(this.id);
   contact$ = this.ad$.pipe(map((ad) => this.contactService.getContactData(ad)));
   currentPageLink!: string;
 
-  constructor(
-    private routeParams: ActivatedRoute,
-    private device: MyDeviceService,
-    private adsService: AdsService,
-    private contactService: ContactService,
-    private location: Location
-  ) {
+  constructor() {
     this.currentPageLink = window.location.href;
   }
 

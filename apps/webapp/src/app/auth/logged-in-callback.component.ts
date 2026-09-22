@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { concatMap, finalize, map } from 'rxjs/operators';
@@ -13,13 +13,11 @@ import { AuthCustomService } from './auth-custom.service';
   standalone: false,
 })
 export class LoggedInCallbackComponent implements OnInit {
-  constructor(
-    private router: Router,
-    private authUser: AuthUserService,
-    private auth: AuthCustomService,
-    private welcomeService: WelcomeService,
-    private loadingService: LoadingService
-  ) {}
+  private router = inject(Router);
+  private authUser = inject(AuthUserService);
+  private auth = inject(AuthCustomService);
+  private welcomeService = inject(WelcomeService);
+  private loadingService = inject(LoadingService);
 
   ngOnInit(): void {
     this.manageRedirectionToProfileCompletion();
