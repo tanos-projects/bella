@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { forkJoin, Observable, of } from 'rxjs';
 import { concatMap, map, reduce, tap } from 'rxjs/operators';
 import { AdDTO } from '../../shared/models/ads.model';
@@ -13,7 +13,8 @@ export interface AdsByCategory {
 
 @Injectable()
 export class HomeService {
-  constructor(private adsService: AdsService, private categoriesService: CategoriesService) {}
+  private adsService = inject(AdsService);
+  private categoriesService = inject(CategoriesService);
 
   loadTopAds(): Observable<AdsByCategory[]> {
     return this.categoriesService.getTop().pipe(

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, NgModule, OnInit } from '@angular/core';
+import { Component, NgModule, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
@@ -189,6 +189,9 @@ export class PictureUploaderFormFieldComponent
   extends FieldType<FieldTypeConfig & PictureUploaderFormFieldOptions>
   implements OnInit
 {
+  private domSanitizer = inject(DomSanitizer);
+  private fb = inject(FormBuilder);
+
   pictureManager!: PicturesHolder;
 
   private get allowedFilesLimit(): number {
@@ -202,10 +205,6 @@ export class PictureUploaderFormFieldComponent
     }
 
     return new Array<number>(size);
-  }
-
-  constructor(private domSanitizer: DomSanitizer, private fb: FormBuilder) {
-    super();
   }
 
   ngOnInit() {
