@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map, withLatestFrom } from 'rxjs/operators';
 
@@ -13,13 +13,12 @@ import { UserSettingsService } from './user-settings.service';
 
 @Injectable({ providedIn: 'root' })
 export class AdsService {
+  private http = inject(HttpClient);
+  private userSettingsService = inject(UserSettingsService);
+  private categoriesService = inject(CategoriesService);
+
   private baseUrl = environment.apiBaseUrl;
   private readonly maxMostRecentAds = 10;
-  constructor(
-    private http: HttpClient,
-    private userSettingsService: UserSettingsService,
-    private categoriesService: CategoriesService
-  ) {}
 
   getAll(categoryCode: string): Observable<AdDTO[]> {
     const params = new HttpParams()

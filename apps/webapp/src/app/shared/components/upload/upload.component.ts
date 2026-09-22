@@ -6,6 +6,7 @@ import {
   Input,
   Output,
   TemplateRef,
+  inject,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { BsModalRef, BsModalService } from 'ngx-bootstrap/modal';
@@ -29,6 +30,10 @@ import { MyDeviceService } from '../../services/my-device.service';
   standalone: false,
 })
 export class UploadComponent /*implements ControlValueAccessor*/ {
+  private host = inject<ElementRef<HTMLInputElement>>(ElementRef);
+  private deviceService = inject(MyDeviceService);
+  private modalService = inject(BsModalService);
+
   @Input() multiple = false;
   @Input() enabled = true;
   @Input() accept = '*';
@@ -41,12 +46,6 @@ export class UploadComponent /*implements ControlValueAccessor*/ {
   // onChange = (_: any): void => {};
   // onTouched = () => {};
   // private files: FileList | null = null;
-
-  constructor(
-    private host: ElementRef<HTMLInputElement>,
-    private deviceService: MyDeviceService,
-    private modalService: BsModalService
-  ) {}
 
   // @HostListener('change', ['$event.target.files']) emitFiles(event: FileList) {
   //   const files = event;

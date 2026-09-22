@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { AuthCustomService } from '../../../auth/auth-custom.service';
 
 @Component({
@@ -8,8 +8,8 @@ import { AuthCustomService } from '../../../auth/auth-custom.service';
   standalone: false,
 })
 export class SidebarComponent {
+  private auth = inject(AuthCustomService);
+
   isAuthenticationLoading$ = this.auth.isLoading$;
   isAuthenticated$ = this.auth.isAuthenticated$;
-
-  constructor(private auth: AuthCustomService) {}
 }

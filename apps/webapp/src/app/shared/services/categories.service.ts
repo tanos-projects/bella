@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { shareReplay } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
@@ -11,11 +11,10 @@ export const NO_QUALITY_CATEGORIES = ['services', 'mode-et-beaute', 'sport-et-lo
 
 @Injectable({ providedIn: 'root' })
 export class CategoriesService {
+  private http = inject(HttpClient);
   private baseUrl = environment.apiBaseUrl;
 
   private cachedCategories$: Observable<CategoryDTO[]>;
-
-  constructor(private http: HttpClient) {}
 
   getAll(): Observable<CategoryDTO[]> {
     if (!this.cachedCategories$) {

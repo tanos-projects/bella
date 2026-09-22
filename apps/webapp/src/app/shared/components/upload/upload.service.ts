@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { of } from 'rxjs';
 import { forkJoin } from 'rxjs';
 // import { Cloudinary, CloudinaryImage } from '@cloudinary/url-gen';
@@ -39,14 +39,16 @@ export interface UploadedFile {
 
 @Injectable()
 export class UploadService {
+  private http = inject(HttpClient);
+
   // cld: Cloudinary;
-  constructor(private http: HttpClient) {
-    // this.cld = new Cloudinary({
-    //   cloud: {
-    //     cloudName: CLOUDINARY_CLOUD_NAME
-    //   }
-    // });
-  }
+  // constructor() {
+  //   this.cld = new Cloudinary({
+  //     cloud: {
+  //       cloudName: CLOUDINARY_CLOUD_NAME
+  //     }
+  //   });
+  // }
 
   upload(file: File): Observable<UploadedFile> {
     const formData = new FormData();

@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { MyDeviceService } from '../../services/my-device.service';
 
 @Component({
@@ -8,8 +8,9 @@ import { MyDeviceService } from '../../services/my-device.service';
   standalone: false,
 })
 export class TitledPageComponent {
+  private device = inject(MyDeviceService);
+
   @Input() title!: string;
 
   isMobileMode = this.device.isMobile();
-  constructor(private device: MyDeviceService) {}
 }

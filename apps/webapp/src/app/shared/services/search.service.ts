@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import {
   concatMap,
@@ -26,6 +26,12 @@ export function removeEmpty(obj: any): any {
 
 @Injectable({ providedIn: 'root' })
 export class SearchService {
+  private userSettingsService = inject(UserSettingsService);
+  private adsService = inject(AdsService);
+  private countriesService = inject(CountriesService);
+  private categoriesService = inject(CategoriesService);
+  private qualitiesService = inject(QualitiesService);
+
   private _currentSearchFilter$ = new BehaviorSubject<SearchFilter>(
     this.getInitialFilter()
   );
@@ -67,13 +73,7 @@ export class SearchService {
   );
   private silentSearchEnabled = false;
 
-  constructor(
-    private userSettingsService: UserSettingsService,
-    private adsService: AdsService,
-    private countriesService: CountriesService,
-    private categoriesService: CategoriesService,
-    private qualitiesService: QualitiesService
-  ) {
+  constructor() {
     this.userSettingsService.country$.subscribe(() => this.reset());
 
     this._currentSilentSearchFilter$

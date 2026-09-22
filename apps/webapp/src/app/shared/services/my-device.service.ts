@@ -1,11 +1,11 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { DeviceDetectorService, DeviceInfo } from 'ngx-device-detector';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MyDeviceService {
-  constructor(private deviceService: DeviceDetectorService) {}
+  private deviceService = inject(DeviceDetectorService);
 
   getInfo(): Readonly<DeviceInfo> {
     return this.deviceService.getDeviceInfo();
