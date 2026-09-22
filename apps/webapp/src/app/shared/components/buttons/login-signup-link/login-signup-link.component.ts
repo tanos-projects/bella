@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 
 import { AuthCustomService } from '../../../../auth/auth-custom.service';
 
@@ -8,7 +8,7 @@ import { AuthCustomService } from '../../../../auth/auth-custom.service';
   standalone: false,
 })
 export class LoginSignupLinkComponent {
-  constructor(protected auth: AuthCustomService) {}
+  protected auth = inject(AuthCustomService);
 
   login(event: Event): void {
     if (event) {

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { filter } from 'rxjs/operators';
@@ -8,7 +8,9 @@ export class DrawerService {
   private openStateHolder$ = new BehaviorSubject<boolean>(false);
   public opened$ = this.openStateHolder$.asObservable();
 
-  constructor(private router: Router) {
+  private router = inject(Router);
+
+  constructor() {
     this.openStateHolder$.subscribe({
       next: (value) => {
         if (value) {
@@ -19,7 +21,7 @@ export class DrawerService {
       }
     });
 
-    router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe({
+    this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe({
       next: () => {
         this.close();
       }

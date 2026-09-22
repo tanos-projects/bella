@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, inject } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 import { Contact } from '../../models/contact.model';
@@ -12,6 +12,8 @@ const APP_BRAND_NAME = 'Bellannonces.com';
   standalone: false,
 })
 export class AdContactsComponent {
+  private deviceService = inject(MyDeviceService);
+
   @Input() contact: Contact | null = null;
   @Input() subject: string | null = null;
   @Input() text: string | null = null;
@@ -20,7 +22,7 @@ export class AdContactsComponent {
 
   whatsAppUrl!: string;
 
-  constructor(private deviceService: MyDeviceService) {
+  constructor() {
     this.isMobileMode = this.deviceService.isMobile();
   }
 

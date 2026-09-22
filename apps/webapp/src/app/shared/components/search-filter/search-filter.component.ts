@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { Router } from '@angular/router';
 import { BsModalRef } from 'ngx-bootstrap/modal';
@@ -14,6 +14,11 @@ import { removeEmpty, SearchService } from '../../services/search.service';
   standalone: false,
 })
 export class SearchFilterComponent implements OnInit, OnDestroy {
+  private router = inject(Router);
+  public modalRef = inject(BsModalRef);
+  private fb = inject(UntypedFormBuilder);
+  private searchService = inject(SearchService);
+
   approximativeSearchCount$ = this.searchService.silentSearchCount$;
   countries$ = this.searchService.countries$;
   categories$ = this.searchService.categories$;
@@ -25,13 +30,8 @@ export class SearchFilterComponent implements OnInit, OnDestroy {
   form!: UntypedFormGroup;
   private unsubscribe$ = new Subject<void>();
 
-  constructor(
-    private router: Router,
-    public modalRef: BsModalRef,
-    private fb: UntypedFormBuilder,
-    private searchService: SearchService
-  ) {
-    this.buildForm(fb);
+  constructor() {
+    this.buildForm(this.fb);
   }
 
   private buildForm(fb: UntypedFormBuilder): void {

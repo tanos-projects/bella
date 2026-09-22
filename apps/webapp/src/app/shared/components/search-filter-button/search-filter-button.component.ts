@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BsModalService } from 'ngx-bootstrap/modal';
 import { map } from 'rxjs/operators';
@@ -15,6 +15,12 @@ import { SearchFilterComponent } from '../search-filter/search-filter.component'
   standalone: false,
 })
 export class SearchFilterButtonComponent /*implements OnInit*/ {
+  private searchService = inject(SearchService);
+  private modalService = inject(BsModalService);
+  private userSettingsService = inject(UserSettingsService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
   countries$ = this.searchService.countries$;
   // FIXME : Doesn't work when search has no result or ...
   searchText$ = this.searchService.currentSearchFilter$.pipe(
@@ -22,14 +28,6 @@ export class SearchFilterButtonComponent /*implements OnInit*/ {
   );
   country$ = this.userSettingsService.country$;
   isSearchPage$ = this.searchService.isSearchPage$;
-
-  constructor(
-    private searchService: SearchService,
-    private modalService: BsModalService,
-    private userSettingsService: UserSettingsService,
-    private router: Router,
-    private route: ActivatedRoute
-  ) {}
 
   openFilter(): void {
     this.modalService.show(SearchFilterComponent, {

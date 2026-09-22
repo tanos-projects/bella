@@ -3,6 +3,7 @@ import {
   Component,
   Input,
   OnInit,
+  inject,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { AdDTO } from '../../models/ads.model';
@@ -15,12 +16,12 @@ import { AdDTO } from '../../models/ads.model';
   standalone: false,
 })
 export class AdCardComponent implements OnInit {
+  private router = inject(Router);
+
   @Input()
   data!: AdDTO;
 
   urlPath: any[] = [];
-
-  constructor(private router: Router) {}
 
   ngOnInit(): void {
     const data = this.data;

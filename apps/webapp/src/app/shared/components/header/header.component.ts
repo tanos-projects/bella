@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MyDeviceService } from '../../services/my-device.service';
 import { DrawerService } from '../drawer/drawer.service';
 import { AuthCustomService } from '../../../auth/auth-custom.service';
@@ -10,16 +10,16 @@ import { AuthCustomService } from '../../../auth/auth-custom.service';
   standalone: false,
 })
 export class HeaderComponent {
+  private drawerService = inject(DrawerService);
+  private deviceService = inject(MyDeviceService);
+  public auth = inject(AuthCustomService);
+
   isAuthenticationLoading$ = this.auth.isLoading$;
   isAuthenticated$ = this.auth.isAuthenticated$;
   isMobileMode = false;
 
-  constructor(
-    private drawerService: DrawerService,
-    deviceService: MyDeviceService,
-    public auth: AuthCustomService
-  ) {
-    this.isMobileMode = deviceService.isMobile();
+  constructor() {
+    this.isMobileMode = this.deviceService.isMobile();
   }
 
   openDrawer(): void {

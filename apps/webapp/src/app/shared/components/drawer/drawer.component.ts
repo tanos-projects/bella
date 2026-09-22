@@ -1,4 +1,4 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { DrawerService } from './drawer.service';
 
@@ -9,10 +9,12 @@ import { DrawerService } from './drawer.service';
   standalone: false,
 })
 export class DrawerComponent implements OnDestroy {
+  private drawerService = inject(DrawerService);
+
   opened = false;
   subscription: Subscription;
 
-  constructor(private drawerService: DrawerService) {
+  constructor() {
     this.subscription = this.drawerService.opened$.subscribe({
       next: (opened) => {
         this.opened = opened;

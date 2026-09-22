@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { LoadingService } from './loading.service';
 
 @Component({
@@ -8,7 +8,7 @@ import { LoadingService } from './loading.service';
   standalone: false,
 })
 export class LoadingComponent {
-  isLoading$ = this.loadingService.isLoading$;
+  private loadingService = inject(LoadingService);
 
-  constructor(private loadingService: LoadingService) {}
+  isLoading$ = this.loadingService.isLoading$;
 }

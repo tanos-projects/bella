@@ -4,6 +4,7 @@ import {
   EventEmitter,
   Input,
   Output,
+  inject,
 } from '@angular/core';
 import Swiper from 'swiper';
 import { AdDTO } from '../../models/ads.model';
@@ -17,6 +18,8 @@ import { MyDeviceService } from '../../services/my-device.service';
   standalone: false,
 })
 export class AdsPreviewerComponent {
+  private device = inject(MyDeviceService);
+
   @Input() adCategory: any;
   @Input() ads: AdDTO[] = [];
   @Input() title!: string;
@@ -29,8 +32,6 @@ export class AdsPreviewerComponent {
   // isSwipeBeginning = true;
   // isSwipeEnd = false;
   swiper!: Swiper;
-
-  constructor(private device: MyDeviceService) {}
 
   trackByAdIdFn(index: number, ad: AdDTO): string {
     return ad.id;
