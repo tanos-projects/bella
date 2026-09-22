@@ -19,7 +19,6 @@ export class HealthController {
   @Get()
   @HealthCheck()
   check() {
-    // FIXME : to implement to check at least DB
     return this.health.check([
       () => this.mongooseHealth.pingCheck('mongo'),
       () =>
