@@ -6,6 +6,7 @@ import {
   Input,
   OnInit,
   Output,
+  inject,
 } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
 import { FormlyFieldConfig, FormlyFormOptions } from '@ngx-formly/core';
@@ -45,6 +46,12 @@ interface AdFormModel {
   standalone: false,
 })
 export class AdFormComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private userSettingsService = inject(UserSettingsService);
+  private countriesService = inject(CountriesService);
+  private categoriesService = inject(CategoriesService);
+  private qualitiesService = inject(QualitiesService);
+
   // private _submitting = false;
 
   options: FormlyFormOptions = {
@@ -70,14 +77,6 @@ export class AdFormComponent implements OnInit {
   };
 
   fields: FormlyFieldConfig[] = [];
-
-  constructor(
-    private fb: FormBuilder,
-    private userSettingsService: UserSettingsService,
-    private countriesService: CountriesService,
-    private categoriesService: CategoriesService,
-    private qualitiesService: QualitiesService // private currencyPipe: CurrencyPipe
-  ) {}
 
   ngOnInit(): void {
     this.fields = [

@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { MyDeviceService } from '../../shared/services/my-device.service';
 import { environment } from '../../../environments/environment';
@@ -13,13 +13,14 @@ import { WelcomeService } from '../welcome/welcome.service';
   standalone: false,
 })
 export class SettingsComponent {
+  private deviceService = inject(MyDeviceService);
+  private welcomeService = inject(WelcomeService);
+  private http = inject(HttpClient);
+
   deviceInfo = this.deviceService.getInfo();
   health$!: Observable<unknown>;
-  constructor(
-    private deviceService: MyDeviceService,
-    private welcomeService: WelcomeService,
-    private http: HttpClient
-  ) {
+
+  constructor() {
     this.health$ = this.http.get(`${environment.apiBaseUrl}/health`);
   }
 

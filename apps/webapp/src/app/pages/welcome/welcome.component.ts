@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { finalize } from 'rxjs/operators';
 import { LoadingService } from '../../shared/components/loading/loading.service';
 import { CountriesService } from '../../shared/services/countries.service';
@@ -11,15 +11,15 @@ import { WelcomeService } from './welcome.service';
   standalone: false,
 })
 export class WelcomeComponent {
+  private welcomeService = inject(WelcomeService);
+  private countriesService = inject(CountriesService);
+  private loadingService = inject(LoadingService);
+
   countries$ = this.countriesService
     .getAll()
     .pipe(finalize(() => this.loadingService.hide()));
 
-  constructor(
-    private welcomeService: WelcomeService,
-    private countriesService: CountriesService,
-    private loadingService: LoadingService
-  ) {
+  constructor() {
     this.loadingService.show();
   }
 

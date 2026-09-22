@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MyDeviceService } from '../../../shared/services/my-device.service';
 import { ProfileService } from './profile.service';
@@ -10,13 +10,11 @@ import { ProfileService } from './profile.service';
   standalone: false,
 })
 export class ProfileComponent {
+  private routeParams = inject(ActivatedRoute);
+  private profileService = inject(ProfileService);
+  private device = inject(MyDeviceService);
+
   private readonly id: string = this.routeParams.snapshot.params['id'];
   readonly data$ = this.profileService.getProfile(this.id);
   isMobileMode = this.device.isMobile();
-
-  constructor(
-    private routeParams: ActivatedRoute,
-    private profileService: ProfileService,
-    private device: MyDeviceService
-  ) {}
 }

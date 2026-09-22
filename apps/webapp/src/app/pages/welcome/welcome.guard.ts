@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { CanActivate, CanLoad, Router, UrlTree } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { catchError, concatMap, filter, map } from 'rxjs/operators';
@@ -8,12 +8,10 @@ import { WelcomeService } from './welcome.service';
 
 @Injectable()
 export class WelcomeGuard implements CanLoad, CanActivate {
-  constructor(
-    private welcomeService: WelcomeService,
-    private router: Router,
-    private userSettingsService: UserSettingsService,
-    private authService: AuthUserService
-  ) {}
+  private welcomeService = inject(WelcomeService);
+  private router = inject(Router);
+  private userSettingsService = inject(UserSettingsService);
+  private authService = inject(AuthUserService);
 
   canLoad(): Observable<boolean | UrlTree> {
     return this.isAlreadyKnownOrAuthenticatedUser();

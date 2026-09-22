@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { map, switchMap } from 'rxjs/operators';
 
@@ -11,19 +11,15 @@ import { SearchService } from '../../shared/services/search.service';
   standalone: false,
 })
 export class SearchResultsComponent /*implements OnInit*/ {
+  private route = inject(ActivatedRoute);
+  private searchService = inject(SearchService);
+
   ads$ = this.route.queryParams.pipe(
     switchMap((filter) =>
       this.searchService.searchFromFilter(filter as SearchFilter)
     ),
     map((result) => result.records)
   );
-
-  constructor(
-    private route: ActivatedRoute,
-    private searchService: SearchService
-  ) {
-    // this.ads$ = this.adsService.getAll(this.categoryCode);
-  }
 
   // ngOnInit(): void {
   //   // sdfdsf

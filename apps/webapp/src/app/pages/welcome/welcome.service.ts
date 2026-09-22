@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
@@ -7,7 +7,9 @@ import { UserSettingsService } from '../../shared/services/user-settings.service
 
 @Injectable()
 export class WelcomeService {
-  constructor(private router: Router, private auth: AuthCustomService, private userSettings: UserSettingsService) {}
+  private router = inject(Router);
+  private auth = inject(AuthCustomService);
+  private userSettings = inject(UserSettingsService);
 
   validate(options?: { redirect?: boolean; country: string }): void {
     if (options) {

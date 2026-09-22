@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MyDeviceService } from '../../shared/services/my-device.service';
 
 @Component({
@@ -8,6 +8,7 @@ import { MyDeviceService } from '../../shared/services/my-device.service';
   standalone: false,
 })
 export class MainComponent {
+  private device = inject(MyDeviceService);
+
   isMobileMode = this.device.isMobile();
-  constructor(private device: MyDeviceService) {}
 }

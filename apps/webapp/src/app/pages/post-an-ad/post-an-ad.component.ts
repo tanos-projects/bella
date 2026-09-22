@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { concatMap, finalize } from 'rxjs/operators';
 import { UploadService } from '../../shared/components/upload/upload.service';
 import { AdDTO } from '../../shared/models/ads.model';
@@ -12,17 +12,15 @@ type ImageFile = File /*& { data: SafeUrl }*/;
   standalone: false,
 })
 export class PostAnAdComponent {
+  private adsService = inject(AdsService);
+  private uploadService = inject(UploadService);
+
   submitting = false;
 
   error = false;
   postedAd!: AdDTO;
   message!: string;
   postedAdUrlPath: any[] = [];
-
-  constructor(
-    private adsService: AdsService,
-    private uploadService: UploadService
-  ) {}
 
   submit(adData: any): void {
     if (!this.submitting) {
