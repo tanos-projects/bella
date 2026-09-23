@@ -126,7 +126,12 @@ export class AdminPublicationController {
     pageSize?: string
   ): { pageNum: number; pageSizeNum: number; skip: number } {
     const pageNum = Math.max(1, Number(page) || 1);
-    const pageSizeNum = Math.max(1, Number(pageSize) || DEFAULT_PAGE_SIZE);
+    // Any non-positive or non-numeric pageSize falls back to the 20
+    // default, not to 1 - `Number(pageSize) || DEFAULT` only catches 0
+    // (falsy), so a negative value used to slip past it and get floored
+    // to 1 by Math.max instead, treating 0 and -1 inconsistently.
+    const parsedPageSize = Number(pageSize);
+    const pageSizeNum = parsedPageSize > 0 ? parsedPageSize : DEFAULT_PAGE_SIZE;
     return { pageNum, pageSizeNum, skip: (pageNum - 1) * pageSizeNum };
   }
 

@@ -102,7 +102,7 @@ describe('AdminPublicationController', () => {
       });
     });
 
-    it('falls back a zero/non-numeric pageSize to the 20 default', (done) => {
+    it('falls back a zero pageSize to the 20 default', (done) => {
       const { controller, adsService } = createController();
 
       controller.getAllUnpublished(undefined, '0').subscribe(() => {
@@ -111,14 +111,22 @@ describe('AdminPublicationController', () => {
       });
     });
 
-    it('clamps a negative pageSize to 1 rather than the 20 default', (done) => {
-      // Number('-10') is a truthy -10, so `Number(pageSize) || DEFAULT`
-      // does NOT fall through to 20 here (only 0/NaN/'' do) - only the
-      // Math.max(1, ...) floor catches it, landing on 1, not 20.
+    it('falls back a negative pageSize to the 20 default, not to 1', (done) => {
+      // 0 and a negative value are both invalid and must behave the same
+      // way - only a strictly positive pageSize is used as-is.
       const { controller, adsService } = createController();
 
       controller.getAllUnpublished(undefined, '-10').subscribe(() => {
-        expect(adsService.findAllUnpublished).toHaveBeenCalledWith({ skip: 0, limit: 1 });
+        expect(adsService.findAllUnpublished).toHaveBeenCalledWith({ skip: 0, limit: 20 });
+        done();
+      });
+    });
+
+    it('falls back a non-numeric pageSize to the 20 default', (done) => {
+      const { controller, adsService } = createController();
+
+      controller.getAllUnpublished(undefined, 'not-a-number').subscribe(() => {
+        expect(adsService.findAllUnpublished).toHaveBeenCalledWith({ skip: 0, limit: 20 });
         done();
       });
     });
