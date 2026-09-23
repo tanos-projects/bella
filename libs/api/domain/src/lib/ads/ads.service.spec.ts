@@ -22,6 +22,7 @@ describe('AdsService', () => {
       createNew: jest.fn(),
       updateOne: jest.fn(),
       findAll: jest.fn(),
+      count: jest.fn(),
       findAllByUserId: jest.fn(),
       findOne: jest.fn(),
       findOnePublished: jest.fn(),
@@ -87,8 +88,44 @@ describe('AdsService', () => {
 
       service.findAllUnpublished().subscribe();
 
-      expect(repository.findAll).toHaveBeenCalledWith({
+      expect(repository.findAll).toHaveBeenCalledWith(
+        { status: AdStatus.SUBMITTED },
+        undefined
+      );
+    });
+
+    it('forwards pagination options to the repository', () => {
+      repository.findAll.mockReturnValue(of([]));
+
+      service.findAllUnpublished({ skip: 10, limit: 5 }).subscribe();
+
+      expect(repository.findAll).toHaveBeenCalledWith(
+        { status: AdStatus.SUBMITTED },
+        { skip: 10, limit: 5 }
+      );
+    });
+  });
+
+  describe('countUnpublished', () => {
+    it('counts on SUBMITTED', () => {
+      repository.count.mockReturnValue(of(3));
+
+      service.countUnpublished().subscribe();
+
+      expect(repository.count).toHaveBeenCalledWith({
         status: AdStatus.SUBMITTED,
+      });
+    });
+  });
+
+  describe('countPublished', () => {
+    it('forces status to PUBLISHED and drops the "top" pseudo-category', () => {
+      repository.count.mockReturnValue(of(7));
+
+      service.countPublished({ category: 'top' } as any).subscribe();
+
+      expect(repository.count).toHaveBeenCalledWith({
+        status: AdStatus.PUBLISHED,
       });
     });
   });
@@ -167,7 +204,7 @@ describe('AdsService', () => {
   });
 
   describe('publish', () => {
-    it('moves a SUBMITTED ad to PUBLISHED, writing only the status', (done) => {
+    it('moves a SUBMITTED ad to PUBLISHED and stamps publishedAt', (done) => {
       const submitted = { ...baseAd, status: AdStatus.SUBMITTED };
       repository.findOneUnpublished.mockReturnValue(of(submitted));
       repository.updateOne.mockReturnValue(
@@ -178,8 +215,24 @@ describe('AdsService', () => {
         expect(repository.findOneUnpublished).toHaveBeenCalledWith('42');
         expect(repository.updateOne).toHaveBeenCalledWith('42', {
           status: AdStatus.PUBLISHED,
+          publishedAt: expect.any(Date),
         });
         expect(result.status).toBe(AdStatus.PUBLISHED);
+        done();
+      });
+    });
+
+    it('records the moderator when given one', (done) => {
+      const submitted = { ...baseAd, status: AdStatus.SUBMITTED };
+      repository.findOneUnpublished.mockReturnValue(of(submitted));
+      repository.updateOne.mockReturnValue(of(submitted));
+
+      service.publish('42', 'mod@bella.test').subscribe(() => {
+        expect(repository.updateOne).toHaveBeenCalledWith('42', {
+          status: AdStatus.PUBLISHED,
+          moderatedBy: 'mod@bella.test',
+          publishedAt: expect.any(Date),
+        });
         done();
       });
     });
@@ -200,6 +253,20 @@ describe('AdsService', () => {
         done();
       });
     });
+
+    it('records the moderator when given one', (done) => {
+      repository.findOne.mockReturnValue(of(baseAd));
+      repository.updateOne.mockReturnValue(of(baseAd));
+
+      service.reject('42', 'duplicate listing', 'mod@bella.test').subscribe(() => {
+        expect(repository.updateOne).toHaveBeenCalledWith('42', {
+          approbationMessage: 'duplicate listing',
+          status: AdStatus.REJECTED,
+          moderatedBy: 'mod@bella.test',
+        });
+        done();
+      });
+    });
   });
 
   describe('archive', () => {
@@ -215,6 +282,45 @@ describe('AdsService', () => {
           status: AdStatus.ARCHIVED,
         });
         done();
+      });
+    });
+
+    it('records the moderator when given one', (done) => {
+      repository.findOne.mockReturnValue(of(baseAd));
+      repository.updateOne.mockReturnValue(of(baseAd));
+
+      service.archive('42', 'sold elsewhere', 'mod@bella.test').subscribe(() => {
+        expect(repository.updateOne).toHaveBeenCalledWith('42', {
+          approbationMessage: 'sold elsewhere',
+          status: AdStatus.ARCHIVED,
+          moderatedBy: 'mod@bella.test',
+        });
+        done();
+      });
+    });
+  });
+
+  describe('findAllArchived', () => {
+    it('lists REJECTED and ARCHIVED together for the audit view', () => {
+      repository.findAll.mockReturnValue(of([]));
+
+      service.findAllArchived({ limit: 10 }).subscribe();
+
+      expect(repository.findAll).toHaveBeenCalledWith(
+        { status: { $in: [AdStatus.REJECTED, AdStatus.ARCHIVED] } },
+        { limit: 10 }
+      );
+    });
+  });
+
+  describe('countArchived', () => {
+    it('counts REJECTED and ARCHIVED together', () => {
+      repository.count.mockReturnValue(of(2));
+
+      service.countArchived().subscribe();
+
+      expect(repository.count).toHaveBeenCalledWith({
+        status: { $in: [AdStatus.REJECTED, AdStatus.ARCHIVED] },
       });
     });
   });

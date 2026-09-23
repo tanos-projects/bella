@@ -22,6 +22,7 @@ describe('AdsRepositoryNest', () => {
     adModel.findById = jest.fn();
     adModel.findOne = jest.fn();
     adModel.findOneAndUpdate = jest.fn();
+    adModel.countDocuments = jest.fn();
 
     repository = new AdsRepositoryNest(adModel);
   });
@@ -115,7 +116,37 @@ describe('AdsRepositoryNest', () => {
 
       expect(query.setOptions).toHaveBeenCalledWith({
         limit: 5,
+        skip: 0,
         populate: 'owner',
+      });
+    });
+
+    it('applies the requested skip for pagination', () => {
+      const query = createQueryMock([]);
+      adModel.find.mockReturnValue(query);
+
+      repository.findAll({}, { skip: 20, limit: 10 }).subscribe();
+
+      expect(query.setOptions).toHaveBeenCalledWith({
+        limit: 10,
+        skip: 20,
+        populate: undefined,
+      });
+    });
+  });
+
+  describe('count', () => {
+    it('applies the same keyword/price filter translation as findAll', (done) => {
+      adModel.countDocuments = jest
+        .fn()
+        .mockReturnValue({ exec: jest.fn().mockResolvedValue(4) });
+
+      repository.count({ minPrice: 10 } as any).subscribe((total) => {
+        expect(adModel.countDocuments).toHaveBeenCalledWith({
+          price: { $gte: 10 },
+        });
+        expect(total).toBe(4);
+        done();
       });
     });
   });

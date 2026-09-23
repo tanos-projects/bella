@@ -28,4 +28,8 @@ export interface AdDTO extends BaseDTO {
   readonly owner?: UserDTO;
   readonly createdAt?: Date;
   readonly contactSettings?: ContactSettingDTO;
+  readonly status?: string;
+  readonly approbationMessage?: string;
+  readonly moderatedBy?: string;
+  readonly publishedAt?: Date;
 }

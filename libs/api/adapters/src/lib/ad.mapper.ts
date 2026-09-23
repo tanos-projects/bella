@@ -26,6 +26,10 @@ export const modelToDTO: (model: AdEntity) => AdDTO = (model) => {
     createdAt: model.createdAt || null,
     updatedAt: model.updatedAt || null,
     owner: UserMapper.modelToDTO(model.owner),
+    status: model.status || null,
+    approbationMessage: model.approbationMessage || null,
+    moderatedBy: model.moderatedBy || null,
+    publishedAt: model.publishedAt || null,
   };
 };
 

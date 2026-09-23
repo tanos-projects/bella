@@ -41,6 +41,10 @@ export class Ad {
   contactSettings?: ContactSetting;
   @Prop()
   approbationMessage?: string;
+  @Prop()
+  moderatedBy?: string;
+  @Prop()
+  publishedAt?: Date;
   @Prop({ default: Date.now })
   createdAt?: Date;
   @Prop({ default: Date.now })

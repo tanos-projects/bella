@@ -51,10 +51,20 @@ export class AdsRepositoryNest implements AdsRepository {
         .sort({ updatedAt: -1 })
         .setOptions({
           limit: options?.limit ?? 0,
+          skip: options?.skip ?? 0,
           populate: options?.populate?.join(),
         })
         .exec(),
     );
+  }
+
+  count(filter?: FilterCriteria): Observable<number> {
+    let filterToUse: any = { ...filter };
+
+    filterToUse = this.manageKeyword(filterToUse);
+    filterToUse = this.managePrice(filterToUse);
+
+    return from(this.adModel.countDocuments({ ...filterToUse }).exec());
   }
 
   private manageKeyword(filter: any): any {

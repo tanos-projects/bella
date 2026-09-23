@@ -37,6 +37,14 @@ export class AdEntity {
   owner?: UserEntity;
   contactSettings?: ContactSetting;
   approbationMessage?: string;
+  // Display identity (email, falling back to name) of the moderator who
+  // last transitioned this ad via reject/archive/approve - see AuthUser.
+  moderatedBy?: string;
+  // Set once, only by AdsService.publish() - unlike updatedAt (rewritten on
+  // every transition), this survives a later reject/archive so an audit
+  // view can still show when an ad first went live. Stays empty for ads
+  // that never reached PUBLISHED (e.g. rejected straight from SUBMITTED).
+  publishedAt?: Date;
 
   // setPublished(value: boolean): void {
   //   this.published = value;

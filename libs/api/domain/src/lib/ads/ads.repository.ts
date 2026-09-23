@@ -9,6 +9,7 @@ export interface AdsRepository {
     filter?: FilterCriteria,
     options?: FilterOptions,
   ): Observable<AdEntity[]>;
+  count(filter?: FilterCriteria): Observable<number>;
   findAllByUserId(userId: string): Observable<AdEntity[]>;
   findOne(id: string): Observable<AdEntity>;
   findOnePublished(id: string): Observable<AdEntity>;
