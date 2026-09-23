@@ -10,9 +10,15 @@ export const environment = {
     clientId: '53tGhIBsmv1zPnS7Zne8cBY9XqdySKi0',
     authorizationParams: {
       redirect_uri: 'http://localhost:4200/loggedIn',
-      audience: 'https://base-api/'
+      audience: 'https://base-api/',
+      scope: 'openid profile email offline_access'
     },
-    logoutUrl: 'http://localhost:4200'
+    logoutUrl: 'http://localhost:4200',
+    // See apps/admin/src/environments/environment.ts for why: default
+    // cacheLocation ('memory') is wiped on reload and falls back to a
+    // prompt=none iframe that needs third-party cookies to dev-bata.eu.auth0.com.
+    cacheLocation: 'localstorage' as const,
+    useRefreshTokens: true,
   },
   apiBaseUrl: 'http://localhost:3000/api',
   contactApi: {

@@ -10,9 +10,19 @@ export const environment = {
     clientId: 'SwrAN2wpotPHDX3qolANvGM7g1kA19rE',
     authorizationParams: {
       redirect_uri: 'http://localhost:4300/loggedIn',
-      audience: 'https://base-api/'
+      audience: 'https://base-api/',
+      scope: 'openid profile email offline_access'
     },
     logoutUrl: 'http://localhost:4300',
+    // Default cacheLocation is 'memory', wiped on every reload — this then
+    // depends on a prompt=none iframe to dev-bata.eu.auth0.com to silently
+    // re-authenticate, which needs third-party cookies and fails in current
+    // Chrome defaults. localstorage + refresh tokens avoid that iframe
+    // entirely. Requires "Allow Offline Access" enabled on the
+    // https://base-api/ API in the Auth0 dashboard for the refresh token
+    // to actually be issued.
+    cacheLocation: 'localstorage' as const,
+    useRefreshTokens: true,
   },
   apiBaseUrl: 'http://localhost:3000/api/admin',
 };
