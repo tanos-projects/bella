@@ -1,6 +1,6 @@
-import { HttpClientModule } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { ModuleWithProviders, NgModule } from '@angular/core';
-import { AuthModule } from '@auth0/auth0-angular';
+import { AuthHttpInterceptor, AuthModule } from '@auth0/auth0-angular';
 import { environment } from '../../environments/environment';
 import { AuthCustomService } from './auth-custom.service';
 import { AuthUserService } from './auth-user.service';
@@ -14,16 +14,17 @@ import { PermissionsGuard } from './permissions.guard';
       httpInterceptor: {
         allowedList: [
           {
-            uri: `${environment.apiBaseUrl}/publications/unpublished`,
+            // Trailing-wildcard prefix match (auth0-angular only supports
+            // a trailing "*", not mid-string) - covers /unpublished and
+            // /published (and their query strings, stripped before
+            // matching) under one entry instead of one per list endpoint.
+            uri: `${environment.apiBaseUrl}/publications/*`,
             httpMethod: 'GET'
           },
           {
-            // auth0-angular's matcher only supports a trailing "*" (plain
-            // prefix match) - a mid-string "*" (as approve/reject/archive's
-            // ids would need) never matches, so the token never gets
-            // attached and every one of these calls 401s. This single
-            // prefix entry covers all three (they're all PATCH, all under
-            // .../publications/...).
+            // Same wildcard, for the PATCH mutations (approve/reject/archive) -
+            // a mid-string "*" (as their :id would need) never matches, so
+            // this single prefix entry covers all three instead.
             uri: `${environment.apiBaseUrl}/publications/*`,
             httpMethod: 'PATCH'
           }
@@ -38,7 +39,16 @@ export class AuthenticationModule {
   static forRoot(): ModuleWithProviders<AuthenticationModule> {
     return {
       ngModule: AuthenticationModule,
-      providers: [AuthUserService, AuthCustomService, PermissionsGuard],
+      providers: [
+        AuthUserService,
+        AuthCustomService,
+        PermissionsGuard,
+        // @auth0/auth0-angular v2 stopped auto-registering this via
+        // AuthModule.forRoot() (v1, compatible with Angular 14, did) -
+        // without it, HTTP_INTERCEPTORS is empty and no request ever
+        // gets a token attached, regardless of the allowedList config.
+        { provide: HTTP_INTERCEPTORS, useClass: AuthHttpInterceptor, multi: true },
+      ],
     };
   }
 }
