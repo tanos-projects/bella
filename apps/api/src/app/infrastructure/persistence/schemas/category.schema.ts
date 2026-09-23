@@ -5,7 +5,7 @@ export type CategoryDocument = HydratedDocument<Category>;
 
 @Schema({ autoIndex: true })
 export class Category {
-  @Prop({ required: true, index: true, unique: true, immutable: true })
+  @Prop({ required: true, unique: true, immutable: true })
   id: string;
   @Prop({ required: true, unique: true })
   code: string;
@@ -20,4 +20,3 @@ export class Category {
 }
 
 export const CategorySchema = SchemaFactory.createForClass(Category);
-CategorySchema.index({ id: 1 }, { unique: true });

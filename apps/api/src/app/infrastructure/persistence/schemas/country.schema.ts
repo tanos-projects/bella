@@ -5,7 +5,7 @@ export type CountryDocument = HydratedDocument<Country>;
 
 @Schema({ autoIndex: true })
 export class Country {
-  @Prop({ required: true, index: true, unique: true, immutable: true })
+  @Prop({ required: true, unique: true, immutable: true })
   id: string;
   @Prop({ required: true, unique: true })
   name: string;
@@ -20,4 +20,3 @@ export class Country {
 }
 
 export const CountrySchema = SchemaFactory.createForClass(Country);
-CountrySchema.index({ id: 1 }, { unique: true });

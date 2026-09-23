@@ -5,7 +5,7 @@ export type UserDocument = HydratedDocument<User>;
 
 @Schema({ autoIndex: true, timestamps: true })
 export class User {
-  @Prop({ required: true, index: true, unique: true, immutable: true })
+  @Prop({ required: true, unique: true, immutable: true })
   idpId: string;
   @Prop({ required: true, unique: true })
   username: string;
@@ -30,4 +30,3 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
-UserSchema.index({ idpId: 1 }, { unique: true });
