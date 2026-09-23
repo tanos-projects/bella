@@ -1,12 +1,43 @@
 <div class="container">
   <mat-tab-group>
     <mat-tab label="Annonces en attentes">
-      <bella-publications-list
-        [publications]="(unpublishedPublications$ | async) ?? []"
-        (approbationDecision)="onApprobationDecisionMaked($event)"
-      ></bella-publications-list
-    ></mat-tab>
-    <mat-tab label="Second"> Content 2 </mat-tab>
-    <mat-tab label="Third"> Content 3 </mat-tab>
+      @if (unpublished$ | async; as unpublished) {
+        <bella-publications-list
+          mode="pending"
+          [publications]="unpublished.items"
+          [total]="unpublished.total"
+          [pageSize]="unpublished.pageSize"
+          [pageIndex]="unpublished.page - 1"
+          (approbationDecision)="onApprobationDecisionMaked($event)"
+          (pageChange)="onUnpublishedPageChange($event)"
+        ></bella-publications-list>
+      }
+    </mat-tab>
+    <mat-tab label="Annonces publiées">
+      @if (published$ | async; as published) {
+        <bella-publications-list
+          mode="published"
+          [publications]="published.items"
+          [total]="published.total"
+          [pageSize]="published.pageSize"
+          [pageIndex]="published.page - 1"
+          (approbationDecision)="onApprobationDecisionMaked($event)"
+          (pageChange)="onPublishedPageChange($event)"
+        ></bella-publications-list>
+      }
+    </mat-tab>
+    <mat-tab label="Annonces archivées">
+      @if (archived$ | async; as archived) {
+        <bella-publications-list
+          mode="archived"
+          [publications]="archived.items"
+          [total]="archived.total"
+          [pageSize]="archived.pageSize"
+          [pageIndex]="archived.page - 1"
+          (approbationDecision)="onApprobationDecisionMaked($event)"
+          (pageChange)="onArchivedPageChange($event)"
+        ></bella-publications-list>
+      }
+    </mat-tab>
   </mat-tab-group>
 </div>

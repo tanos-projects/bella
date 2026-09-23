@@ -20,33 +20,75 @@
     <td mat-cell *matCellDef="let row">{{ row.city }}</td>
   </ng-container>
 
+  <ng-container matColumnDef="owner">
+    <th mat-header-cell *matHeaderCellDef>Utilisateur</th>
+    <td mat-cell *matCellDef="let row">{{ ownerLabel(row) }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="status">
+    <th mat-header-cell *matHeaderCellDef>Statut</th>
+    <td mat-cell *matCellDef="let row">{{ statusLabel(row.status) }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="publishedAt">
+    <th mat-header-cell *matHeaderCellDef>Date de publication</th>
+    <td mat-cell *matCellDef="let row">{{ (row.publishedAt | date) || '—' }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="approbationMessage">
+    <th mat-header-cell *matHeaderCellDef>Motif</th>
+    <td mat-cell *matCellDef="let row">{{ row.approbationMessage || '—' }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="moderatedBy">
+    <th mat-header-cell *matHeaderCellDef>Modérateur</th>
+    <td mat-cell *matCellDef="let row">{{ row.moderatedBy || '—' }}</td>
+  </ng-container>
+
   <ng-container matColumnDef="action">
     <th mat-header-cell *matHeaderCellDef>Actions</th>
     <td mat-cell *matCellDef="let element">
-      <button (click)="onApprove(element)" mat-button color="primary">
-        <mat-icon
-          aria-hidden="false"
-          aria-label="Approver"
-          fontIcon="check"
-        ></mat-icon> Approuver
-      </button>
-      <button (click)="onReject(element)" mat-button color="accent">
-        <mat-icon
-          aria-hidden="false"
-          aria-label="Rejeter"
-          fontIcon="dangerous"
-        ></mat-icon> Rejeter
-      </button>
-      <button (click)="onDelete(element)" mat-button color="warn">
-        <mat-icon
-          aria-hidden="false"
-          aria-label="Suppression définitive"
-          fontIcon="delete"
-        ></mat-icon> Supprimer
-      </button>
+      @if (mode === 'pending') {
+        <button (click)="onApprove(element)" mat-button color="primary">
+          <mat-icon
+            aria-hidden="false"
+            aria-label="Approver"
+            fontIcon="check"
+          ></mat-icon> Approuver
+        </button>
+        <button (click)="onReject(element)" mat-button color="accent">
+          <mat-icon
+            aria-hidden="false"
+            aria-label="Rejeter"
+            fontIcon="dangerous"
+          ></mat-icon> Rejeter
+        </button>
+        <button (click)="onDelete(element)" mat-button color="warn">
+          <mat-icon
+            aria-hidden="false"
+            aria-label="Suppression définitive"
+            fontIcon="delete"
+          ></mat-icon> Supprimer
+        </button>
+      } @else {
+        <button (click)="onUnpublish(element)" mat-button color="warn">
+          <mat-icon
+            aria-hidden="false"
+            aria-label="Dépublier"
+            fontIcon="unpublished"
+          ></mat-icon> Dépublier
+        </button>
+      }
     </td>
   </ng-container>
 
   <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
   <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
 </table>
+<mat-paginator
+  [length]="total"
+  [pageSize]="pageSize"
+  [pageIndex]="pageIndex"
+  [pageSizeOptions]="[10, 20, 50]"
+  (page)="pageChange.emit($event)"
+></mat-paginator>

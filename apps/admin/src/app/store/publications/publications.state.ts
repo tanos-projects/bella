@@ -6,4 +6,7 @@ export class PublicationsState {
   private state = inject(PublicationsStore);
 
   readonly unpublished$ = this.state.unpublished$;
+  readonly published$ = this.state.published$;
+  readonly archived$ = this.state.archived$;
+  readonly actionResult$ = this.state.actionResult$;
 }

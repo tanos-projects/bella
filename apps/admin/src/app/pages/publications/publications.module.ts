@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Route, RouterModule } from '@angular/router';
 
@@ -14,7 +15,13 @@ const routes: Route[] = [
 ];
 
 @NgModule({
-  imports: [CommonModule, RouterModule.forChild(routes), MatTabsModule, PublicationsListModule],
+  imports: [
+    CommonModule,
+    RouterModule.forChild(routes),
+    MatTabsModule,
+    MatSnackBarModule,
+    PublicationsListModule,
+  ],
   exports: [],
   declarations: [PublicationsComponent],
   providers: [],

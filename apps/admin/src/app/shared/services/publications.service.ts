@@ -1,6 +1,6 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { AdDTO } from '@bella/dtos';
+import { AdDTO, PaginatedResultDTO } from '@bella/dtos';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
@@ -10,8 +10,25 @@ export class AdminPublicationsService {
   private http = inject(HttpClient);
   private readonly baseUrl = environment.apiBaseUrl;
 
-  getUnplished(): Observable<AdDTO[]> {
-    return this.http.get<AdDTO[]>(`${this.baseUrl}/publications/unpublished`);
+  getUnplished(page = 1, pageSize = 20): Observable<PaginatedResultDTO<AdDTO>> {
+    return this.http.get<PaginatedResultDTO<AdDTO>>(
+      `${this.baseUrl}/publications/unpublished`,
+      { params: new HttpParams().set('page', page).set('pageSize', pageSize) }
+    );
+  }
+
+  getPublished(page = 1, pageSize = 20): Observable<PaginatedResultDTO<AdDTO>> {
+    return this.http.get<PaginatedResultDTO<AdDTO>>(
+      `${this.baseUrl}/publications/published`,
+      { params: new HttpParams().set('page', page).set('pageSize', pageSize) }
+    );
+  }
+
+  getArchived(page = 1, pageSize = 20): Observable<PaginatedResultDTO<AdDTO>> {
+    return this.http.get<PaginatedResultDTO<AdDTO>>(
+      `${this.baseUrl}/publications/archived`,
+      { params: new HttpParams().set('page', page).set('pageSize', pageSize) }
+    );
   }
 
   approve(id: string): Observable<void> {

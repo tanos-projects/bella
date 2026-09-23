@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { PageEvent } from '@angular/material/paginator';
 import { AdDTO } from '@bella/dtos';
 import { of } from 'rxjs';
 
@@ -71,11 +72,22 @@ export class PublicationsListComponent {
   public dialog = inject(MatDialog);
 
   @Input() publications: AdDTO[] = [];
+  // 'pending': moderation queue (approve/reject/delete). 'published': live
+  // ads a moderator can pull back down (dépublier), reusing archive().
+  // 'archived': read-only audit view of REJECTED + ARCHIVED ads.
+  @Input() mode: 'pending' | 'published' | 'archived' = 'pending';
+  @Input() total = 0;
+  @Input() pageSize = 20;
+  @Input() pageIndex = 0;
 
   @Output() approbationDecision = new EventEmitter<ApprobationEvent>();
+  @Output() pageChange = new EventEmitter<PageEvent>();
 
-  displayedColumns = ['createdAt', 'title', 'price', 'city', 'action'];
-  // ngOnInit() {}
+  get displayedColumns(): string[] {
+    return this.mode === 'archived'
+      ? ['createdAt', 'title', 'owner', 'status', 'publishedAt', 'approbationMessage', 'moderatedBy']
+      : ['createdAt', 'title', 'price', 'city', 'action'];
+  }
 
   onApprove(row: AdDTO): void {
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
@@ -87,7 +99,6 @@ export class PublicationsListComponent {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        console.log('Approve ', row.id);
         this.sendApprobationDecision(
           ApprobationEvent.buildApprovedEvent(row.id)
         );
@@ -108,8 +119,6 @@ export class PublicationsListComponent {
       if (result) {
         this.askReason('Veuillez saisir le motif de refus').subscribe(
           (givenReason) => {
-            console.log('Reject ', row.id, givenReason);
-
             this.sendApprobationDecision(
               ApprobationEvent.buildRejectedEvent(row.id, givenReason)
             );
@@ -139,7 +148,46 @@ export class PublicationsListComponent {
     });
   }
 
+  onUnpublish(row: AdDTO): void {
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      data: {
+        message: 'Êtes-vous sûr de vouloir dépublier cette annonce ?',
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.askReason('Veuillez saisir le motif de dépublication').subscribe(
+          (givenReason) => {
+            this.sendApprobationDecision(
+              ApprobationEvent.buildArchivedEvent(row.id, givenReason)
+            );
+          }
+        );
+      }
+    });
+  }
+
   private askReason(message: string) {
     return of(prompt(message) ?? '<NON_PRECISE>');
+  }
+
+  statusLabel(status?: string): string {
+    switch (status) {
+      case 'REJECTED':
+        return 'Rejetée';
+      case 'ARCHIVED':
+        return 'Supprimée / dépubliée';
+      default:
+        return status ?? '';
+    }
+  }
+
+  ownerLabel(row: AdDTO): string {
+    const owner = row.owner;
+    if (!owner) {
+      return '—';
+    }
+    return owner.email ?? owner.username ?? '—';
   }
 }
