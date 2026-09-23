@@ -1,9 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import * as mongoose from 'mongoose';
+import { HydratedDocument } from 'mongoose';
 import { AdImage, AdStatus, ContactSetting } from '@bella/api/domain';
 import { User } from './user.schema';
 
-export type AdDocument = Ad & mongoose.Document;
+export type AdDocument = HydratedDocument<Ad>;
 
 @Schema({
   autoIndex: true,

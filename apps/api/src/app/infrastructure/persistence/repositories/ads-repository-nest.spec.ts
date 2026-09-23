@@ -35,12 +35,13 @@ describe('AdsRepositoryNest', () => {
       repository
         .updateOne('1', { status: AdStatus.PUBLISHED })
         .subscribe(() => {
-          // Without `new: true` this resolves with the pre-update document and
-          // the caller reports the ad's previous status back to the client.
+          // Without `returnDocument: 'after'` this resolves with the
+          // pre-update document and the caller reports the ad's previous
+          // status back to the client.
           expect(adModel.findOneAndUpdate).toHaveBeenCalledWith(
             { _id: '1' },
             { status: AdStatus.PUBLISHED },
-            { new: true, useFindAndModify: false }
+            { returnDocument: 'after' }
           );
           done();
         });

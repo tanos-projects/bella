@@ -22,8 +22,7 @@ export class UsersRepositoryNest implements UsersRepository {
   updateOne(username: string, update: UserEntity): Observable<UserEntity> {
     return from(
       this.userModel.findOneAndUpdate({ username }, update, {
-        new: true,
-        useFindAndModify: false,
+        returnDocument: 'after',
       }),
     );
   }
@@ -31,8 +30,7 @@ export class UsersRepositoryNest implements UsersRepository {
   updateOneByIdpId(idpId: string, update: UserEntity): Observable<UserEntity> {
     return from(
       this.userModel.findOneAndUpdate({ idpId }, update, {
-        new: true,
-        useFindAndModify: false,
+        returnDocument: 'after',
       }),
     );
   }

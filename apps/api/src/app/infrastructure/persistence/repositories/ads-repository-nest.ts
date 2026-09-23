@@ -24,10 +24,9 @@ export class AdsRepositoryNest implements AdsRepository {
         // FIXME : find a way to bind User and UserEntity properly
         { ...update },
         {
-          // Without `new`, Mongoose resolves with the pre-update document and
+          // Without this, Mongoose resolves with the pre-update document and
           // callers report the ad's previous status back to the client.
-          new: true,
-          useFindAndModify: false,
+          returnDocument: 'after',
         },
       ),
     );

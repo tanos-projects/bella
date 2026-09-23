@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { HydratedDocument } from 'mongoose';
 
-export type CountryDocument = Country & Document;
+export type CountryDocument = HydratedDocument<Country>;
 
 @Schema({ autoIndex: true })
 export class Country {
