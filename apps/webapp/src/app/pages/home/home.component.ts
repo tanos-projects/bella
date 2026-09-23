@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
-import { finalize, map, mergeMap, reduce } from 'rxjs/operators';
+import { Router } from '@angular/router';
+import { finalize, map, mergeMap, reduce, shareReplay } from 'rxjs/operators';
 
 import { LoadingService } from '../../shared/components/loading/loading.service';
 import { MyDeviceService } from '../../shared/services/my-device.service';
@@ -15,15 +16,19 @@ export class HomeComponent {
   private homeService = inject(HomeService);
   private device = inject(MyDeviceService);
   private loadingService = inject(LoadingService);
+  private router = inject(Router);
 
   isMobileMode = this.device.isMobile();
   adsByCategory$ = this.homeService
     .loadTopAds()
-    .pipe(finalize(() => this.loadingService.hide()));
+    .pipe(
+      finalize(() => this.loadingService.hide()),
+      shareReplay(1)
+    );
   noAds$ = this.adsByCategory$.pipe(
     mergeMap((adsByCategory) => adsByCategory.map((xx) => xx.ads)),
     reduce((acc, adsByCategory) => [...acc, ...adsByCategory]),
-    map((totalAds) => totalAds.length)
+    map((totalAds) => totalAds.length === 0)
   );
 
   constructor() {
@@ -35,6 +40,6 @@ export class HomeComponent {
   }
 
   viewAllAdsOfCategory(categoryCode: string): void {
-    //
+    this.router.navigate(['/', categoryCode]);
   }
 }
