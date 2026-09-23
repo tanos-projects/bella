@@ -15,6 +15,4 @@ export interface DialogData {
 export class ConfirmationDialogComponent {
   public dialogRef = inject<MatDialogRef<ConfirmationDialogComponent>>(MatDialogRef);
   public data = inject<DialogData>(MAT_DIALOG_DATA);
-
-  message!: string;
 }
