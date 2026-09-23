@@ -6,4 +6,6 @@ export * from './cities';
 
 export * from './countries';
 
+export * from './moderators';
+
 export * from './users';
