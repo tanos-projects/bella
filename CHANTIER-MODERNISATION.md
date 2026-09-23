@@ -320,6 +320,53 @@ touchent potentiellement ce code :
   `tsconfig` sous peine d'erreurs au runtime — **déjà `"bundler"`** dans
   `tsconfig.base.json`, donc déjà conforme.
 
+**Palier 10→11 : fait** (2026-09-23, commits `1bb856d` puis `8d2eb59`).
+Deux écarts réels par rapport au plan ci-dessus, découverts en vérifiant
+plutôt qu'en lisant les changelogs :
+- **Le driver `mongoose` (6→9) n'était pas aussi découplé du cœur Nest que
+  supposé** : `@nestjs/mongoose@11` exige le driver `^7||^8||^9`, donc le
+  bump du driver a dû se faire *avant* ce palier plutôt qu'« en parallèle »
+  (commit séparé `1bb856d`). Fait à cette occasion : les 5
+  `XDocument = X & Document` migrés vers `HydratedDocument<X>` (pattern
+  recommandé depuis Mongoose 7), `useFindAndModify` (mort depuis Mongoose
+  6) supprimé, `new: true` → `returnDocument: 'after'` (Mongoose 9
+  déprécie `new`/`returnOriginal`), et `mongoose.set('strictQuery', true)`
+  posé explicitement dans `main.ts` — Mongoose 7 a basculé ce défaut à
+  `false`, et `AdsController` passe `@Query() filter: any` tel quel dans
+  le filtre Mongo (`ads-repository-nest.ts`), donc l'ancien défaut
+  protégeait silencieusement contre les clés de filtre hors schéma ; sans
+  ce `set()` explicite, la bascule de version aurait changé ce
+  comportement sans que rien ne l'indique.
+- **`@nestjs/terminus@10.3.0` (posé au palier 9→10) verrouille son propre
+  peer sur `@nestjs/mongoose@^9||^10`** — bumper `@nestjs/mongoose` à 11.x
+  a donc aussi forcé `@nestjs/terminus` à 11.1.1 (dont le peer accepte
+  `@nestjs/core@^10||^11`, donc sans forcer le cœur Nest à ce stade).
+  `@nestjs/swagger`, lui, a dû suivre le cœur Nest plutôt que le driver
+  Mongoose : son propre versionnage saute d'un peer `@nestjs/core@^9||^10`
+  (toute la lignée 7.x–10.x) à un peer `@nestjs/core@^11.0.1` exact dès la
+  10.x → 11.x (7.4.2 → 11.4.7), sans version intermédiaire qui couvre les
+  deux — a dû être bumpé dans le même commit que le cœur plutôt que
+  laissé pour plus tard. `@nestjs/axios` (3.1.3 → 4.0.1) pareil : son
+  peer sur `@nestjs/common` plafonnait à `^10`, ne couvrait pas `^11`.
+- Bonus repéré en bootant l'app (pas visible via build/lint/test) :
+  Mongoose 9 a fait remonter 4 warnings « Duplicate schema index » au
+  démarrage (`Category`/`City`/`Country.id`, `User.idpId`) — chaque champ
+  avait à la fois `unique: true` sur son `@Prop` (qui crée déjà l'index)
+  et un appel `XSchema.index({id: 1}, {unique: true})` redondant en bas
+  du fichier. Les 4 appels `.index()` en trop supprimés ; confirmé plus
+  aucun warning au boot suivant.
+- Vérifié : `nx build/test/lint` sur `api`/`api-domain`/`api-adapters`/
+  `dtos` revenus à la baseline (24 problèmes/0 erreur, 20/20 tests) après
+  les deux commits. Boot réel contre MongoDB local confirmé à chaque
+  étape : `/api/health` (mongo+auth0 up), Swagger UI + son doc OpenAPI
+  JSON (toujours 3.0.0, 21 routes, pas de régression malgré le saut
+  7→11), `/api/publications` (avec `keyword`/`minPrice`/`maxPrice` et une
+  clé de query bidon pour vérifier `strictQuery`), `/api/categories`,
+  `/api/countries`. Express v5 (nouveau défaut de `platform-express` 11)
+  et l'API legacy des health indicators retirée n'avaient aucun code à
+  toucher, comme prévu par la recherche ci-dessus — confirmé plutôt que
+  supposé via le boot réel.
+
 **Palier 11→12** — cible `~12.x` dernier patch. Le changement le plus
 spécifique à l'architecture de ce repo :
 - **Les paramètres de constructeur optionnels ne sont plus hérités par
