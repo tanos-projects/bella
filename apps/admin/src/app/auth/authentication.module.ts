@@ -18,15 +18,13 @@ import { PermissionsGuard } from './permissions.guard';
             httpMethod: 'GET'
           },
           {
-            uri: `${environment.apiBaseUrl}/publications/unpublished/*/approve`,
-            httpMethod: 'PATCH'
-          },
-          {
-            uri: `${environment.apiBaseUrl}/publications/*/reject`,
-            httpMethod: 'PATCH'
-          },
-          {
-            uri: `${environment.apiBaseUrl}/publications/*/archive`,
+            // auth0-angular's matcher only supports a trailing "*" (plain
+            // prefix match) - a mid-string "*" (as approve/reject/archive's
+            // ids would need) never matches, so the token never gets
+            // attached and every one of these calls 401s. This single
+            // prefix entry covers all three (they're all PATCH, all under
+            // .../publications/...).
+            uri: `${environment.apiBaseUrl}/publications/*`,
             httpMethod: 'PATCH'
           }
         ]
