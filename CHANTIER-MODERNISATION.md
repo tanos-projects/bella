@@ -404,6 +404,46 @@ spécifique à l'architecture de ce repo :
   possible pour les paliers 2-3 une fois le palier 1 (le plus susceptible
   de révéler des problèmes an amont) passé manuellement.
 
+**Palier 11→12 : tenté le 2026-09-23, annulé — bloqué sur Jest, pas sur le
+risque anticipé.** Deux surprises, dans le sens inverse de ce que la
+recherche ci-dessus prévoyait :
+- **Le paramètre optionnel de constructeur non hérité ne s'applique à
+  aucun code réel ici** : les 5 `libs/api/domain/src/lib/<feature>/
+  *.service.ts` ont chacun un seul paramètre de constructeur, obligatoire,
+  jamais marqué `?` ni `@Optional()`. Le risque identifié comme "le plus
+  risqué de toute l'échelle 9→12" ne concerne en fait aucun fichier de ce
+  repo — vérifié fichier par fichier avant de bumper, pas après coup.
+- **Le vrai bloquant, lui, était sous-estimé** : `@nestjs/*` 12.x n'est pas
+  juste "ESM-first" avec un filet de sécurité CommonJS comme la note de
+  release le suggérait — `@nestjs/common@12.1.0`/`core`/`testing`/`config`
+  etc. sont **purement ESM** (`"type": "module"`, `exports` sans condition
+  `require`, confirmé en lisant `node_modules/@nestjs/common/package.json`
+  après le bump). `nx build api` (webpack, gère l'ESM nativement) passe
+  toujours, mais **`nx test api` casse intégralement** : les 5 suites
+  échouent au chargement avec `Must use import to load ES Module`, Jest
+  tournant ici via `ts-jest` en mode CommonJS (`apps/api/jest.config.ts`).
+  Essayé et insuffisant : ajouter
+  `transformIgnorePatterns: ['node_modules/(?!(@nestjs)/)']` pour laisser
+  passer ces fichiers dans le transform — `ts-jest` ne transpile que les
+  fichiers de son `tsconfig.spec.json` (`include` limité aux specs), pas
+  les `.js` de `node_modules` même autorisés par `transformIgnorePatterns`
+  ; l'erreur persiste identique. Le fix réel demanderait `babel-jest` (pas
+  présent dans la stack actuelle, qui n'utilise que `ts-jest`) configuré
+  spécifiquement pour transpiler `@nestjs/*` en CommonJS au vol, ou une
+  migration plus large de la config Jest de `apps/api` vers un mode natif
+  ESM (`extensionsToTreatAsEsm`, etc. — non trivial avec `ts-jest`+Nx,
+  caveats documentés côté Jest lui-même) — dans les deux cas, un chantier
+  d'outillage de test à part entière, pas un simple bump de version.
+- **Décision** : palier annulé, package.json/yarn.lock/jest.config.ts
+  remis à l'état du commit `8d2eb59` (palier 10→11) — `git checkout --`
+  suivi d'un `yarn install` de contrôle, `nx test api` reconfirmé vert
+  (5/5, 20/20) avant de committer autre chose. Le repo reste donc au
+  palier 10→11 tant que ce point n'est pas traité. **Prochaine étape si
+  repris** : décider entre (a) ajouter `babel-jest` avec un preset ESM→CJS
+  scopé à `@nestjs/*` dans `apps/api/jest.config.ts`, ou (b) migrer le
+  runner Jest de `apps/api` en mode ESM natif — puis seulement retenter le
+  bump 11→12 une fois l'un des deux vert.
+
 **`@nestjs/swagger` 5→12 séparément** (ne suit pas le même rythme de
 version que le cœur Nest, donc à vérifier par palier avec son propre
 `npm view @nestjs/swagger dist-tags` plutôt que supposé aligné) :
