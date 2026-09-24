@@ -102,6 +102,14 @@ export class AdsService {
     return this.getPublicationsByStatus('draft');
   }
 
+  getMyExpiredPublications(): Observable<AdDTO[]> {
+    return this.getPublicationsByStatus('expired');
+  }
+
+  renew(id: string): Observable<AdDTO> {
+    return this.http.post<AdDTO>(`${this.baseUrl}/publications/${id}/renew`, {});
+  }
+
   private getPublicationsByStatus(status: string): Observable<AdDTO[]> {
     const params = new HttpParams();
     return this.http.get<AdDTO[]>(`${this.baseUrl}/publications/my-publications/${status}`, { params });

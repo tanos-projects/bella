@@ -32,4 +32,7 @@ export interface AdDTO extends BaseAdDTO {
   updatedAt?: Date;
   contactType?: string;
   contactSettings?: ContactSetting;
+  status?: string;
+  publishedAt?: Date;
+  expiresAt?: Date;
 }
