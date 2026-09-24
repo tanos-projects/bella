@@ -1,4 +1,5 @@
 import { of } from 'rxjs';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { UsersController } from './users.controller';
 
 describe('UsersController', () => {
@@ -177,20 +178,35 @@ describe('UsersController', () => {
       });
     });
 
-    it('is reachable with no guard - no JwtAuthGuard is applied on this route', (done) => {
-      const { controller, usersService } = createController({
-        findOne: jest.fn().mockReturnValue(of(fullUser)),
-      });
+    it('has no @UseGuards metadata - no JwtAuthGuard is applied on this route', () => {
+      // Characterization only: a unit test that invokes the controller
+      // method directly (as every other test in this file does) never
+      // exercises Nest's guard pipeline, so it cannot tell a guarded
+      // handler from an unguarded one - that call path bypasses guards
+      // unconditionally regardless of whether @UseGuards is present.
+      // Instead, inspect the reflection metadata @UseGuards(...) attaches
+      // to the handler, which is present/absent independently of how the
+      // method is invoked.
+      const guards = Reflect.getMetadata(
+        GUARDS_METADATA,
+        UsersController.prototype.findOne
+      );
 
-      // Characterization only: confirms the handler itself requires no
-      // authenticated `req.user`, consistent with the absence of
-      // `@UseGuards(JwtAuthGuard)` on this method (unlike every other one
-      // in this controller). Whether that is intentional is a Phase 2/6
-      // question, not something to change here.
-      controller.findOne('user-1').subscribe(() => {
-        expect(usersService.findOne).toHaveBeenCalled();
-        done();
-      });
+      expect(guards).toBeUndefined();
+    });
+
+    it('control check: another handler on this controller that IS guarded has non-empty @UseGuards metadata', () => {
+      // Proves the technique above actually works: getProfile carries
+      // @UseGuards(JwtAuthGuard), so if this assertion ever failed too,
+      // it would mean the metadata check itself is broken/misapplied
+      // rather than that findOne is genuinely unguarded.
+      const guards = Reflect.getMetadata(
+        GUARDS_METADATA,
+        UsersController.prototype.getProfile
+      );
+
+      expect(guards).toBeDefined();
+      expect(guards.length).toBeGreaterThan(0);
     });
   });
 });
