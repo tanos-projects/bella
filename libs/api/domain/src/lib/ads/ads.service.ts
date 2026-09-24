@@ -6,12 +6,18 @@ import { AdNotInExpectedStateError } from './ads.errors';
 import { AdsRepository } from './ads.repository';
 import { FilterCriteria, FilterOptions } from './models';
 import { UserEntity } from '../users/user.entity';
+import { Clock } from '../shared/clock';
+import { PublicationPlanResolver } from '../publication-plans/publication-plan.resolver';
 
 /** Marks a transition that any existing ad may take, whatever its status. */
 const ANY_STATUS = 'any';
 
 export class AdsService {
-  constructor(protected adsRepository: AdsRepository) {}
+  constructor(
+    protected adsRepository: AdsRepository,
+    protected planResolver: PublicationPlanResolver,
+    protected clock: Clock
+  ) {}
   create(ad: AdEntity): Observable<AdEntity> {
     return this.createAd(ad, AdStatus.SUBMITTED);
   }
@@ -109,21 +115,23 @@ export class AdsService {
 
   publish(id: string, moderatedBy?: string): Observable<AdEntity> {
     // TODO => Should be APPROVED before PUBLISHED
-    return this.adsRepository
-      .findOneUnpublished(id)
-      .pipe(
-        this.transitionTo(
-          id,
-          AdStatus.SUBMITTED,
-          AdStatus.PUBLISHED,
-          undefined,
-          moderatedBy,
-          // Set once here and never rewritten by reject/archive's own
-          // transitionTo calls (they don't pass this argument), so a later
-          // status change doesn't erase when the ad first went live.
-          new Date()
-        )
-      );
+    return this.adsRepository.findOneUnpublished(id).pipe(
+      this.transitionTo(id, AdStatus.SUBMITTED, AdStatus.PUBLISHED, (ad) => {
+        const now = this.clock.now();
+        const plan = this.planResolver.resolveFor(ad);
+        // Set once here and never rewritten by reject/archive's own
+        // transitionTo calls, so a later status change doesn't erase when
+        // the ad first went live.
+        const extra: Partial<AdEntity> = {
+          publishedAt: now,
+          expiresAt: plan.expiryFrom(now),
+        };
+        if (moderatedBy !== undefined) {
+          extra.moderatedBy = moderatedBy;
+        }
+        return extra;
+      })
+    );
   }
 
   reject(
@@ -133,11 +141,15 @@ export class AdsService {
   ): Observable<AdEntity> {
     // Rejection is not restricted to a starting state — only the ad's
     // existence is required, which is what findOne checks.
-    return this.adsRepository
-      .findOne(id)
-      .pipe(
-        this.transitionTo(id, ANY_STATUS, AdStatus.REJECTED, approbationMessage, moderatedBy)
-      );
+    return this.adsRepository.findOne(id).pipe(
+      this.transitionTo(id, ANY_STATUS, AdStatus.REJECTED, () => {
+        const extra: Partial<AdEntity> = { approbationMessage };
+        if (moderatedBy !== undefined) {
+          extra.moderatedBy = moderatedBy;
+        }
+        return extra;
+      })
+    );
   }
 
   archive(
@@ -145,11 +157,15 @@ export class AdsService {
     approbationMessage: string,
     moderatedBy?: string
   ): Observable<AdEntity> {
-    return this.adsRepository
-      .findOne(id)
-      .pipe(
-        this.transitionTo(id, ANY_STATUS, AdStatus.ARCHIVED, approbationMessage, moderatedBy)
-      );
+    return this.adsRepository.findOne(id).pipe(
+      this.transitionTo(id, ANY_STATUS, AdStatus.ARCHIVED, () => {
+        const extra: Partial<AdEntity> = { approbationMessage };
+        if (moderatedBy !== undefined) {
+          extra.moderatedBy = moderatedBy;
+        }
+        return extra;
+      })
+    );
   }
 
   /**
@@ -162,15 +178,15 @@ export class AdsService {
    * was actually in — a DRAFT could be published directly.
    *
    * Only the changed fields are written, so a stale read is never written
-   * back over concurrent updates.
+   * back over concurrent updates. `extra` is a factory rather than a plain
+   * object because some callers (publish) need the ad the guard just
+   * fetched to compute their update (e.g. resolving its publication plan).
    */
   private transitionTo(
     id: string,
     expectedStatus: string,
     nextStatus: AdStatus,
-    approbationMessage?: string,
-    moderatedBy?: string,
-    publishedAt?: Date
+    extra?: (ad: AdEntity) => Partial<AdEntity>
   ): OperatorFunction<AdEntity, AdEntity> {
     return concatMap((ad: AdEntity) => {
       if (!ad) {
@@ -178,16 +194,10 @@ export class AdsService {
           () => new AdNotInExpectedStateError(id, expectedStatus)
         );
       }
-      const update: Partial<AdEntity> = { status: nextStatus };
-      if (approbationMessage !== undefined) {
-        update.approbationMessage = approbationMessage;
-      }
-      if (moderatedBy !== undefined) {
-        update.moderatedBy = moderatedBy;
-      }
-      if (publishedAt !== undefined) {
-        update.publishedAt = publishedAt;
-      }
+      const update: Partial<AdEntity> = {
+        status: nextStatus,
+        ...(extra ? extra(ad) : {}),
+      };
       return this.adsRepository.updateOne(id, update);
     });
   }

@@ -3,10 +3,16 @@ import { AdEntity, AdStatus } from './ad.entity';
 import { AdNotInExpectedStateError } from './ads.errors';
 import { AdsRepository } from './ads.repository';
 import { AdsService } from './ads.service';
+import { Clock } from '../shared/clock';
+import { PublicationPlan } from '../publication-plans/publication-plan';
+import { PublicationPlanResolver } from '../publication-plans/publication-plan.resolver';
 
 describe('AdsService', () => {
   let service: AdsService;
   let repository: jest.Mocked<AdsRepository>;
+  let plan: jest.Mocked<PublicationPlan>;
+  let planResolver: jest.Mocked<PublicationPlanResolver>;
+  let clock: Clock;
 
   const baseAd: AdEntity = {
     category: 'cars',
@@ -16,6 +22,9 @@ describe('AdsService', () => {
     quality: 'good',
     status: AdStatus.DRAFT,
   };
+
+  const now = new Date('2026-01-01T00:00:00.000Z');
+  const expiresAt = new Date('2026-01-31T00:00:00.000Z');
 
   beforeEach(() => {
     repository = {
@@ -29,7 +38,14 @@ describe('AdsService', () => {
       findOneUnpublished: jest.fn(),
       findOneDraft: jest.fn(),
     };
-    service = new AdsService(repository);
+    plan = {
+      code: 'TEST',
+      expiryFrom: jest.fn().mockReturnValue(expiresAt),
+      renewal: jest.fn().mockReturnValue({ outcome: 'GRANTED' }),
+    };
+    planResolver = { resolveFor: jest.fn().mockReturnValue(plan) };
+    clock = { now: () => now };
+    service = new AdsService(repository, planResolver, clock);
   });
 
   describe('create', () => {
@@ -204,7 +220,7 @@ describe('AdsService', () => {
   });
 
   describe('publish', () => {
-    it('moves a SUBMITTED ad to PUBLISHED and stamps publishedAt', (done) => {
+    it('moves a SUBMITTED ad to PUBLISHED and stamps publishedAt/expiresAt from the resolved plan', (done) => {
       const submitted = { ...baseAd, status: AdStatus.SUBMITTED };
       repository.findOneUnpublished.mockReturnValue(of(submitted));
       repository.updateOne.mockReturnValue(
@@ -213,9 +229,12 @@ describe('AdsService', () => {
 
       service.publish('42').subscribe((result) => {
         expect(repository.findOneUnpublished).toHaveBeenCalledWith('42');
+        expect(planResolver.resolveFor).toHaveBeenCalledWith(submitted);
+        expect(plan.expiryFrom).toHaveBeenCalledWith(now);
         expect(repository.updateOne).toHaveBeenCalledWith('42', {
           status: AdStatus.PUBLISHED,
-          publishedAt: expect.any(Date),
+          publishedAt: now,
+          expiresAt,
         });
         expect(result.status).toBe(AdStatus.PUBLISHED);
         done();
@@ -231,7 +250,8 @@ describe('AdsService', () => {
         expect(repository.updateOne).toHaveBeenCalledWith('42', {
           status: AdStatus.PUBLISHED,
           moderatedBy: 'mod@bella.test',
-          publishedAt: expect.any(Date),
+          publishedAt: now,
+          expiresAt,
         });
         done();
       });
