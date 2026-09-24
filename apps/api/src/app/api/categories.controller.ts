@@ -12,9 +12,9 @@ export class CategoriesController {
   constructor(private categoryService: CategoriesService) {}
 
   @Get()
-  getAll(@Query() selectable: boolean): Observable<CategoryDTO[]> {
+  getAll(@Query('selectable') selectable?: string): Observable<CategoryDTO[]> {
     return this.categoryService
-      .findAll({ selectable: Boolean(selectable) })
+      .findAll({ selectable: selectable === 'true' })
       .pipe(map(CategoryMapper.modelToDTOList));
   }
 
