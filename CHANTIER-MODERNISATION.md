@@ -1594,40 +1594,89 @@ dans cette section.
    section (résidu de rédaction pointant vers les scénarios e2e Phase 1bis,
    remplacé par un renvoi explicite à la checklist manuelle).
 
-**Reste à faire pour cette sous-vague (webapp)**, ordonnancé par
-sans-spec/avec-spec **puis** par accessibilité (public d'abord, Auth0-gated
-en dernier) :
+#### Exécution — suite (2026-09-24, session tech-lead post-revue)
 
-1. Les 12 autres composants "sans spec" restants, sous-triés :
-   - **Publics** (vérifiables sans compte Auth0) : `search-results`,
-     `profile.component` (`/profil/:id/:username`), `ad-contacts`,
-     `ads-previewer`, `search-filter-button`, `search-filter`.
-   - **Derrière Auth0** (routes `account`/`post-an-ad` gardées par
-     `AuthGuard`/`CompleteProfileGuard`, ou flux de connexion lui-même) :
-     `logged-in-callback` (pas de guard de route, mais seulement
-     exerçable via le flux de redirection Auth0 réel — même blocage que
-     le parcours 4 de la checklist), `create-profile-component`,
-     `post-an-ad.component`, puis `ng-select-form-field`,
-     `picture-uploader`, `stepped-form-field` en tout dernier
-     (complexité de câblage propre en plus : module co-localisé dans le
-     même fichier que le composant pour ces deux derniers).
-2. Les 28 composants "avec spec", même sous-tri public/Auth0-gated, par
-   lots de 5-10 pour la soumission `qa-reviewer` (voir amendement 1
-   ci-dessus) : (a) conversion du composant + propagation `NgModule`,
-   (b) édition du `.spec.ts` (`declarations` → `imports`) dans un commit
-   séparé et isolé par composant, (c) une fois un lot de 5-10 composants
-   prêt, soumission groupée à `qa-reviewer` — aucun commit de (b) n'est
-   considéré acquis avant le feu vert du lot complet auquel il appartient.
+**Les 12 composants "sans spec" restants sont tous convertis**, dans
+l'ordre public puis Auth0-gated décidé ci-dessus :
+
+- **Publics** (6) : `SearchResultsComponent`, `ProfileComponent`,
+  `AdContactsComponent`, `AdsPreviewerComponent`, `SearchFilterComponent`
+  + `SearchFilterButtonComponent` (converti en un seul commit, couplés
+  par ouverture de modale dynamique).
+- **Auth0-gated** (6) : `LoggedInCallbackComponent`,
+  `CreateProfileComponent`, `PostAnAdComponent`, puis les trois champs
+  Formly `NgSelectFormFieldComponent`/`SteppedFormFieldComponent`/
+  `PictureUploaderFormFieldComponent` (un seul commit — trois field
+  types ngx-formly 6.3.12 wirés uniquement par
+  `FormlyModule.forChild({ types: [...] })`, jamais par sélecteur direct
+  dans un template, vérifié par grep ; ngx-formly instancie les
+  composants standalone dynamiquement sans avoir besoin qu'ils soient
+  déclarés dans un `NgModule`).
+
+Chaque commit vérifié `nx lint/build/test webapp` vert, baselines
+inchangées (39 problèmes lint/5 erreurs, 38/38 suites, 87/87 tests). Les
+trois derniers (formulaires) restent **gelés** au sens de l'amendement 3
+ci-dessus : non considérés acquis tant qu'un humain avec un compte Auth0
+réel n'a pas rejoué `post-an-ad` et `account/profile/form`.
+
+**Premier lot "avec spec" — en préparation, 7 composants convertis sur
+28, PAS encore soumis à `qa-reviewer`** (conformément au mandat : ne pas
+soumettre soi-même un lot incomplet) :
+
+1. `LoadingComponent` — public (rendu sur toutes les routes, aucun
+   guard). Composant laissé volontairement non-standalone par le pilote,
+   converti en premier ici.
+2. `HeaderComponent` — public. **Choisi comme candidat de vérification
+   du garde-fou `NG8001`** (amendement 2) : import retiré
+   délibérément, `nx build webapp` a échoué avec `NG8001` pointant la
+   ligne exacte du template, import remis, build revérifié vert.
+   **Hypothèse confirmée et documentée ci-dessus** — `nx build webapp`
+   est un garde-fou anti-câblage réel pour cette classe de bug.
+3. `FooterComponent` + `FooterToolbarActionComponent` — public, un seul
+   commit (couplage template direct).
+4. `AdCardComponent` — public.
+5. `AdPublisherCardComponent` + `CarouselComponent` — public, un seul
+   commit (tous deux consommés uniquement par `AdDetailModule`).
+
+Chaque conversion suit le même schéma à deux commits : un commit
+production (composant + propagation `NgModule`, jamais bloquant), puis
+un commit **séparé et isolé** par fichier de spec édité
+(`declarations` → `imports`), explicitement marqué "NOT considéré
+acquis" dans son message — conforme à l'amendement 1 (cadence groupée)
+et à la règle §5. `nx lint/build/test webapp` vert après chacun,
+baselines inchangées.
+
+**Reste à faire pour cette sous-vague (webapp)** :
+
+1. 21 composants "avec spec" restants à convertir, même sous-tri
+   public/Auth0-gated (candidats publics probables : `app.component`,
+   `main.component`, `home.component`, `ads-by-category.component`,
+   `ad-detail.component`, `welcome.component`, `settings.component`
+   — `/settings` ne porte que `WelcomeGuard`, pas `AuthGuard`, vérifié
+   dans `app-routing.module.ts`, à confirmer composant par composant au
+   moment de la conversion plutôt que supposé ici ; `login-signup*`,
+   `logout-button`, `drawer`, `sidebar`, `titled-page` à vérifier
+   individuellement — probablement publics vu leur usage dans le
+   header/layout partagé — puis les composants clairement Auth0-gated :
+   `account.component`, `profile-form.component`, `bookmarks.component`,
+   `my-publications.component`, `ad-form.component`, `field-error`,
+   `form.component`, `upload.component`).
+2. **Compléter le premier lot à 5-10 composants** (7 aujourd'hui, dans la
+   fourchette basse) ou l'étendre avant soumission — décision de la
+   prochaine session tech-lead — puis le soumettre à `qa-reviewer` en une
+   fois (amendement 1). Ne pas déclarer un seul de ces commits de spec
+   acquis avant ce feu vert.
 3. Puis la sous-vague `admin` (8 composants, 4 sans spec/4 avec spec),
    seulement après webapp entièrement close, comme recommandé par la
    revue senior (pas les deux apps en parallèle).
 
-La méthode ci-dessus (chiffrage + lot pilote + amendements 1-4) a déjà été
-soumise à et validée par `senior-dev` — voir
+La méthode (chiffrage + lot pilote + amendements 1-4) a déjà été soumise
+à et validée par `senior-dev` — voir
 `CHANTIER-MODERNISATION-REVIEW-PHASE5-PILOTE.md`. Le prochain point de
-passage `senior-dev` est la fin de la sous-vague webapp complète (ou du
-premier lot "avec spec" prêt pour `qa-reviewer`, selon ce qui arrive en
-premier).
+passage `senior-dev` est la fin de la sous-vague webapp complète (ou la
+soumission du premier lot "avec spec" à `qa-reviewer`, selon ce qui
+arrive en premier) — pas cette session-ci, qui n'a pas encore de lot
+complet prêt.
 
 ### Phase 6 (optionnelle, à valider) — Trancher `APPROVED` dans `AdStatus`
 
