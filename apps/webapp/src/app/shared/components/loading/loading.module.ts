@@ -2,12 +2,12 @@ import { ModuleWithProviders, NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LoadingComponent } from './loading.component';
 import { LoadingService } from './loading.service';
-import { SpinnerModule } from '../spinner/spinner.module';
+import { SpinnerComponent } from '../spinner/spinner.component';
 
 @NgModule({
   declarations: [LoadingComponent],
   exports: [LoadingComponent],
-  imports: [CommonModule, SpinnerModule]
+  imports: [CommonModule, SpinnerComponent]
 })
 export class LoadingModule {
   static forRoot(): ModuleWithProviders<LoadingModule> {
