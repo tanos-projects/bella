@@ -7,9 +7,12 @@ import { AdEntity, AdStatus } from '@bella/api/domain';
 import { AdsRepository } from '@bella/api/domain';
 import { FilterCriteria, FilterOptions } from '@bella/api/domain';
 import { Ad, AdDocument } from '../schemas/ad.schema';
+import { AdsMongoFilterBuilder } from './ads-mongo-filter-builder';
 
 @Injectable()
 export class AdsRepositoryNest implements AdsRepository {
+  private readonly filterBuilder = new AdsMongoFilterBuilder();
+
   constructor(@InjectModel(Ad.name) private adModel: Model<AdDocument>) {}
 
   createNew(createAd: AdEntity): Observable<AdEntity> {
@@ -36,13 +39,7 @@ export class AdsRepositoryNest implements AdsRepository {
     filter?: FilterCriteria,
     options?: FilterOptions,
   ): Observable<AdEntity[]> {
-    let filterToUse: any = { ...filter };
-
-    // TODO : extract into builder class
-    filterToUse = this.manageKeyword(filterToUse);
-    filterToUse = this.managePrice(filterToUse);
-
-    // console.log(options);
+    const filterToUse = this.filterBuilder.build(filter);
 
     return from(
       this.adModel
@@ -59,52 +56,9 @@ export class AdsRepositoryNest implements AdsRepository {
   }
 
   count(filter?: FilterCriteria): Observable<number> {
-    let filterToUse: any = { ...filter };
-
-    filterToUse = this.manageKeyword(filterToUse);
-    filterToUse = this.managePrice(filterToUse);
+    const filterToUse = this.filterBuilder.build(filter);
 
     return from(this.adModel.countDocuments({ ...filterToUse }).exec());
-  }
-
-  private manageKeyword(filter: any): any {
-    const { keyword } = filter;
-    let shallowCopy = {
-      ...filter,
-      // score: null,
-    };
-
-    if (keyword) {
-      delete shallowCopy['keyword'];
-      shallowCopy = {
-        ...shallowCopy,
-        $text: {
-          $search: keyword,
-        },
-        // score: {
-        //   $meta: 'textScore',
-        // },
-      };
-    }
-
-    return shallowCopy;
-  }
-  private managePrice(filter: any): any {
-    const shallowCopy = { ...filter };
-    const { minPrice, maxPrice } = shallowCopy;
-
-    if (minPrice) {
-      if (!shallowCopy['price']) shallowCopy['price'] = {};
-      shallowCopy['price']['$gte'] = minPrice;
-      delete shallowCopy['minPrice'];
-    }
-    if (maxPrice) {
-      if (!shallowCopy['price']) shallowCopy['price'] = {};
-      shallowCopy['price']['$lte'] = maxPrice;
-      delete shallowCopy['maxPrice'];
-    }
-
-    return shallowCopy;
   }
 
   findOne(id: string): Observable<AdEntity> {
