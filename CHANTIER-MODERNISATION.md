@@ -1646,6 +1646,65 @@ acquis" dans son message — conforme à l'amendement 1 (cadence groupée)
 et à la règle §5. `nx lint/build/test webapp` vert après chacun,
 baselines inchangées.
 
+**Décompte exact des commits de code de cette étape (recompté par `git
+log`, pas recopié)** : **21 commits**, entre `bd92ebf` (exclu) et
+`34742cf` (exclu) — 9 commits "sans spec" (12 composants) + 5 commits
+refactor "avec spec" (7 composants) + 7 commits d'édition de spec isolée
+(un par composant "avec spec"). Le rapport de session initial de cette
+étape annonçait par erreur "19 commits de code" — un écart purement
+arithmétique sans conséquence sur le contenu, repéré et corrigé par la
+revue senior indépendante (`CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2.md`)
+puis revérifié indépendamment ici par une session tech-lead ultérieure —
+même résultat, 21.
+
+#### Revue senior du lot (12 sans-spec + 7 avec-spec) et suites données (2026-09-25)
+
+Revue indépendante : `CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2.md`.
+Verdict : **validé avec réserves mineures** — aucun blocage sur le code
+livré (12 conversions "sans spec" + 5 commits de code "avec spec"
+échantillonnés, propagation `NgModule` vérifiée y compris au-delà du
+premier consommateur, garde-fou `nx build`/`NG8001` reproduit
+indépendamment deux fois sur deux composants différents, tri par
+accessibilité vérifié route par route). Trois amendements demandés,
+traités avant de reprendre l'exécution :
+
+1. **Décompte "19 commits" corrigé → 21**, voir ci-dessus.
+2. **Flakiness `api:test` découverte hors périmètre Phase 5, à traiter
+   avant de considérer `nx run-many --target={build,lint,test} --all`
+   vert comme un filet fiable** — voir commit `98d552d`
+   (`fix(api): stop api:test flakiness from class-validator
+   decorators/resolution`) et §5 (stratégie de tests) pour le détail
+   complet du diagnostic revérifié et du correctif. Résumé : la revue
+   senior avait diagnostiqué une cause unique (`Reflect.getMetadata is
+   not a function`, `reflect-metadata` jamais importé explicitement dans
+   `apps/api`) ; en revérifiant ce diagnostic avant de corriger (comme
+   l'exige le mandat), cette session a confirmé cette première cause
+   **et en a trouvé une seconde, indépendante**, masquée par le même
+   message générique NestJS : `class-validator`/`class-transformer` ne
+   sont installés que dans le `node_modules` propre à ce worktree, alors
+   que `node_modules/@nestjs` est un unique symlink vers le
+   `node_modules` partagé de `/home/tanos/bella` — la résolution de
+   module par défaut de Node, partant du chemin réel (post-symlink) de
+   `@nestjs/common`, ne retombe jamais dans l'arbre de ce worktree. Les
+   deux causes ont été corrigées (import explicite +
+   `setupFiles`/`moduleNameMapper` dans `apps/api/jest.config.ts`) et la
+   disparition de la flakiness vérifiée par 6 exécutions directes de la
+   suite complète et 5 exécutions de `nx test api --skip-nx-cache`,
+   toutes vertes sans avertissement "Nx detected a flaky task" (present à
+   chacune des exécutions précédant le correctif).
+3. **Éviter de faire tourner `senior-dev` et `qa-reviewer` en parallèle
+   sur le même worktree** — noté, aucune action de code requise ; à
+   respecter par l'utilisateur pour l'orchestration des prochaines
+   revues.
+
+Le premier lot "avec spec" (7 composants : `LoadingComponent`,
+`HeaderComponent`, `FooterComponent`, `FooterToolbarActionComponent`,
+`AdCardComponent`, `AdPublisherCardComponent`, `CarouselComponent`) a
+depuis reçu le feu vert `qa-reviewer`
+(`CHANTIER-MODERNISATION-QA-PHASE5-LOT1.md`, **APPROUVÉ sans réserve**) :
+les 7 commits d'édition de spec sont désormais considérés **acquis** au
+sens de la règle de gouvernance §5.
+
 **Reste à faire pour cette sous-vague (webapp)** :
 
 1. 21 composants "avec spec" restants à convertir, même sous-tri
@@ -1731,6 +1790,89 @@ complet prêt.
   `api-domain`, `api-adapters`, `dtos`, `webapp`, `admin`) — pas seulement
   l'app modifiée, pour attraper une régression cross-lib (`libs/dtos` est
   partagée par les 3 apps).
+- **`nx run-many --target=test --all` vert n'est un filet fiable que si
+  chaque projet l'est individuellement de façon stable, pas seulement en
+  moyenne** — enseignement du correctif `api:test` ci-dessous : Nx a sa
+  propre détection de tâche "flaky" (retry silencieux, avertissement
+  seulement affiché après coup) qui peut masquer un vrai échec
+  intermittent derrière un run global vert. En cas de doute sur la
+  stabilité d'un projet, le revérifier par plusieurs exécutions directes
+  de `nx test <projet> --skip-nx-cache` (au moins 5, pas une seule) avant
+  de le déclarer acquis comme filet pour une phase suivante.
+
+#### Correctif : flakiness `api:test` (`class-validator`/`reflect-metadata`), 2026-09-25
+
+Découverte hors périmètre par la revue senior de la Phase 5 (lot 2,
+`CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2.md`) : deux suites
+(`ads.controller.spec.ts`, `ad-search-query.dto.spec.ts`) échouaient de
+façon non déterministe en suite complète, avec le message trompeur *"The
+class-validator package is missing"* — en réalité avalé par
+`@nestjs/common`'s `loadPackage`, qui remplace **toute** exception
+survenue pendant `require('class-validator')` par ce même texte
+générique, quelle que soit la cause réelle.
+
+Avant de corriger, cette session a revérifié le diagnostic plutôt que de
+lui faire confiance (comme l'exige le mandat) : la flakiness a d'abord
+été reproduite (8 échecs sur 8 exécutions directes de `jest`, en
+isolant les deux suites ou en suite complète, y compris `--runInBand` —
+`nx test api` seul la masquait presque totalement via son propre retry
+automatique de tâche "flaky", ne laissant qu'un avertissement après
+coup). **Deux causes indépendantes ont été trouvées**, toutes deux
+réelles, toutes deux corrigées :
+
+1. **`reflect-metadata` jamais importé explicitement dans `apps/api`**
+   (diagnostic initial de la revue senior, confirmé) : les décorateurs
+   `class-validator`/`class-transformer` d'`AdSearchQueryDTO`
+   (`@Type(() => Number)` notamment) appellent
+   `Reflect.getMetadata`/`defineMetadata`, qui n'existent qu'une fois le
+   polyfill `reflect-metadata` chargé. En production ça « marche » par
+   accident : `@nestjs/core/index.js` fait lui-même
+   `require('reflect-metadata')` avant que `AppModule` (et donc
+   `AdsController`/`AdSearchQueryDTO`) ne soit importé dans
+   `main.ts`. Rien ne garantit cet ordre dans un test unitaire isolé, où
+   un fichier de spec peut charger `AdSearchQueryDTO` avant que quoi que
+   ce soit n'ait transitivement chargé `@nestjs/core` dans le même
+   worker Jest. Reproduit précisément : `TypeError: Reflect.getMetadata
+   is not a function` au niveau du décorateur `@Type`, en requérant
+   `ad-search-query.dto.ts` isolément avant tout correctif.
+2. **Deuxième cause, distincte, trouvée en creusant pourquoi le
+   correctif du point 1 seul ne suffisait pas** à faire repasser au vert
+   `ads.controller.spec.ts`/`ad-search-query.dto.spec.ts` en isolation :
+   `class-validator`/`class-transformer` (dépendances réelles du
+   `package.json`, ajoutées Phase 2 sous-point 4) ne sont installées que
+   dans le `node_modules` propre à ce worktree — `node_modules/@nestjs`
+   y est un symlink unique vers le `node_modules` partagé de
+   `/home/tanos/bella`. La résolution de module par défaut de Node, en
+   partant du chemin **réel** (post-symlink, donc hors de ce worktree) de
+   `@nestjs/common` quand `ValidationPipe` fait
+   `require('class-validator')`, ne retombe jamais dans l'arbre de ce
+   worktree et échoue avec `Cannot find module 'class-validator'` — de
+   nouveau avalée par le même message générique. Diagnostiqué en
+   interceptant temporairement l'export `loadPackage` d'`@nestjs/common`
+   pour laisser remonter l'erreur réelle au lieu de la laisser avalée
+   (fichier de test jetable, jamais commité, supprimé aussitôt le
+   diagnostic terminé).
+
+**Correctifs, commit isolé `98d552d`** (séparé de la Phase 5 — c'est un
+fix `apps/api`, aucun comportement front touché) :
+- `apps/api/src/main.ts` : `import 'reflect-metadata';` explicite en
+  toute première ligne (robustesse en production, plus un accident
+  d'ordre d'import).
+- `apps/api/jest.config.ts` : `setupFiles: ['reflect-metadata']` (fixe
+  réellement la cause 1 en test — `main.ts` n'est jamais chargé par les
+  tests unitaires) et `moduleNameMapper` pointant explicitement
+  `class-validator`/`class-transformer` vers leur install réelle dans ce
+  worktree (fixe la cause 2, indépendamment de l'emplacement du fichier
+  qui les requiert).
+
+**Vérification** (au-delà d'une seule exécution, comme exigé) : 6
+exécutions directes de la suite complète (`jest`, hors `nx`) et 5
+exécutions de `nx test api --skip-nx-cache` après le correctif, toutes
+vertes (21/21 suites, 130/130 tests), **aucun** avertissement "Nx
+detected a flaky task" — présent à chacune des exécutions précédant le
+correctif alors que le run global restait "vert" grâce au retry
+silencieux de Nx. `nx build api` revérifié vert. Aucun autre projet
+touché par ce commit.
 
 ### Règle de gouvernance — modification d'un test existant (contrainte de process)
 
