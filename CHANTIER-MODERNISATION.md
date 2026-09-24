@@ -1095,6 +1095,64 @@ tous traités :
 
 ### Phase 3 — Combler la couverture front (webapp)
 
+- **Statut (2026-09-24) : terminée et committée** (2 commits sur
+  `chantier/modernisation`, `49eb9c0` et `e53b039`). Détail :
+  - **Premier passage interrompu.** Un agent précédent avait déjà écrit
+    les 8 `.spec.ts` mais a été coupé en plein milieu par une limite de
+    dépense API, avant tout commit — état laissé : 8 fichiers untracked,
+    `nx test webapp` en échec (37 suites vertes / 1 rouge, `TS2345` dans
+    `ads.service.spec.ts:186`).
+  - **Vérification avant reprise, pas de confiance aveugle.** Les 8
+    fichiers ont été relus un par un contre le code réel des services
+    correspondants (pas seulement contre eux-mêmes) avant d'être
+    conservés :
+    - `categories.service.spec.ts`, `countries.service.spec.ts` :
+      couverture HTTP réelle (`HttpClientTestingModule` +
+      `HttpTestingController`) par endpoint, assertions sur URL, méthode,
+      params ; `categories` couvre en plus le comportement de cache de
+      `getAll()`.
+    - `contact.service.spec.ts`, `my-device.service.spec.ts`,
+      `qualities.service.spec.ts`, `search.service.spec.ts`,
+      `user-settings.service.spec.ts` : ces 5 services n'émettent
+      **aucun** appel HTTP direct (dérivation pure, délégué
+      device-detector, liste statique, orchestrateur qui délègue le HTTP
+      à `AdsService`, store `BehaviorSubject`/`localStorage`). Chaque
+      spec documente ce constat en commentaire et substitue au "cas
+      d'erreur HTTP" le vrai mode d'échec du service (entrée manquante,
+      type d'appareil alterné, erreur remontée par le service en amont,
+      entrée `localStorage` vide/effacée) — ce n'est pas du remplissage
+      cosmétique, chaque assertion est vérifiable contre le code de
+      production correspondant.
+    - `ads.service.spec.ts` : couverture complète (`getAll`,
+      `getPublishedOne`, `getUnpublishedOne`, `getMostRecentAdsByCategory`,
+      `create`, `search`, les 3 listes scoped par appelant), mais
+      contenait l'erreur TS2345 ci-dessus.
+  - **Correction de l'erreur TS2345.** Vérifié la définition réelle de
+    `AdDTO`/`CreateAdDTO` avant de corriger, dans `libs/dtos/src/lib/ads/`
+    **et** dans le modèle local dupliqué du webapp
+    (`apps/webapp/src/app/shared/models/ads.model.ts` — porte lui-même un
+    `// TODO find a way to factorize DTO`, dette déjà connue, non traitée
+    ici) : dans les deux, `AdDTO.country` est un `string` (code pays) et
+    `CreateAdDTO.country` un objet pays complet (`CountryDTO` /
+    `CountryDetailedDTO`) — une différence de type volontaire, pas une
+    coquille. Le test construisait un fixture `AdDTO` via
+    `buildAd({ id: '3', ...payload })` où `payload: CreateAdDTO`, ce qui
+    ne type-check pas même si `payload` ne renseigne jamais `country` à
+    l'exécution. Corrigé en castant le spread en
+    `Omit<CreateAdDTO, 'country'>`, sans affaiblir le typage de `AdDTO`
+    ni de l'utilitaire `buildAd`.
+  - **Résultat mesuré** : avant correction, `nx test webapp` : 37 suites
+    vertes / 1 échec, 71 tests verts. Après correction : **38 suites
+    vertes, 87 tests verts** (0 échec). `nx run-many --target=test --all
+    --skip-nx-cache` (les 6 projets : `dtos` sans tests, `api-domain` 41
+    tests, `api-adapters` 28, `admin` 26 dont 1 skip, `webapp` 87, `api`
+    130) est intégralement vert.
+  - Aucun fichier de production modifié — phase strictement additive,
+    conforme au critère d'acceptation ci-dessous.
+  - Soumis à `senior-dev` en séquence après ces commits (jamais en
+    parallèle) pour challenger la réalité de la couverture — voir §8 pour
+    le verdict une fois rendu.
+
 - **Objectif** : un test par service dans `apps/webapp/src/app/shared/services/*.ts` (8 fichiers, §1.3 point 10), avant tout refactor futur de cette couche.
 - **Fichiers touchés** : uniquement des `*.spec.ts` nouveaux.
 - **Principe appliqué** : principe 1 (§3), transposé au front.
