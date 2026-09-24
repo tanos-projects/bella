@@ -566,6 +566,107 @@ avant qu'une phase front puisse s'appuyer dessus, par exemple).
   6. Extraire la pagination dupliquée d'`AdminPublicationController` dans
      un helper partagé.
   7. Retirer le commentaire TODO obsolète de `cities.service.ts`.
+  8. **Ajouté 2026-09-24, sur recommandation de la revue senior Phase 1 —
+     ajouter `@UseGuards(JwtAuthGuard)` sur `UsersController.findOne`
+     (`GET /users/:id`)** : faille d'auth confirmée en Phase 1
+     (`CHANTIER-MODERNISATION-REVIEW-PHASE1.md`, point 7) — `findOne` est
+     le seul handler de `users.controller.ts` sans `@UseGuards(JwtAuthGuard)`
+     (comparé à `check`/`getProfile`/`createProfile`/`updateProfile`/
+     `deleteProfile`). Traité au rythme normal de cette phase (pas en
+     hotfix d'urgence, décision déjà actée), mais ouvre la séquence des
+     sous-points exécutables sur recommandation du dev senior. **Risque
+     réévalué à l'exécution (2026-09-24), pas "bas" comme initialement
+     qualifié** : `apps/webapp/src/app/pages/user/profile/profile.service.ts`
+     appelle `GET /users/${id}` sans jamais attacher de JWT (cet endpoint
+     n'est pas dans `AuthModule.forRoot(...).httpInterceptor.allowedList`
+     d'`apps/webapp/src/app/app.module.ts`), et la route qui l'utilise —
+     `profil/:id/:username` dans `apps/webapp/src/app/app-routing.module.ts`
+     — n'est gardée que par `WelcomeGuard` (onboarding), pas par `AuthGuard`
+     (Auth0). C'est donc aujourd'hui une page de profil **publique**
+     (visible sans connexion, avec un DTO déjà restreint côté back par
+     `UserMapper.modelToProfileDTO` à `id`/`username`/`country`/`picture`,
+     sans email). Ajouter le guard API sans rien changer côté front rendrait
+     cette page inutilisable pour tout visiteur non connecté (401
+     systématique) — **ce n'est plus un simple ajout de garde manquante,
+     c'est une régression fonctionnelle sur une page publique existante**,
+     donc une question produit (voir §7, nouvelle question 11), pas une
+     décision technique isolée. **Exécution suspendue côté code tant que
+     l'utilisateur n'a pas arbitré** cette conséquence découverte pendant
+     l'exécution — conformément à la règle du Tech Lead de ne jamais
+     trancher seul une question produit.
+     - **Fichiers touchés (si/quand débloqué)** : `apps/api/src/app/api/users.controller.ts`
+       (ajout du guard), `apps/api/src/app/api/users.controller.spec.ts`
+       (test de caractérisation `efc3e09` à inverser : le test qui asserte
+       `Reflect.getMetadata(GUARDS_METADATA, UsersController.prototype.findOne)`
+       →`toBeUndefined()` doit désormais asserter une valeur définie,
+       modification du test précis validé QA en Phase 1 — pas un nouveau
+       fichier).
+     - **Tests** : mise à jour du test de caractérisation existant dans le
+       même commit (comportement attendu de ce test précis, comme demandé) ;
+       reste vert : le test de contrôle croisé sur `getProfile` (inchangé) et
+       le test de mapping `UserMapper.modelToProfileDTO` (inchangé).
+     - **Risque** : bas côté API isolée (guard déjà utilisé partout
+       ailleurs sur ce controller) ; **moyen à élevé côté produit** vu la
+       casse de la page de profil public webapp identifiée ci-dessus, tant
+       qu'aucune réponse n'a été donnée sur le sort de cette page.
+     - **Critère d'acceptation** : `Reflect.getMetadata(GUARDS_METADATA,
+       UsersController.prototype.findOne)` retourne une valeur définie
+       (non `undefined`) ; `nx run-many --target={build,lint,test} --all`
+       vert ; **et** une réponse écrite à la question ouverte §7.11 existe
+       avant que ce commit soit considéré définitif (le guard peut être
+       posé techniquement avant cette réponse si l'utilisateur le demande
+       explicitement, mais la régression front doit alors être traitée dans
+       le même lot, pas laissée de côté silencieusement).
+     - **Rollback** : commit isolé — revert de `@UseGuards(JwtAuthGuard)`
+       sur `findOne` et du test associé, sans effet sur le reste de la
+       Phase 2.
+     - **Modification de test existant** : oui — comme pour tout changement
+       de test déjà présent dans le repo, ce commit doit être soumis à
+       `qa-reviewer` avant d'être considéré acquis (même règle de
+       gouvernance que `efc3e09`, §5).
+  9. **Ajouté 2026-09-24, sur recommandation de la revue senior Phase 1 —
+     corriger `CategoriesController.getAll`** : `@Query() selectable:
+     boolean` lie tout l'objet query (toujours truthy, même `{}`) au
+     paramètre `selectable` au lieu d'en extraire la valeur — bug
+     fonctionnel confirmé en Phase 1 et déjà caractérisé par
+     `categories.controller.spec.ts` (« always filters selectable:true,
+     even with no query params at all » / « still filters selectable:true
+     even when the caller explicitly sends ?selectable=false »). Correction :
+     `@Query('selectable') selectable?: string`, conversion explicite en
+     booléen (`selectable === 'true'`), de sorte que `?selectable=false`
+     exclue réellement les catégories non-sélectionnables. Traité comme un
+     changement de comportement observable, pas un simple nettoyage SOLID.
+     - **Fichiers touchés** : `apps/api/src/app/api/categories.controller.ts`,
+       `apps/api/src/app/api/categories.controller.spec.ts` (les deux tests
+       de caractérisation Phase 1 doivent être mis à jour pour refléter le
+       nouveau comportement correct : `?selectable=false`→`{selectable:
+       false}`, pas de query param/`?selectable=true`→`{selectable: true}` ;
+       le test « toujours true » n'a plus lieu d'être et devient un test du
+       comportement corrigé).
+     - **Tests** : mise à jour des tests de caractérisation existants (même
+       fichier, gouvernance §5) **et** ajout d'un nouveau test prouvant que
+       `?selectable=false` et `?selectable=true` donnent des résultats
+       différents (`findAll` appelé avec des filtres distincts selon la
+       valeur du query param), en plus du test de mapping (`getAll` via
+       `CategoryMapper.modelToDTOList`) et de `getTop`, inchangés.
+     - **Risque** : bas — `CategoriesController.getAll` est un GET public
+       en lecture seule, aucun état persistant modifié ; grep à faire avant
+       le commit pour confirmer qu'aucun front (`webapp`/`admin`) ne dépend
+       du comportement bugué actuel (ex. un appel qui enverrait
+       `?selectable=false` en s'attendant, par erreur alignée sur le bug, à
+       recevoir quand même les catégories sélectionnables).
+     - **Critère d'acceptation** : `GET /categories?selectable=false` et
+       `GET /categories?selectable=true` produisent des appels
+       `categoryService.findAll` avec des filtres différents (`{selectable:
+       false}` vs `{selectable: true}`) ; `nx run-many
+       --target={build,lint,test} --all` vert.
+     - **Rollback** : commit isolé — revert du controller et de son spec,
+       sans effet sur le reste de la Phase 2.
+     - **Modification de test existant** : oui (les deux tests de
+       caractérisation Phase 1 changent d'assertion pour refléter le
+       comportement corrigé) — soumis à `qa-reviewer` avant d'être
+       considéré acquis, même règle de gouvernance que pour le sous-point 8
+       et `efc3e09`.
 
   **Sous-points gelés — dépendent d'une question ouverte non tranchée
   (§7), ne pas les traiter comme acquis dans l'ordre séquentiel :**
@@ -578,8 +679,10 @@ avant qu'une phase front puisse s'appuyer dessus, par exemple).
   - **[GELÉ — dépend de §7.3]** Clarifier/retirer `CitiesModule` si aucun
     contrôleur n'est prévu (§1.3 point 8) — ne démarre qu'après réponse
     explicite de l'utilisateur sur la question ouverte.
-- **Fichiers touchés** : `apps/api/src/app/infrastructure/persistence/repositories/ads-repository-nest.ts`, `apps/api/src/app/api/ads.controller.ts`, `apps/api/src/app/api/admin/admin-publication.controller.ts`, `libs/api/domain/src/lib/ads/ads.repository.ts`, `libs/api/adapters/src/lib/ad.mapper.ts`, `libs/api/domain/src/lib/cities/cities.service.ts`.
-- **Principes appliqués** : OCP, ISP, SRP (détaillés ci-dessus).
+- **Fichiers touchés** : `apps/api/src/app/infrastructure/persistence/repositories/ads-repository-nest.ts`, `apps/api/src/app/api/ads.controller.ts`, `apps/api/src/app/api/admin/admin-publication.controller.ts`, `libs/api/domain/src/lib/ads/ads.repository.ts`, `libs/api/adapters/src/lib/ad.mapper.ts`, `libs/api/domain/src/lib/cities/cities.service.ts`, `apps/api/src/app/api/users.controller.ts` (+ `.spec.ts`, sous-point 8), `apps/api/src/app/api/categories.controller.ts` (+ `.spec.ts`, sous-point 9).
+- **Principes appliqués** : OCP, ISP, SRP (détaillés ci-dessus) ; 8 et 9
+  sont des corrections de bug fonctionnel/faille de sécurité découvertes en
+  Phase 1, pas des applications de principe SOLID au sens strict.
 - **Tests** : la suite de la phase 1 (+ celle déjà existante) doit rester
   verte à l'identique pour tout sous-point qui ne change pas le
   comportement (1, 3a, 6, 7) ; le sous-point 3b ajoute un test de
@@ -589,21 +692,31 @@ avant qu'une phase front puisse s'appuyer dessus, par exemple).
   de nouveaux tests pour leur propre changement de comportement observable
   (rejet des query params invalides pour 4, rejet explicite du cas
   introuvable côté appelant pour 5), en plus de garder les cas valides
-  existants verts.
+  existants verts ; le sous-point 8 **modifie** le test de caractérisation
+  existant `efc3e09` (inversion de l'assertion `GUARDS_METADATA`) ; le
+  sous-point 9 **modifie** les deux tests de caractérisation Phase 1 de
+  `categories.controller.spec.ts` et ajoute un nouveau test du
+  comportement corrigé.
 - **Charge estimée** : M-L pour l'ensemble des sous-points exécutables
-  (7 commits indépendants) ; les 2 sous-points gelés n'ont pas de charge
-  engagée tant que §7.3/§7.4 ne sont pas répondues.
-- **Risque** : faible pour 1, 3a, 6, 7 (renommage/extraction sans
-  changement de comportement) ; moyen pour 3b (policy à reproduire
-  fidèlement), 4 et 5 (chacun un nouveau comportement observable côté
-  API — 5 reclassifié après revue senior, voir §1.3bis).
+  (désormais 9 commits indépendants avec 8 et 9) ; les 2 sous-points gelés
+  n'ont pas de charge engagée tant que §7.3/§7.4 ne sont pas répondues.
+- **Risque** : faible pour 1, 3a, 6, 7, 9 (9 : GET public en lecture seule,
+  comportement corrigé strictement plus conforme à l'intention documentée
+  de l'endpoint) ; moyen pour 3b (policy à reproduire fidèlement), 4 et 5
+  (chacun un nouveau comportement observable côté API — 5 reclassifié
+  après revue senior, voir §1.3bis) ; **8 réévalué de "bas" à moyen/élevé
+  côté produit à l'exécution** — casse potentielle de la page de profil
+  public webapp, voir détail du sous-point 8 et question ouverte §7.11.
 - **Critère d'acceptation** : `nx run-many --target={build,lint,test}
   --all` vert après chaque commit ; pour 1/3a/6/7, zéro différence dans
   les résultats de tests hérités de la phase 1 ; pour 3b, le test de
   caractérisation écrit avant déplacement reste vert après déplacement ;
   pour 4 et 5, les cas valides existants restent verts et de nouveaux
   tests couvrent explicitement le nouveau comportement de rejet (query
-  params invalides pour 4, cas introuvable/mal formé pour 5).
+  params invalides pour 4, cas introuvable/mal formé pour 5) ; pour 9,
+  `?selectable=false` et `?selectable=true` produisent des filtres
+  distincts ; pour 8, voir critère d'acceptation dédié du sous-point
+  (réponse §7.11 requise avant d'être considéré définitif).
 - **Rollback** : chaque sous-point est un commit isolé (principe 7, §3) —
   revert du commit précis concerné en cas de régression, jamais un
   rollback groupé, les sous-points étant indépendants entre eux.
@@ -904,6 +1017,29 @@ chantier :
     importante, accepter par écrit le risque documenté de lancer 4/5 sans
     filet d'intégration complet ? Voir §4 Phase 1bis pour la clause de
     report explicite déjà prévue.
+11. **Ajoutée 2026-09-24, découverte pendant l'exécution de la Phase 2,
+    sous-point 8 (`GET /users/:id`)** : ajouter `@UseGuards(JwtAuthGuard)`
+    sur `UsersController.findOne` referme la faille d'auth documentée en
+    Phase 1, mais casse aussi une fonctionnalité front existante — la page
+    de profil public webapp (`profil/:id/:username`, gardée seulement par
+    `WelcomeGuard`/onboarding, pas par `AuthGuard`) appelle cet endpoint
+    sans JWT via `ProfileService.getProfile` (`apps/webapp/src/app/pages/user/profile/profile.service.ts`),
+    endpoint absent de l'`allowedList` d'intercepteur HTTP. Trois options,
+    décision produit à trancher : **(a)** accepter la régression et rendre
+    la consultation du profil d'un autre utilisateur réservée aux visiteurs
+    connectés (nécessite alors aussi d'ajouter la route au front derrière
+    `AuthGuard` et l'endpoint à l'`allowedList`, chantier cross-app, pas
+    juste un ajout de guard API) ; **(b)** garder l'endpoint public
+    (retirer/ne pas ajouter le guard) au motif que le DTO exposé est déjà
+    minimal (`UserMapper.modelToProfileDTO` : `id`/`username`/`country`/
+    `picture`, jamais l'email) et documenter ce choix comme volontaire
+    plutôt que comme une faille ; **(c)** un entre-deux (ex. endpoint public
+    mais distinct de celui utilisé pour un usage authentifié, ou limitation
+    de champs déjà suffisante jugée acceptable sans guard). **Bloque
+    l'exécution définitive du sous-point Phase 2.8** — le Tech Lead ne
+    tranche pas seul entre "fermer une faille d'auth" et "casser une page
+    publique existante", les deux étant des affirmations produit
+    contradictoires tant que la question n'est pas répondue.
 
 ## 8. Réponse du Tech Lead aux réserves de la revue senior (2026-09-24)
 
