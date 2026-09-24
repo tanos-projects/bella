@@ -4,7 +4,7 @@ import { AdCardModule } from '../../shared/components/ad-card/ad-card.module';
 import { MyPublicationsComponent } from './my-publications.component';
 import { MyPublicationsRoutingModule } from './my-publications-routing.module';
 import { HeaderComponent } from '../../shared/components/header/header.component';
-import { FooterModule } from '../../shared/components/footer/footer.module';
+import { FooterComponent } from '../../shared/components/footer/footer.component';
 
 @NgModule({
   declarations: [MyPublicationsComponent],
@@ -13,7 +13,7 @@ import { FooterModule } from '../../shared/components/footer/footer.module';
     MyPublicationsRoutingModule,
     AdCardModule,
     HeaderComponent,
-    FooterModule
+    FooterComponent
   ],
 })
 export class MyPublicationsModule {}

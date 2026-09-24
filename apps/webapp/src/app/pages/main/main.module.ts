@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
-import { FooterModule } from '../../shared/components/footer/footer.module';
+import { FooterComponent } from '../../shared/components/footer/footer.component';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { AdsByCategoryModule } from '../ads-by-category/ads-by-category.module';
 import { AdDetailModule } from '../ad-detail/ad-detail.module';
@@ -20,7 +20,7 @@ import { SearchResultsComponent } from '../search-results/search-results.compone
     AdDetailModule,
     MainRoutingModule,
     HeaderComponent,
-    FooterModule,
+    FooterComponent,
     SettingsModule,
     SearchResultsComponent
   ]
