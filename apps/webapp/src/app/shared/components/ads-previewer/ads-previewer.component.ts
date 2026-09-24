@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import Swiper from 'swiper';
-import { AdCardModule } from '../ad-card/ad-card.module';
+import { AdCardComponent } from '../ad-card/ad-card.component';
 import { AdDTO } from '../../models/ads.model';
 import { MyDeviceService } from '../../services/my-device.service';
 
@@ -20,7 +20,7 @@ import { MyDeviceService } from '../../services/my-device.service';
   styleUrls: ['./ads-previewer.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, AdCardModule, RouterModule],
+  imports: [CommonModule, AdCardComponent, RouterModule],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class AdsPreviewerComponent {
