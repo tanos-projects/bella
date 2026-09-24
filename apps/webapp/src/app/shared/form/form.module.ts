@@ -10,11 +10,9 @@ import { TabsModule } from 'ngx-bootstrap/tabs';
 
 import { FormComponent } from './form.component';
 import { NgSelectFormFieldComponent } from './types/ng-select-form-field/ng-select-form-field.component';
-import { NgSelectFormFieldModule } from './types/ng-select-form-field/ng-select-form-field.module';
 import {
   isFileImage,
-  PictureUploaderFormFieldComponent,
-  PictureUploaderFormFieldModule
+  PictureUploaderFormFieldComponent
 } from './types/picture-uploader/picture-uploader';
 import { SteppedFormFieldComponent } from './types/stepped-form-field/stepped-form-field';
 
@@ -27,7 +25,7 @@ export function imagesValidator(control: AbstractControl): boolean {
 
 
 @NgModule({
-  declarations: [SteppedFormFieldComponent, FormComponent],
+  declarations: [FormComponent],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -56,9 +54,6 @@ export function imagesValidator(control: AbstractControl): boolean {
         },
       ],
     }),
-
-    PictureUploaderFormFieldModule,
-    NgSelectFormFieldModule,
   ],
   exports: [FormlyModule, FormComponent],
 })
