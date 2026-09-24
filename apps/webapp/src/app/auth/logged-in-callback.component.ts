@@ -10,7 +10,7 @@ import { AuthCustomService } from './auth-custom.service';
 @Component({
   selector: 'bella-logged-in-callback',
   templateUrl: 'logged-in-callback.component.html',
-  standalone: false,
+  standalone: true,
 })
 export class LoggedInCallbackComponent implements OnInit {
   private router = inject(Router);
