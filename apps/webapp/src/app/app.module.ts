@@ -24,7 +24,7 @@ import { AuthenticationModule } from './auth/authentication.module';
 import { WelcomeModule } from './pages/welcome/welcome.module';
 import { DrawerModule } from './shared/components/drawer/drawer.module';
 import { LoadingComponent } from './shared/components/loading/loading.component';
-import { SidebarModule } from './shared/components/sidebar/sidebar.module';
+import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
 import { VALIDATION_MESSAGE_FORMATTERS } from './shared/form/validation-messages';
 
 registerLocaleData(localeFr);
@@ -101,7 +101,7 @@ registerLocaleData(localeFr);
     LoadingComponent,
 
     //
-    SidebarModule,
+    SidebarComponent,
     WelcomeModule.forRoot(),
 
     // Shared third party modules
