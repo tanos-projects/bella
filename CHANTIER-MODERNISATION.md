@@ -1150,8 +1150,12 @@ tous traités :
   - Aucun fichier de production modifié — phase strictement additive,
     conforme au critère d'acceptation ci-dessous.
   - Soumis à `senior-dev` en séquence après ces commits (jamais en
-    parallèle) pour challenger la réalité de la couverture — voir §8 pour
-    le verdict une fois rendu.
+    parallèle) pour challenger la réalité de la couverture. **Verdict :
+    validé, sans réserve bloquante** — revue complète dans
+    `CHANTIER-MODERNISATION-REVIEW-PHASE3.md`. Point non bloquant relevé
+    par la revue et tracé en §7 point 12 : `UserSettingsService.reset()`
+    ne resynchronise pas l'état en mémoire, et le test Phase 3 associé ne
+    verrouille pas explicitement ce comportement.
 
 - **Objectif** : un test par service dans `apps/webapp/src/app/shared/services/*.ts` (8 fichiers, §1.3 point 10), avant tout refactor futur de cette couche.
 - **Fichiers touchés** : uniquement des `*.spec.ts` nouveaux.
@@ -1538,6 +1542,30 @@ chantier :
     tranche pas seul entre "fermer une faille d'auth" et "casser une page
     publique existante", les deux étant des affirmations produit
     contradictoires tant que la question n'est pas répondue.
+12. **Ajoutée 2026-09-24, découverte par `senior-dev` pendant la revue de la
+    Phase 3** : `UserSettingsService.reset()` (`apps/webapp/src/app/shared/services/user-settings.service.ts`)
+    ne fait que `window.localStorage.removeItem(...)` — il ne pousse jamais
+    `''` sur `this._country$`. Donc après un `reset()`, `getCountry()` et
+    `hasCountrySet()` continuent de renvoyer la valeur en mémoire précédente
+    jusqu'à un rechargement complet de page. Ce n'est pas hypothétique :
+    `settings.component.ts` appelle ce chemin (via `WelcomeService.reset()`)
+    depuis une action "changer de pays" visible puis navigue vers `/` sans
+    recharger — `WelcomeGuard` risque donc de continuer à traiter
+    l'utilisateur comme "déjà connu" dans la même session SPA au lieu de
+    relancer l'onboarding. Le test ajouté en Phase 3
+    (`user-settings.service.spec.ts`, cas `reset() removes the persisted
+    country entry directly`) n'assert aujourd'hui que sur `localStorage`, pas
+    sur `getCountry()`/`hasCountrySet()` post-reset — il ne verrouille donc
+    pas ce comportement (bug ou choix volontaire, à trancher). Le Tech Lead
+    ne tranche pas ici si c'est un bug produit à corriger ou un choix
+    délibéré (ex. le rechargement de page qui suit ailleurs dans le flux
+    masque le problème en pratique) : question produit, pas technique.
+    Renforcer le test lui-même est une **modification d'un test existant**
+    (règle §5/tech-lead.md) et nécessite donc son propre commit isolé +
+    feu vert `qa-reviewer` avant d'être acceptée — non fait dans cette
+    session, volontairement, pour ne pas mélanger ça avec la clôture
+    additive de la Phase 3. Détail complet dans
+    `CHANTIER-MODERNISATION-REVIEW-PHASE3.md`.
 
 ## 8. Réponse du Tech Lead aux réserves de la revue senior (2026-09-24)
 
