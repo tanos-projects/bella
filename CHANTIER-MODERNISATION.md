@@ -299,12 +299,63 @@ actuelle (CommonJS). `nx build api` (webpack) n'est pas affecté. Le vrai
 risque anticipé au départ (paramètre de constructeur optionnel non hérité
 entre service domaine et sa sous-classe infrastructure) a été vérifié
 **inapplicable** à ce code (tous les constructeurs de service domaine
-n'ont qu'un seul paramètre obligatoire). Deux voies non encore tranchées :
-(a) `babel-jest` avec un preset ESM→CJS scopé à `@nestjs/*`, ou (b) migrer
-le runner Jest de `apps/api` en mode ESM natif. Aucune des deux n'a été
-tentée jusqu'au bout — c'est un prérequis d'outillage, pas un refactor de
-code métier, donc un bon candidat pour une phase 0 isolée du reste (voir
-§4).
+n'ont qu'un seul paramètre obligatoire).
+
+**Mise à jour (2026-09-24) — spike Phase 0bis exécuté, reporté, voir §4
+Phase 0bis pour le détail complet.** Les deux voies (a) `babel-jest` scopé
+et (b) mode ESM natif Jest ont été testées empiriquement (pas seulement
+raisonnées sur documentation) contre de vrais packages `@nestjs/*` 12.1.0
+téléchargés et posés en overlay local. Aucune des deux ne converge dans le
+budget du spike — chacune bute sur un blocage structurel distinct,
+au-delà d'un simple problème de configuration :
+- (a) `babel-jest` transpile avec succès `@nestjs/common/index.js` et sa
+  chaîne `pipes/index.js`, mais échoue sur
+  `utils/load-package.util.js` : ce fichier utilise `import.meta.url`
+  (utilisé par `createRequire(import.meta.url)`), une construction que
+  `@babel/plugin-transform-modules-commonjs` ne sait pas traduire en
+  CommonJS sans un plugin dédié absent de la stack actuelle — et même
+  avec un tel plugin, il faudrait un shim par fichier pour que
+  `import.meta.url` résolve au bon chemin réel sous l'enveloppe de module
+  de Jest. Ce fichier est chargé de façon non paresseuse par
+  `ValidationPipe`/`ParseArrayPipe`, donc inévitable dès qu'on importe
+  `@nestjs/common`.
+- (b) Le mode ESM natif de Jest (`extensionsToTreatAsEsm`, `ts-jest`
+  `useESM: true`, `NODE_OPTIONS=--experimental-vm-modules`) charge bien
+  `@nestjs/common` comme un vrai module ES (l'erreur "Must use import"
+  disparaît), mais échoue ensuite au niveau du linker de modules :
+  `SyntaxError: The requested module '@nestjs/common' does not provide an
+  export named 'Injectable'` — un chaînage `export * from` profond
+  (`index.js` → `pipes/index.js` → ... ) que le support expérimental
+  `--experimental-vm-modules` de Jest ne relie pas de façon fiable,
+  combiné à l'avertissement `ts-jest` sur `esModuleInterop`. Confirme
+  empiriquement ce que l'annexe anticipait déjà ("non trivial avec
+  ts-jest+Nx, caveats documentés côté Jest lui-même").
+
+**Piste nouvelle, non explorée avant ce spike** : le message d'erreur de
+Jest lui-même mentionne une troisième option — "Use Node v24.9+ where
+Jest supports require(esm) natively". Le Node installé ici est `v22.23.2`.
+Une montée de Node vers ≥ 24.9 ferait disparaître le problème à la racine
+(Jest déléguerait le chargement ESM au `require()` natif de Node), mais
+c'est un changement d'infrastructure (runtime Node du poste de dev, de la
+CI et du déploiement PM2/EC2 — voir `ecosystem.config.js`), pas un simple
+changement de config Jest — hors périmètre de ce spike, mais le candidat
+le plus prometteur pour une prochaine tentative.
+
+**Découverte annexe pendant le spike, à noter pour un futur palier 11→12**
+(indépendante du résultat Jest/ESM, donc valable même si un futur spike
+lève le verrou ci-dessus) : `@nestjs/platform-express@12.1.0` épingle
+`express` en version exacte `5.2.1` — un majeur d'Express, qui entraîne
+lui-même `body-parser@2`, `router@2`, `send@1`, `serve-static@2`,
+`finalhandler@2`, `accepts@2`, `type-is@2`, `mime-types@3`, `cookie@0.7`
+(constaté en inspectant les `package.json` réels des tarballs 12.x, pas
+supposé). Express 5 a des changements de comportement runtime documentés
+(syntaxe des wildcards de route, parsing des query strings par défaut) —
+ce n'est **plus seulement un problème d'outillage Jest**, c'est une
+migration Express à part entière avec un risque produit sur le routage
+réel, à traiter comme son propre sous-point de phase (avec tests de
+caractérisation sur `AdsController`/`AdsRepositoryNest` et leurs query
+params) le jour où le palier NestJS 11→12 est repris — pas dans le même
+commit que le fix Jest.
 
 ### 1.5 Couverture de tests par domaine — synthèse
 
@@ -443,6 +494,77 @@ avant qu'une phase front puisse s'appuyer dessus, par exemple).
   simple du bump de version et de `apps/api/jest.config.ts`. Rester sur
   NestJS 11.x n'est pas bloquant fonctionnellement — le rollback n'a donc
   aucune urgence produit derrière lui.
+
+**Résultat du spike (exécuté le 2026-09-24) : reporté, ni (a) ni (b) ne
+convergent dans le budget.** Détail complet en §1.4 (mise à jour du même
+jour). Résumé :
+
+1. **Baseline re-vérifiée avant tout changement** (pas supposée égale à un
+   relevé antérieur, comme demandé) : `NODE_PATH=<worktree>/node_modules
+   npx nx run-many --target=test --all --skip-nx-cache` →
+   `api-domain` 6 suites/41 tests, `api-adapters` 5/28, `api` 21/130,
+   `webapp` 30/43, `admin` 5 suites/10 tests (9 passés + 1 skip), `dtos`
+   aucun test. Tous verts.
+2. **Overlay local créé pour tester réellement, pas seulement en théorie** :
+   le symlink unique `node_modules/@nestjs → /home/tanos/bella/node_modules/@nestjs`
+   a été temporairement éclaté en symlinks par sous-paquet (même technique
+   que l'overlay `class-validator` du sous-point 4 de la Phase 2), avec
+   `@nestjs/common@12.1.0` et `@nestjs/core@12.1.0` posés en overlay réel
+   (tarballs téléchargés depuis le registre npm public, jamais installés
+   ni écrits dans l'arbre partagé `/home/tanos/bella`). Un fichier de test
+   jetable (`apps/api/src/__nest12_spike__.spec.ts`, jamais commité)
+   important `Injectable`/`Module` de `@nestjs/common` et `NestFactory` de
+   `@nestjs/core` a servi de reproduction minimale.
+3. **(a) `babel-jest` scopé à `@nestjs/*`** — implémenté dans
+   `apps/api/jest.config.ts` (transform différencié ts-jest/babel-jest par
+   regex + `transformIgnorePatterns` élargi). Résultat : dépasse le point
+   d'échec de la tentative précédente (`transformIgnorePatterns` seul,
+   voir annexe) — `@nestjs/common/index.js` et sa chaîne `pipes/index.js`
+   se transpilent et se chargent. Bute ensuite sur
+   `utils/load-package.util.js`, qui utilise `import.meta.url` (via
+   `createRequire(import.meta.url)`) — construction qu'
+   `@babel/plugin-transform-modules-commonjs` ne convertit pas en
+   CommonJS sans plugin dédié (absent de la stack, aucun candidat mûr
+   trouvé en local). Ce fichier est chargé de façon non paresseuse dès
+   qu'on importe `@nestjs/common` (via `ValidationPipe`/`ParseArrayPipe`),
+   donc pas contournable en évitant simplement ce module précis.
+4. **(b) Jest en mode ESM natif** — `extensionsToTreatAsEsm`, `ts-jest`
+   `useESM: true`, `tsconfig.spec.json` en `module: esnext`,
+   `NODE_OPTIONS=--experimental-vm-modules`. Résultat : passe l'erreur
+   "Must use import" (le loader ESM expérimental de Jest prend bien en
+   charge `@nestjs/common` comme un vrai module ES), mais échoue au
+   linking : `SyntaxError: The requested module '@nestjs/common' does not
+   provide an export named 'Injectable'` — la chaîne profonde d'`export *
+   from` (`index.js` → `pipes/index.js` → ...) n'est pas résolue de façon
+   fiable par le support `--experimental-vm-modules`, cohérent avec la
+   mise en garde déjà notée en annexe ("non trivial avec ts-jest+Nx").
+5. **Piste non prévue au départ, trouvée dans le message d'erreur Jest
+   lui-même** : "Use Node v24.9+ where Jest supports require(esm)
+   natively." Node installé ici : `v22.23.2`. Une montée de Node
+   éliminerait le problème à la racine, mais c'est un changement
+   d'infrastructure (poste de dev, CI, PM2/EC2 — `ecosystem.config.js`),
+   hors périmètre outillage-Jest de cette phase — **candidat le plus
+   prometteur pour une prochaine tentative**, à cadrer comme sa propre
+   phase 0ter si l'utilisateur veut la reprendre.
+6. **Découverte annexe** : `@nestjs/platform-express@12.1.0` épingle
+   Express en version exacte `5.2.1` (majeur, avec toute sa sous-chaîne
+   `body-parser@2`/`router@2`/`send@1`/etc.) — un risque produit sur le
+   routage réel, séparé du problème Jest, à traiter dans son propre
+   sous-point le jour où ce palier est repris (voir §1.4).
+7. **Nettoyage effectué** : fichier de test jetable supprimé,
+   `apps/api/jest.config.ts` et `apps/api/tsconfig.spec.json` restaurés à
+   l'identique (`git checkout --`), overlay `node_modules/@nestjs` remis
+   à son symlink unique d'origine. `NODE_PATH=<worktree>/node_modules npx
+   nx run-many --target=test --all --skip-nx-cache` reconfirmé vert avec
+   les mêmes chiffres qu'au point 1 (aucune régression introduite par le
+   spike). `git status` propre avant et après — **aucun commit de code
+   n'a résulté de cette phase**, conformément au point 4 du mandat du
+   spike (ne pas forcer si aucune voie ne converge).
+8. **Décision** : Phase 0bis reportée. Rester sur NestJS 11.x n'est pas
+   bloquant fonctionnellement (critère de rollback déjà posé ci-dessus) —
+   ce n'est donc pas un échec du chantier. Prochaine étape si reprise :
+   évaluer la piste Node ≥ 24.9 (point 5) comme nouvelle option a, avant
+   de retenter (a)/(b) telles quelles.
 
 ### Phase 1 — Filet de sécurité : tests de caractérisation sur les domaines non couverts
 
