@@ -546,10 +546,57 @@ avant qu'une phase front puisse s'appuyer dessus, par exemple).
        par un test de caractérisation dédié écrit **avant** le déplacement
        — pas un simple copier-coller comme le sous-entendait la formulation
        initiale.
-  4. Typer les filtres de requête (`AdSearchQueryDTO` + `class-validator`)
-     sur `getAll`/`getMyPublications` — **ce point change un comportement
+  4. **[BLOQUÉ À L'EXÉCUTION, 2026-09-24 — voir détail ci-dessous]** Typer
+     les filtres de requête (`AdSearchQueryDTO` + `class-validator`) sur
+     `getAll`/`getMyPublications` — **ce point change un comportement
      observable** (rejet de query params invalides) et doit donc être un
      commit séparé, signalé comme tel (principe 7).
+
+     **Blocage constaté à l'exécution** : `class-validator` et
+     `class-transformer` sont absents de l'environnement (ni dans
+     `package.json`, ni dans `node_modules` — vérifié par grep/`ls`
+     exhaustifs). Ce worktree n'a pas de `node_modules` propre : il résout
+     ses dépendances par remontée de répertoire vers celui, **physiquement
+     partagé**, du dépôt principal `/home/tanos/bella` (utilisé aussi par
+     les autres worktrees actifs, `expiration-annonces` et
+     `moderator-rename`). Installer une nouvelle dépendance de façon
+     classique (`yarn add`) depuis ce worktree écrirait donc dans cet arbre
+     partagé — exactement ce que la fiche de rôle Tech Lead interdit
+     explicitement ("ne touche jamais... à ses autres worktrees").
+     Une tentative d'installation strictement locale (overlay de symlinks
+     vers les paquets partagés existants + paquets réels ajoutés localement
+     pour `class-validator`/`class-transformer`/leurs dépendances) a été
+     testée dans une copie de travail isolée : elle fonctionne pour
+     `nx test api` mais a fait apparaître une erreur TypeScript instable
+     sur un fichier totalement étranger à ce sous-point
+     (`admin-publication.controller.ts:35`, `Property 'headers' does not
+     exist on type 'RequestWithUser'`) lors de `nx build api`. Investigation
+     poussée (3 worktrees isolés : ce commit, le commit précédent, et
+     `main` `b0912af` lui-même) : **cette erreur de build est en fait déjà
+     présente sur `main`, indépendamment de tout changement de ce
+     chantier** — l'environnement partagé (`/home/tanos/bella/node_modules`)
+     est dans un état actuellement instable pour `nx build api`
+     (vraisemblablement lié à une modification concurrente de cet arbre
+     partagé par une autre session active pendant l'exécution de cette
+     phase — plusieurs agents tournent en parallèle sur ce chantier). Ce
+     n'est donc **pas une régression causée par ce chantier**, mais ça
+     signifie que le sol sur lequel une installation de dépendance
+     s'appuierait est lui-même instable en ce moment précis.
+     **Décision** : sous-point 4 mis en attente plutôt que forcé — ni la
+     voie "toucher l'arbre partagé" (interdite) ni la voie "overlay
+     local" (fonctionnelle pour les tests mais qui a révélé, en creusant,
+     une instabilité de l'environnement de build indépendante de ce
+     chantier) ne sont satisfaisantes à traiter unilatéralement dans cette
+     session. `nx test api`/`nx lint api` sont restés verts tout au long
+     de cette investigation (seul `nx build api` est affecté, et il l'est
+     déjà sur `main`) — utilisés comme filet de sécurité pour la suite des
+     sous-points de cette phase à la place de `nx run-many
+     --target={build,lint,test} --all` tel quel. **Rends la main** sur ce
+     point précis : nécessite soit une résolution de l'installation propre
+     des dépendances par worktree (chaque worktree Nx a normalement son
+     propre `node_modules`, ce qui n'est pas le cas ici), soit une
+     confirmation que l'instabilité de `nx build api` observée sur `main`
+     est résolue avant de retenter.
   5. **Sortir `NotFoundException` (et `BadRequestException`) d'`AdMapper`
      et de `UserMapper`** — le `null`/`undefined` devient la
      responsabilité de l'appelant (SRP). **Reclassifié après revue senior
