@@ -1,15 +1,19 @@
+import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { concatMap, finalize } from 'rxjs/operators';
 import { UploadService } from '../../shared/components/upload/upload.service';
 import { AdDTO } from '../../shared/models/ads.model';
 import { AdsService } from '../../shared/services/ads.service';
+import { TitledPageModule } from '../../shared/layouts/titled-page/titled-page.module';
+import { AdFormModule } from './ad-form/ad-form.module';
 
 type ImageFile = File /*& { data: SafeUrl }*/;
 
 @Component({
   selector: 'bella-post-an-ad',
   templateUrl: './post-an-ad.component.html',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, TitledPageModule, AdFormModule],
 })
 export class PostAnAdComponent {
   private adsService = inject(AdsService);
