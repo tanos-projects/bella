@@ -23,6 +23,7 @@ describe('AdsRepositoryNest', () => {
     adModel.findOne = jest.fn();
     adModel.findOneAndUpdate = jest.fn();
     adModel.countDocuments = jest.fn();
+    adModel.updateMany = jest.fn();
 
     repository = new AdsRepositoryNest(adModel);
   });
@@ -156,6 +157,24 @@ describe('AdsRepositoryNest', () => {
       repository.createNew({ title: 'ad' } as any).subscribe((result) => {
         expect(adModel).toHaveBeenCalledWith({ title: 'ad' });
         expect(result).toEqual({ title: 'ad', id: 'new-id' });
+        done();
+      });
+    });
+  });
+
+  describe('expireDue', () => {
+    it('moves PUBLISHED ads past expiresAt to EXPIRED and returns the count moved', (done) => {
+      const now = new Date('2026-01-31T00:00:00.000Z');
+      adModel.updateMany.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ modifiedCount: 5 }),
+      });
+
+      repository.expireDue(now).subscribe((count) => {
+        expect(adModel.updateMany).toHaveBeenCalledWith(
+          { status: AdStatus.PUBLISHED, expiresAt: { $lte: now } },
+          { $set: { status: AdStatus.EXPIRED } }
+        );
+        expect(count).toBe(5);
         done();
       });
     });

@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { DefaultPublicationPlanResolver, DiscoveryPlan } from '@bella/api/domain';
 import { AdsRepositoryNest } from '../persistence/repositories/ads-repository-nest';
 import { Ad, AdSchema } from '../persistence/schemas/ad.schema';
+import { AdExpirationJob } from './ad-expiration.job';
 import { AdsService } from './ads.service';
 import { PUBLICATION_PLAN_RESOLVER } from './ads.tokens';
 
@@ -11,6 +12,7 @@ import { PUBLICATION_PLAN_RESOLVER } from './ads.tokens';
   providers: [
     AdsService,
     AdsRepositoryNest,
+    AdExpirationJob,
     {
       provide: PUBLICATION_PLAN_RESOLVER,
       useValue: new DefaultPublicationPlanResolver(new DiscoveryPlan(30)),

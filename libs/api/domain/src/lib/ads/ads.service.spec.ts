@@ -37,6 +37,7 @@ describe('AdsService', () => {
       findOnePublished: jest.fn(),
       findOneUnpublished: jest.fn(),
       findOneDraft: jest.fn(),
+      expireDue: jest.fn(),
     };
     plan = {
       code: 'TEST',
@@ -197,6 +198,18 @@ describe('AdsService', () => {
           expect(repository.updateOne).not.toHaveBeenCalled();
           done();
         },
+      });
+    });
+  });
+
+  describe('expireDue', () => {
+    it('delegates to the repository with the current instant', (done) => {
+      repository.expireDue.mockReturnValue(of(3));
+
+      service.expireDue().subscribe((count) => {
+        expect(repository.expireDue).toHaveBeenCalledWith(now);
+        expect(count).toBe(3);
+        done();
       });
     });
   });

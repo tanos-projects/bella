@@ -15,4 +15,6 @@ export interface AdsRepository {
   findOnePublished(id: string): Observable<AdEntity>;
   findOneUnpublished(id: string): Observable<AdEntity>;
   findOneDraft(id: string): Observable<AdEntity>;
+  /** Moves every PUBLISHED ad whose expiresAt has passed to EXPIRED. Returns the count moved. */
+  expireDue(now: Date): Observable<number>;
 }

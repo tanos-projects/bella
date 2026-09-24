@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TerminusModule } from '@nestjs/terminus';
 import { MyConfigModule } from './config/my-config.module';
 import { CountriesModule } from './countries/countries.module';
@@ -19,7 +20,14 @@ const DOMAIN_MODULES = [
 ];
 
 @Module({
-  imports: [HttpModule, TerminusModule, DatabaseModule, MyConfigModule, ...DOMAIN_MODULES],
+  imports: [
+    HttpModule,
+    TerminusModule,
+    DatabaseModule,
+    MyConfigModule,
+    ScheduleModule.forRoot(),
+    ...DOMAIN_MODULES,
+  ],
   exports: [...DOMAIN_MODULES],
   controllers: [HealthController],
   providers: [],

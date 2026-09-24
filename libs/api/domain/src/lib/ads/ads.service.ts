@@ -113,6 +113,11 @@ export class AdsService {
       .pipe(this.transitionTo(id, AdStatus.DRAFT, AdStatus.SUBMITTED));
   }
 
+  /** Moves every PUBLISHED ad past its expiresAt to EXPIRED. Returns the count moved. */
+  expireDue(): Observable<number> {
+    return this.adsRepository.expireDue(this.clock.now());
+  }
+
   publish(id: string, moderatedBy?: string): Observable<AdEntity> {
     // TODO => Should be APPROVED before PUBLISHED
     return this.adsRepository.findOneUnpublished(id).pipe(
