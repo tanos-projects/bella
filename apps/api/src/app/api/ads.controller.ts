@@ -22,6 +22,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdsService } from '../infrastructure/ads/ads.service';
 import { UsersService } from '../infrastructure/users/users.service';
 import { mapAdTransitionError } from '../utils/ad-transition-error.operator';
+import { throwIfNullish } from '../utils/throw-if-nullish.operator';
 import { MostRecentAdsShuffler } from './most-recent-ads-shuffler';
 import { PublishAuthorizationPolicy } from './publish-authorization.policy';
 
@@ -112,12 +113,18 @@ export class AdsController {
 
   @Get(':id')
   findOne(@Param('id') id: string): Observable<AdDTO> {
-    return this.adsService.findOne(id).pipe(map(AdMapper.modelToDTO));
+    return this.adsService.findOne(id).pipe(
+      throwIfNullish(() => new NotFoundException('Ad not found')),
+      map(AdMapper.modelToDTO)
+    );
   }
 
   @Get('published/:id')
   findPublishedOne(@Param('id') id: string): Observable<AdDTO> {
-    return this.adsService.findOnePublished(id).pipe(map(AdMapper.modelToDTO));
+    return this.adsService.findOnePublished(id).pipe(
+      throwIfNullish(() => new NotFoundException('Ad not found')),
+      map(AdMapper.modelToDTO)
+    );
   }
 
   // TODO move to admin or add right check

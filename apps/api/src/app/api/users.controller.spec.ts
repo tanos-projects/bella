@@ -111,6 +111,28 @@ describe('UsersController', () => {
           done();
         });
     });
+
+    // Phase 2, sub-point 5: UserMapper.modelToDTO no longer throws on a
+    // null model itself - createProfile must now reject this case
+    // explicitly (via throwIfNullish) instead of letting a malformed DTO
+    // through, or crashing with a raw TypeError.
+    it('rejects with a NotFoundException if create resolves to nothing, instead of a malformed DTO', (done) => {
+      const { controller } = createController({
+        create: jest.fn().mockReturnValue(of(null)),
+      });
+
+      controller
+        .createProfile(
+          { user: { sub: 'auth0|user-1', picture: 'http://token-pic' } } as any,
+          { username: 'jdoe' } as any
+        )
+        .subscribe({
+          error: (err) => {
+            expect(err.constructor.name).toBe('NotFoundException');
+            done();
+          },
+        });
+    });
   });
 
   describe('updateProfile', () => {
@@ -146,6 +168,44 @@ describe('UsersController', () => {
           done();
         });
     });
+
+    // Phase 2, sub-point 5: UserMapper.dtoToModel no longer throws
+    // BadRequestException on a null dto itself - updateProfile must now
+    // reject this case explicitly before calling it, instead of crashing
+    // with a raw TypeError.
+    it('rejects a null payload with a BadRequestException, without calling the service', () => {
+      const { controller, usersService } = createController();
+
+      expect(() =>
+        controller.updateProfile(
+          { user: { sub: 'auth0|user-1', picture: 'http://token-pic' } } as any,
+          null as any
+        )
+      ).toThrow('Profile payload is required');
+      expect(usersService.updateOneByIdpId).not.toHaveBeenCalled();
+    });
+
+    // Phase 2, sub-point 5: UserMapper.modelToDTO no longer throws on a
+    // null model itself - updateProfile must now reject this case
+    // explicitly (via throwIfNullish) instead of letting a malformed DTO
+    // through, or crashing with a raw TypeError.
+    it('rejects with a NotFoundException if the update resolves to nothing, instead of a malformed DTO', (done) => {
+      const { controller } = createController({
+        updateOneByIdpId: jest.fn().mockReturnValue(of(null)),
+      });
+
+      controller
+        .updateProfile(
+          { user: { sub: 'auth0|user-1', picture: 'http://token-pic' } } as any,
+          { username: 'jdoe' } as any
+        )
+        .subscribe({
+          error: (err) => {
+            expect(err.constructor.name).toBe('NotFoundException');
+            done();
+          },
+        });
+    });
   });
 
   describe('deleteProfile', () => {
@@ -175,6 +235,23 @@ describe('UsersController', () => {
         });
         expect(dto.email).toBeUndefined();
         done();
+      });
+    });
+
+    // Phase 2, sub-point 5: UserMapper.modelToProfileDTO no longer throws
+    // on a null model itself - findOne must now reject this case
+    // explicitly (via throwIfNullish) instead of letting a malformed DTO
+    // through, or crashing with a raw TypeError.
+    it('rejects with a NotFoundException when no user is found, instead of a malformed DTO', (done) => {
+      const { controller } = createController({
+        findOne: jest.fn().mockReturnValue(of(null)),
+      });
+
+      controller.findOne('missing-user').subscribe({
+        error: (err) => {
+          expect(err.constructor.name).toBe('NotFoundException');
+          done();
+        },
       });
     });
 

@@ -1,4 +1,3 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { UserEntity } from '@bella/api/domain';
 import * as UserMapper from './user.mapper';
 
@@ -16,16 +15,16 @@ describe('UserMapper', () => {
   };
 
   describe('modelToDTO', () => {
-    // Same pattern already flagged on AdMapper (CHANTIER-MODERNISATION.md
-    // §1.3 point 5): a mapper in libs/api/adapters importing a Nest HTTP
-    // exception. Not scoped for this Phase, but the same fix would apply
-    // here too — noted for Phase 2.
-    it('throws a Nest NotFoundException when the model is strictly null', () => {
+    // Phase 2, sub-point 5: modelToDTO no longer decides the HTTP status
+    // for "not found" - it's a pure mapper now and trusts its caller
+    // (UsersController) to have already checked for null/undefined before
+    // calling it, the same way it already trusted the input to be a real
+    // UserEntity rather than some other shape. Calling it with null is a
+    // precondition violation, not a handled case: it now throws a raw
+    // TypeError instead of a controlled Nest exception.
+    it('throws (a raw TypeError, not a Nest exception) when the model is strictly null', () => {
       expect(() => UserMapper.modelToDTO(null as unknown as UserEntity)).toThrow(
-        NotFoundException
-      );
-      expect(() => UserMapper.modelToDTO(null as unknown as UserEntity)).toThrow(
-        'User not found'
+        TypeError
       );
     });
 
@@ -47,10 +46,10 @@ describe('UserMapper', () => {
   });
 
   describe('modelToProfileDTO', () => {
-    it('throws a Nest NotFoundException when the model is strictly null', () => {
+    it('throws (a raw TypeError, not a Nest exception) when the model is strictly null', () => {
       expect(() =>
         UserMapper.modelToProfileDTO(null as unknown as UserEntity)
-      ).toThrow(NotFoundException);
+      ).toThrow(TypeError);
     });
 
     it('only exposes id/username/country/picture, dropping every other field', () => {
@@ -68,15 +67,13 @@ describe('UserMapper', () => {
   });
 
   describe('dtoToModel', () => {
-    it('throws a Nest BadRequestException when the dto is strictly null', () => {
-      // Note the mismatched message: the exception says "User not found"
-      // even though the exception type (BadRequestException, a 400) and
-      // context (mapping an inbound DTO, not a lookup) suggest a copy-paste
-      // from modelToDTO's message rather than an intentional wording.
-      expect(() => UserMapper.dtoToModel(null as any)).toThrow(
-        BadRequestException
-      );
-      expect(() => UserMapper.dtoToModel(null as any)).toThrow('User not found');
+    it('throws (a raw TypeError, not a Nest exception) when the dto is strictly null', () => {
+      // Phase 2, sub-point 5: this used to throw a Nest BadRequestException
+      // with a mismatched "User not found" message (a 400, on a mapper,
+      // reading like a copy-paste from modelToDTO). The caller
+      // (UsersController.updateProfile) is now responsible for rejecting a
+      // null payload itself before calling dtoToModel.
+      expect(() => UserMapper.dtoToModel(null as any)).toThrow(TypeError);
     });
 
     it('maps the DTO fields, dropping id/picture and defaulting falsy fields to null', () => {
@@ -117,10 +114,10 @@ describe('UserMapper', () => {
       ]);
     });
 
-    it('propagates the NotFoundException if any item in the list is null', () => {
+    it('propagates the TypeError if any item in the list is null', () => {
       expect(() =>
         UserMapper.modelToDTOList([model, null as any])
-      ).toThrow(NotFoundException);
+      ).toThrow(TypeError);
     });
   });
 });

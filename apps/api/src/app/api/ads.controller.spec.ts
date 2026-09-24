@@ -204,3 +204,77 @@ describe('AdsController.getMyPublications', () => {
       });
   });
 });
+
+// Phase 2, sub-point 5: AdMapper.modelToDTO no longer throws
+// NotFoundException on a null model itself - findOne/findPublishedOne must
+// now reject that case explicitly (via throwIfNullish) instead of letting a
+// malformed DTO through, or crashing with a raw TypeError.
+describe('AdsController.findOne', () => {
+  function createController(adsServiceOverrides: any = {}) {
+    const adsService: any = {
+      findOne: jest.fn().mockReturnValue(of(null)),
+      ...adsServiceOverrides,
+    };
+    const usersService: any = {};
+    return { controller: new AdsController(adsService, usersService) };
+  }
+
+  it('maps the found ad through AdMapper.modelToDTO', (done) => {
+    const { controller } = createController({
+      findOne: jest.fn().mockReturnValue(
+        of({ id: 'ad-1', title: 'a car', owner: { id: 'user-1' } })
+      ),
+    });
+
+    controller.findOne('ad-1').subscribe((dto: any) => {
+      expect(dto.id).toBe('ad-1');
+      done();
+    });
+  });
+
+  it('rejects with a NotFoundException when no ad is found, instead of a malformed DTO', (done) => {
+    const { controller } = createController();
+
+    controller.findOne('missing-ad').subscribe({
+      error: (err) => {
+        expect(err.constructor.name).toBe('NotFoundException');
+        done();
+      },
+    });
+  });
+});
+
+describe('AdsController.findPublishedOne', () => {
+  function createController(adsServiceOverrides: any = {}) {
+    const adsService: any = {
+      findOnePublished: jest.fn().mockReturnValue(of(null)),
+      ...adsServiceOverrides,
+    };
+    const usersService: any = {};
+    return { controller: new AdsController(adsService, usersService) };
+  }
+
+  it('maps the found ad through AdMapper.modelToDTO', (done) => {
+    const { controller } = createController({
+      findOnePublished: jest.fn().mockReturnValue(
+        of({ id: 'ad-1', title: 'a car', owner: { id: 'user-1' } })
+      ),
+    });
+
+    controller.findPublishedOne('ad-1').subscribe((dto: any) => {
+      expect(dto.id).toBe('ad-1');
+      done();
+    });
+  });
+
+  it('rejects with a NotFoundException when no published ad is found, instead of a malformed DTO', (done) => {
+    const { controller } = createController();
+
+    controller.findPublishedOne('missing-ad').subscribe({
+      error: (err) => {
+        expect(err.constructor.name).toBe('NotFoundException');
+        done();
+      },
+    });
+  });
+});

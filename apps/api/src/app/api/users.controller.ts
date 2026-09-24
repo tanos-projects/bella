@@ -1,8 +1,10 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -15,6 +17,7 @@ import { map } from 'rxjs/operators';
 import { AuthUser } from '../auth/auth-user';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from '../infrastructure/users/users.service';
+import { throwIfNullish } from '../utils/throw-if-nullish.operator';
 import { CreateUserDTO, UserDTO } from '@bella/dtos';
 import { UserMapper } from '@bella/api/adapters';
 
@@ -36,7 +39,10 @@ export class UsersController {
   @ApiBearerAuth()
   getProfile(@Request() req): Observable<UserDTO> {
     const user: AuthUser = req.user;
-    return this.usersService.findOneByIdpId(user.sub).pipe(map(UserMapper.modelToDTO));
+    return this.usersService.findOneByIdpId(user.sub).pipe(
+      throwIfNullish(() => new NotFoundException('User not found')),
+      map(UserMapper.modelToDTO)
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -49,7 +55,10 @@ export class UsersController {
     const user: AuthUser = req.user;
     return this.usersService
       .create({ ...payload, idpId: user.sub, picture: user.picture } as any)
-      .pipe(map(UserMapper.modelToDTO));
+      .pipe(
+        throwIfNullish(() => new NotFoundException('User not found')),
+        map(UserMapper.modelToDTO)
+      );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -59,13 +68,21 @@ export class UsersController {
     @Request() req,
     @Body() payload: CreateUserDTO
   ): Observable<UserDTO> {
+    if (!payload) {
+      // UserMapper.dtoToModel no longer rejects a null payload itself
+      // (Phase 2, sub-point 5) - this is now the controller's job.
+      throw new BadRequestException('Profile payload is required');
+    }
     const user: AuthUser = req.user;
     return this.usersService
       .updateOneByIdpId(user.sub, {
         ...UserMapper.dtoToModel(payload),
         picture: user.picture,
       })
-      .pipe(map(UserMapper.modelToDTO));
+      .pipe(
+        throwIfNullish(() => new NotFoundException('User not found')),
+        map(UserMapper.modelToDTO)
+      );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -78,7 +95,10 @@ export class UsersController {
 
   @Get(':id')
   findOne(@Param('id') id: string): Observable<UserDTO> {
-    return this.usersService.findOne(id).pipe(map(UserMapper.modelToProfileDTO));
+    return this.usersService.findOne(id).pipe(
+      throwIfNullish(() => new NotFoundException('User not found')),
+      map(UserMapper.modelToProfileDTO)
+    );
   }
 
   // TODO : Move all below to admin controller

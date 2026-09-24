@@ -1,21 +1,17 @@
-import { NotFoundException } from '@nestjs/common';
 import { AdEntity, AdStatus } from '@bella/api/domain';
 import * as AdMapper from './ad.mapper';
 
 describe('AdMapper', () => {
   describe('modelToDTO', () => {
-    // Characterization: this is the exact behavior flagged in
-    // CHANTIER-MODERNISATION.md §1.3 point 5 as a Clean Architecture
-    // violation (a lib that should be a pure mapper importing a Nest HTTP
-    // exception). This test locks the CURRENT behavior in place so Phase 2
-    // can move the null-check to the caller without silently changing what
-    // happens today. Do not "fix" this here.
-    it('throws a Nest NotFoundException when the model is strictly null', () => {
+    // Phase 2, sub-point 5: modelToDTO no longer decides the HTTP status
+    // for "not found" - it's a pure mapper now and trusts its caller
+    // (AdsController) to have already checked for null/undefined before
+    // calling it. Calling it with null is a precondition violation, not a
+    // handled case: it now throws a raw TypeError instead of a controlled
+    // Nest exception.
+    it('throws (a raw TypeError, not a Nest exception) when the model is strictly null', () => {
       expect(() => AdMapper.modelToDTO(null as unknown as AdEntity)).toThrow(
-        NotFoundException
-      );
-      expect(() => AdMapper.modelToDTO(null as unknown as AdEntity)).toThrow(
-        'Ad not found'
+        TypeError
       );
     });
 
@@ -71,10 +67,6 @@ describe('AdMapper', () => {
         contactSettings: undefined,
         createdAt: undefined,
         updatedAt: undefined,
-        // {} rather than null: a null owner would cascade into UserMapper's
-        // own NotFoundException (see the dedicated test below) and abort
-        // this object literal entirely before the other fields are ever
-        // assigned.
         owner: {} as any,
         status: undefined,
         approbationMessage: '',
@@ -92,13 +84,18 @@ describe('AdMapper', () => {
       expect(dto.images).toEqual([]);
     });
 
-    it('cascades into UserMapper.modelToDTO\'s own NotFoundException when owner is null', () => {
+    it('degrades a null/undefined owner to a null owner in the DTO, like every other optional field (Phase 2, sub-point 5)', () => {
+      // Previously this cascaded into UserMapper.modelToDTO's own
+      // NotFoundException ("User not found", confusingly, for a request
+      // about an ad). Now that mappers no longer throw HTTP exceptions,
+      // owner is treated like every other optional field on this mapper: a
+      // missing owner just becomes null in the DTO instead of crashing or
+      // throwing.
       const model = { id: 'ad-1', owner: null } as unknown as AdEntity;
 
-      // Not documented anywhere: a missing owner throws "User not found",
-      // not anything ad-related, because the owner field is mapped inline
-      // via UserMapper.modelToDTO(model.owner).
-      expect(() => AdMapper.modelToDTO(model)).toThrow('User not found');
+      const dto = AdMapper.modelToDTO(model);
+
+      expect(dto.owner).toBeNull();
     });
   });
 
@@ -168,10 +165,10 @@ describe('AdMapper', () => {
       expect(dtos.map((d) => d.id)).toEqual(['1', '2']);
     });
 
-    it('propagates the NotFoundException if any item in the list is null', () => {
+    it('propagates the TypeError if any item in the list is null', () => {
       const models = [{ id: '1', owner: {} as any } as AdEntity, null as any];
 
-      expect(() => AdMapper.modelToDTOList(models)).toThrow(NotFoundException);
+      expect(() => AdMapper.modelToDTOList(models)).toThrow(TypeError);
     });
   });
 });

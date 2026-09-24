@@ -1,12 +1,13 @@
 import { UserEntity } from '@bella/api/domain';
 import { CreateUserDTO, UserDTO, UserProfileDTO } from '@bella/dtos';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
 
+// None of these three functions throws on a null model/dto anymore (Phase
+// 2, sub-point 5): a mapper's job is to map, not to decide the HTTP status
+// for "not found"/"bad request" - that decision now belongs to the caller
+// (UsersController, or AdMapper.modelToDTO for an ad's owner), which must
+// check for null itself before mapping. See throwIfNullish in
+// apps/api/src/app/utils.
 export const modelToDTO: (model: UserEntity) => UserDTO = (model) => {
-  if (null === model) {
-    throw new NotFoundException('User not found');
-  }
-
   return {
     id: model.id || null,
     username: model.username || null,
@@ -23,10 +24,6 @@ export const modelToDTO: (model: UserEntity) => UserDTO = (model) => {
 export const modelToProfileDTO: (model: UserEntity) => UserProfileDTO = (
   model,
 ) => {
-  if (null === model) {
-    throw new NotFoundException('User not found');
-  }
-
   const dto: UserProfileDTO = {
     id: model.id || null,
     username: model.username || null,
@@ -38,10 +35,6 @@ export const modelToProfileDTO: (model: UserEntity) => UserProfileDTO = (
 };
 
 export const dtoToModel: (dto: CreateUserDTO) => UserEntity = (dto) => {
-  if (null === dto) {
-    throw new BadRequestException('User not found');
-  }
-
   return {
     username: dto.username || null,
     email: dto.email || null,
