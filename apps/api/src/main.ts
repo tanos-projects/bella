@@ -3,6 +3,18 @@
  * This is only a minimal backend to get started.
  */
 
+// `class-validator`/`class-transformer` decorators (see
+// `ad-search-query.dto.ts`) rely on `Reflect.getMetadata`/`defineMetadata`,
+// which only exist once this polyfill has run. Today this "works" in
+// production only as a side effect of `@nestjs/core/index.js` doing the
+// same `require('reflect-metadata')` before `AppModule` (and therefore
+// `AdsController`/`AdSearchQueryDTO`) is ever imported below - see the
+// explicit import here and the matching Jest `setupFiles` entry
+// (apps/api/jest.config.ts) for why that ordering isn't reliable in
+// isolated unit tests, where a spec can load `AdSearchQueryDTO` before
+// anything transitively requires `@nestjs/core`.
+import 'reflect-metadata';
+
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import * as mongoose from 'mongoose';
