@@ -5,7 +5,7 @@ import { MyDeviceService } from '../../services/my-device.service';
 import { DrawerService } from '../drawer/drawer.service';
 import { AuthCustomService } from '../../../auth/auth-custom.service';
 import { LoginSignupComponent } from '../buttons/login-signup/login-signup.component';
-import { LogoutButtonModule } from '../buttons/logout/logout-button.module';
+import { LogoutButtonComponent } from '../buttons/logout/logout-button.component';
 import { SearchFilterButtonComponent } from '../search-filter-button/search-filter-button.component';
 
 @Component({
@@ -18,7 +18,7 @@ import { SearchFilterButtonComponent } from '../search-filter-button/search-filt
     RouterModule,
     SearchFilterButtonComponent,
     LoginSignupComponent,
-    LogoutButtonModule,
+    LogoutButtonComponent,
   ],
 })
 export class HeaderComponent {

@@ -5,7 +5,7 @@ import { AuthCustomService } from '../../../../auth/auth-custom.service';
 @Component({
   selector: 'bella-logout-btn',
   templateUrl: './logout-button.component.html',
-  standalone: false,
+  standalone: true,
 })
 export class LogoutButtonComponent {
   private auth = inject(AuthCustomService);
