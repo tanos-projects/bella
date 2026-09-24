@@ -1550,8 +1550,26 @@ dans cette section.
    tableau `imports` standalone, lancer `nx build webapp`, confirmer
    l'échec `NG8001` (ou documenter l'absence d'échec si le test infirme
    l'hypothèse), remettre l'entrée correcte, documenter le résultat ici
-   avant de committer. **Résultat** : voir sous-section dédiée plus bas,
-   remplie au moment où ce composant est traité (vague "avec spec").
+   avant de committer. **Résultat (vérifié le 2026-09-24, sur
+   `header.component.ts` une fois converti standalone)** : hypothèse
+   **confirmée**. `LogoutButtonModule` retiré délibérément du tableau
+   `imports` de `HeaderComponent` (`bella-logout-btn` reste dans son
+   template) ; `nx build webapp` échoue immédiatement avec :
+   `NG8001: 'bella-logout-btn' is not a known element: [...] verify that
+   it is included in the '@Component.imports' of this component`,
+   pointant exactement la ligne du template en cause. Import remis,
+   `nx build webapp` de nouveau vert (résultat lu du cache Nx, hash de
+   fichier identique à avant le test). **`nx build webapp` est donc
+   confirmé comme un garde-fou anti-câblage réel et bon marché pour cette
+   classe précise de bug** (import standalone manquant pour un enfant de
+   template), indépendamment de `NO_ERRORS_SCHEMA` côté spec — à traiter
+   comme une vérification systématique de chaque lot (déjà dans le
+   critère d'acceptation), pas comme une garantie optionnelle. Ça ne
+   couvre pas pour autant les classes de risque qu'un diagnostic de
+   template ne voit pas (portée d'un provider, injection runtime,
+   régression CSS/host-binding, retrait accidentel d'un
+   `ModuleWithProviders`/`forRoot()`) — la checklist manuelle reste
+   nécessaire pour celles-ci.
 3. **Tri par accessibilité à la vérification manuelle — s'ajoute au tri
    sans-spec/avec-spec, ne le remplace pas** : les composants de
    formulaire (`ng-select-form-field`, `field-error`, `picture-uploader`,

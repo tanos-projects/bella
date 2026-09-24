@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { FooterModule } from '../../shared/components/footer/footer.module';
-import { HeaderModule } from '../../shared/components/header/header.module';
+import { HeaderComponent } from '../../shared/components/header/header.component';
 import { AdsByCategoryModule } from '../ads-by-category/ads-by-category.module';
 import { AdDetailModule } from '../ad-detail/ad-detail.module';
 import { HomeModule } from '../home/home.module';
@@ -19,7 +19,7 @@ import { SearchResultsComponent } from '../search-results/search-results.compone
     AdsByCategoryModule,
     AdDetailModule,
     MainRoutingModule,
-    HeaderModule,
+    HeaderComponent,
     FooterModule,
     SettingsModule,
     SearchResultsComponent

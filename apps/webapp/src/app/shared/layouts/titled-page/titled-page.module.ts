@@ -2,11 +2,11 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TitledPageComponent } from './titled-page.component';
 import { FooterModule } from '../../components/footer/footer.module';
-import { HeaderModule } from '../../components/header/header.module';
+import { HeaderComponent } from '../../components/header/header.component';
 
 @NgModule({
   declarations: [TitledPageComponent],
   exports: [TitledPageComponent],
-  imports: [CommonModule, HeaderModule, FooterModule]
+  imports: [CommonModule, HeaderComponent, FooterModule]
 })
 export class TitledPageModule {}

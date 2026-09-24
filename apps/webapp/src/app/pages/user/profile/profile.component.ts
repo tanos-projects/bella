@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FooterModule } from '../../../shared/components/footer/footer.module';
-import { HeaderModule } from '../../../shared/components/header/header.module';
+import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { MyDeviceService } from '../../../shared/services/my-device.service';
 import { ProfileService } from './profile.service';
 
@@ -11,7 +11,7 @@ import { ProfileService } from './profile.service';
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss'],
   standalone: true,
-  imports: [CommonModule, HeaderModule, FooterModule],
+  imports: [CommonModule, HeaderComponent, FooterModule],
 })
 export class ProfileComponent {
   private routeParams = inject(ActivatedRoute);
