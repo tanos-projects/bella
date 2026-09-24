@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-Bella is a classifieds/listings platform ("annonces") for an African market — the successor to the `afrik-tangazo` repository, restructured as an **Nx 15 monorepo** (`npmScope: bella`). Three deployable apps share a framework-agnostic domain layer:
+Bella is a classifieds/listings platform ("annonces") for an African market — the successor to the `afrik-tangazo` repository, restructured as an **Nx 22 monorepo** (`npmScope: bella`). Three deployable apps share a framework-agnostic domain layer:
 
-- `apps/webapp/` — Angular 14 PWA, the public product UI (port 4200)
-- `apps/admin/` — Angular 14 back-office for moderating publications, NgRx store (port 4300)
-- `apps/api/` — NestJS 9 API on MongoDB/Mongoose (port 3000, global prefix `/api`)
+- `apps/webapp/` — Angular 22 PWA, the public product UI (port 4200)
+- `apps/admin/` — Angular 22 back-office for moderating publications, NgRx store (port 4300)
+- `apps/api/` — NestJS 11 API on MongoDB/Mongoose (port 3000, global prefix `/api`)
 - `apps/webapp-e2e/`, `apps/admin-e2e/` — Cypress e2e projects
 
 Shared libraries under `libs/`, imported through the `@bella/*` path aliases declared in `tsconfig.base.json`:
@@ -40,7 +40,7 @@ npx nx lint webapp
 npx nx e2e webapp-e2e
 ```
 
-Project names are not directory names: `libs/api/domain` is the **`api-domain`** project, `libs/api/adapters` is **`api-adapters`**. `nx show projects` does not exist on Nx 15 — read the `name` field of each `project.json`, or use `npx nx print-affected --type=app --select=projects` to list the apps a diff touches.
+Project names are not directory names: `libs/api/domain` is the **`api-domain`** project, `libs/api/adapters` is **`api-adapters`**. `npx nx show projects` lists them; use `npx nx print-affected --type=app --select=projects` to list only the apps a diff touches.
 
 Jest is configured per project (`jest.config.ts` at the root only aggregates via `getJestProjects()`), so a root-level jest invocation will not do what you expect — go through Nx.
 
@@ -66,7 +66,7 @@ Feature domains: `ads`, `categories`, `cities`, `countries`, `users`. Adding one
 
 `AdStatus` (`libs/api/domain/src/lib/ads/ad.entity.ts`) declares `DRAFT → SUBMITTED → APPROVED → PUBLISHED`, plus `REJECTED` and `ARCHIVED`. Note that `APPROVED` is declared but never assigned; `publish()` moves straight to `PUBLISHED` (there is a `TODO` saying it should pass through `APPROVED` first).
 
-`AdsService.submit`/`publish`/`reject`/`archive` are marked with `FIXME` comments and are **not** in a trustworthy state: `publish()`, `reject()` and `archive()` have their originating-state lookup commented out entirely, so they transition an ad from whatever state it happens to be in, and `submit()` spreads the result of a lookup that it never checks matched (`{...null}` is `{}` in JavaScript, so a missed guard still runs the update). Treat any change here as a state-machine change and cover it with tests.
+`AdsService.submit`/`publish`/`reject`/`archive` all go through a central guard, `transitionTo()`: the lookup preceding each transition (`findOneDraft`/`findOneUnpublished`/`findOne`) is checked explicitly (`if (!ad) throwError(() => new AdNotInExpectedStateError(...))`), so a missed match no longer falls through to the update — there is no blind spread of a possibly-`null` lookup result. `reject()`/`archive()` deliberately use `ANY_STATUS` (transition allowed from any originating state) as a documented product choice — an ad can be rejected/archived regardless of its current state, only its existence is required — not an oversight; the comment above `transitionTo()` spells out the history of the bug this guard replaced. `ads.service.spec.ts` covers all four transition guards plus `submit`/`publish`/`reject`/`archive` themselves. Treat any change here as a state-machine change and cover it with tests.
 
 ### Authorization (issue #49)
 
@@ -88,7 +88,7 @@ trust boundary (the API guard is still what actually enforces this).
 
 ## Front-end architecture (webapp and admin)
 
-Both are Angular 14 with lazy-loaded feature modules and Auth0 (`@auth0/auth0-angular`) configured in `src/environments/environment.ts` (`authConfig`, `apiBaseUrl`).
+Both are Angular 22 with lazy-loaded feature modules and Auth0 (`@auth0/auth0-angular`) configured in `src/environments/environment.ts` (`authConfig`, `apiBaseUrl`).
 
 `webapp` route guards:
 - `AuthGuard` (Auth0) — requires login.
