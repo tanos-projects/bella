@@ -667,19 +667,27 @@ implémentation, comme exigé.
    - Aucun `.env` n'existe dans ce worktree (seulement `.env.dist`) ;
      aucune variable d'environnement Auth0 (client secret, identifiants
      d'un utilisateur de test) n'est présente dans cette session.
-   - Le domaine réel codé en dur dans les deux fronts
-     (`dev-bata.eu.auth0.com`, `environment.ts` webapp et admin) est
-     injoignable par défaut depuis ce sandbox — vérifié empiriquement, pas
-     supposé : `curl https://dev-bata.eu.auth0.com/.well-known/openid-configuration`
-     est explicitement refusé par la politique réseau du sandbox (`deny
-     network-outbound dev-bata.eu.auth0.com:443`), avant même la question
-     des identifiants.
-   - Même avec un accès réseau autorisé, un login Cypress headless
-     réaliste demanderait soit **(a)** un identifiant/mot de passe réels +
-     le grant "Resource Owner Password" activé sur ce client Auth0 (aucun
-     des deux disponibles, et ce mandat n'inclut pas la création d'un
-     compte dans un tenant Auth0 tiers appartenant à quelqu'un d'autre),
-     soit **(b)** mocker entièrement le SDK `@auth0/auth0-angular`/
+   - `curl https://dev-bata.eu.auth0.com/.well-known/openid-configuration`
+     est refusé par défaut par la politique réseau de cette session sandbox
+     précise (`deny network-outbound dev-bata.eu.auth0.com:443`).
+     **Correction après revue senior (2026-09-24,
+     `CHANTIER-MODERNISATION-REVIEW-PHASE1BIS.md`)** : ce n'est **pas** un
+     mur réseau structurel — le dev senior a refait le même appel en
+     autorisant explicitement ce domaine pour une commande, et **le tenant
+     répond normalement** (document de découverte OIDC complet, `jwks_uri`
+     inclus). Le vrai blocage dur et permanent n'est donc pas le réseau
+     (contournable à la commande près) mais l'absence totale
+     d'identifiants — voir point suivant.
+   - Même avec le réseau ouvert, il n'existe aucun identifiant réel (mot de
+     passe d'un compte de test, ou client secret pour un grant
+     machine-to-machine) permettant d'obtenir un JWT réellement signé par
+     ce tenant, et ce mandat n'autorise pas d'en créer un dans un tenant
+     Auth0 tiers appartenant à quelqu'un d'autre. **C'est ce point-là,
+     seul, qui justifie le report** — pas une indisponibilité réseau. Un
+     login Cypress headless réaliste demanderait donc soit **(a)** ces
+     identifiants + le grant "Resource Owner Password" activé sur ce
+     client (aucun des deux disponibles), soit **(b)** mocker entièrement
+     le SDK `@auth0/auth0-angular`/
      `auth0-spa-js` côté front — l'alternative que le mandat demandait
      explicitement d'évaluer. Évaluée sérieusement, elle est écartée :
      reproduire le format interne (non documenté, instable entre versions
@@ -770,6 +778,43 @@ Password" activé pour ce client (décision qui doit venir de qui gère le
 tenant `dev-bata`, hors mandat Tech Lead), soit **(b)** budgéter le
 chantier "serveur OIDC/JWKS local factice" comme son propre spike
 time-boxé, sur le modèle de la Phase 0bis.
+
+**Revue senior indépendante (2026-09-24,
+`CHANTIER-MODERNISATION-REVIEW-PHASE1BIS.md`) : validé avec réserves
+mineures, aucune ne remettant en cause le report.** Trois points relevés,
+tous traités :
+
+1. La formulation "tenant injoignable" ci-dessus a été corrigée (voir le
+   sous-point 1 juste au-dessus) — le vrai blocage dur est l'absence
+   d'identifiants, pas le réseau, qui n'est qu'une restriction par défaut
+   de cette session sandbox précise (contournable à la commande près,
+   vérifié par le dev senior).
+2. **Option de consolation suggérée par le dev senior, évaluée et à son
+   tour reportée** : un scénario e2e public minimal côté `webapp` (ex.
+   `/annonces` se charge, sans Auth0) a été considéré comme candidat à
+   coût quasi nul. En creusant `WelcomeGuard`/`WelcomeService`
+   (`apps/webapp/src/app/pages/welcome/`), ce n'est pas aussi trivial que
+   la suggestion initiale le laissait penser : `annonces` porte
+   `canActivate: [WelcomeGuard]`, et ce guard redirige vers `/welcome` sur
+   toute session fraîche tant que `UserSettingsService.hasCountrySet()`
+   est faux (pas de simple page publique ouverte par défaut) — un
+   scénario stable devrait donc pré-semer le `localStorage` attendu par
+   `UserSettingsService` avant `cy.visit`, **et** absorber de façon fiable
+   la résolution de `AuthCustomService.isLoading$` (le SDK Auth0 démarre
+   toujours, même pour un visiteur non connecté, avant que le guard ne
+   conclue). C'est un test légitime et sans Auth0 réel, mais ce n'est plus
+   un "coût quasi nul" — c'est un vrai petit chantier de câblage e2e avec
+   son propre risque de flakiness (résolution de `isLoading$`), exactement
+   le type de coût d'outillage sous-estimé que cette phase existe pour
+   éviter de traiter à la légère. Reporté avec le reste de la phase plutôt
+   que tenté sous pression de budget dans cette session — mais retenu
+   comme la piste la moins chère pour une reprise partielle, avant même le
+   spike OIDC complet.
+3. **Checklist de vérification manuelle pour la Phase 5** : non écrite
+   maintenant (prématuré tant que la Phase 5 n'est pas engagée), mais
+   actée comme obligation explicite à remplir *au moment du déclenchement
+   réel* de cette phase, pas laissée comme intention générale — voir la
+   Phase 5 elle-même (§4) pour le rappel.
 
 ### Phase 2 — Nettoyage SOLID côté API (derrière le filet de sécurité de la phase 1)
 
@@ -1156,6 +1201,14 @@ time-boxé, sur le modèle de la Phase 0bis.
   sous-vagues séquentielles, webapp puis admin (pas les deux en parallèle),
   pour ne pas cumuler deux surfaces de régression d'intégration
   simultanées sans filet e2e complet sur les deux apps à la fois.
+- **Obligation ajoutée après le chiffrage/la revue Phase 1bis (2026-09-24,
+  voir §4 Phase 1bis)** : la Phase 1bis étant reportée, cette phase
+  démarre sans filet e2e automatisé. La "vérification manuelle au
+  navigateur systématique par sous-vague" mentionnée en Phase 1bis **doit
+  être transformée en checklist écrite concrète (les parcours exacts à
+  rejouer à la main, webapp puis admin) au moment où cette Phase 5 est
+  réellement engagée** — pas laissée comme intention générale à ce
+  stade-ci, où l'écrire serait prématuré.
 - **Charge estimée** : L (potentiellement les deux apps en totalité,
   propagation NgModule → standalone) — à re-chiffrer par sous-vague une
   fois la Phase 1bis terminée et le nombre réel de composants/modules
