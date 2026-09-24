@@ -8,7 +8,7 @@ import { HomeModule } from '../home/home.module';
 import { SettingsModule } from '../settings/settings.module';
 import { MainRoutingModule } from './main-routing.module';
 import { MainComponent } from './main.component';
-import { SearchResultsModule } from '../search-results/search-results.module';
+import { SearchResultsComponent } from '../search-results/search-results.component';
 
 @NgModule({
   declarations: [MainComponent],
@@ -22,7 +22,7 @@ import { SearchResultsModule } from '../search-results/search-results.module';
     HeaderModule,
     FooterModule,
     SettingsModule,
-    SearchResultsModule
+    SearchResultsComponent
   ]
 })
 export class MainModule {}

@@ -1,14 +1,17 @@
+import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { map, switchMap } from 'rxjs/operators';
 
+import { AdCardModule } from '../../shared/components/ad-card/ad-card.module';
 import { SearchFilter } from '../../shared/models/search-filter.model';
 import { SearchService } from '../../shared/services/search.service';
 
 @Component({
   selector: 'bella-search-results',
   templateUrl: './search-results.component.html',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, AdCardModule],
 })
 export class SearchResultsComponent /*implements OnInit*/ {
   private route = inject(ActivatedRoute);
