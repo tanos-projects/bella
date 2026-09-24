@@ -32,6 +32,20 @@ export class AdsRepositoryNest implements AdsRepository {
     );
   }
 
+  updateOneInStatus(
+    id: string,
+    expectedStatus: string,
+    update: Partial<AdEntity>,
+  ): Observable<AdEntity> {
+    return from(
+      this.adModel.findOneAndUpdate(
+        { _id: id, status: expectedStatus },
+        { ...update },
+        { returnDocument: 'after' },
+      ),
+    );
+  }
+
   findAll(
     filter?: FilterCriteria,
     options?: FilterOptions,

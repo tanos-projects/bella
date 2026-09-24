@@ -1,6 +1,10 @@
 import { of } from 'rxjs';
 import { AdEntity, AdStatus } from './ad.entity';
-import { AdNotInExpectedStateError } from './ads.errors';
+import {
+  AdNotInExpectedStateError,
+  AdNotOwnedError,
+  AdRenewalRefusedError,
+} from './ads.errors';
 import { AdsRepository } from './ads.repository';
 import { AdsService } from './ads.service';
 import { Clock } from '../shared/clock';
@@ -38,6 +42,7 @@ describe('AdsService', () => {
       findOneUnpublished: jest.fn(),
       findOneDraft: jest.fn(),
       expireDue: jest.fn(),
+      updateOneInStatus: jest.fn(),
     };
     plan = {
       code: 'TEST',
@@ -329,6 +334,97 @@ describe('AdsService', () => {
           moderatedBy: 'mod@bella.test',
         });
         done();
+      });
+    });
+  });
+
+  describe('renew', () => {
+    const expiredAd: AdEntity = {
+      ...baseAd,
+      id: '42',
+      status: AdStatus.EXPIRED,
+      owner: { id: 'owner-1' },
+    };
+
+    it('moves an EXPIRED ad it owns back to PUBLISHED with a fresh plan lifetime', (done) => {
+      repository.findOne.mockReturnValue(of(expiredAd));
+      repository.updateOneInStatus.mockReturnValue(
+        of({ ...expiredAd, status: AdStatus.PUBLISHED })
+      );
+
+      service.renew('42', 'owner-1').subscribe((result) => {
+        expect(planResolver.resolveFor).toHaveBeenCalledWith(expiredAd);
+        expect(repository.updateOneInStatus).toHaveBeenCalledWith(
+          '42',
+          AdStatus.EXPIRED,
+          { status: AdStatus.PUBLISHED, publishedAt: now, expiresAt }
+        );
+        expect(result.status).toBe(AdStatus.PUBLISHED);
+        done();
+      });
+    });
+
+    it('rejects a caller who is not the owner, without writing anything', (done) => {
+      repository.findOne.mockReturnValue(of(expiredAd));
+
+      service.renew('42', 'someone-else').subscribe({
+        error: (error) => {
+          expect(error).toBeInstanceOf(AdNotOwnedError);
+          expect(repository.updateOneInStatus).not.toHaveBeenCalled();
+          done();
+        },
+      });
+    });
+
+    it('rejects when the ad does not exist', (done) => {
+      repository.findOne.mockReturnValue(of(null));
+
+      service.renew('42', 'owner-1').subscribe({
+        error: (error) => {
+          expect(error).toBeInstanceOf(AdNotInExpectedStateError);
+          expect(repository.updateOneInStatus).not.toHaveBeenCalled();
+          done();
+        },
+      });
+    });
+
+    it('rejects an ad that is not EXPIRED', (done) => {
+      repository.findOne.mockReturnValue(
+        of({ ...expiredAd, status: AdStatus.PUBLISHED })
+      );
+
+      service.renew('42', 'owner-1').subscribe({
+        error: (error) => {
+          expect(error).toBeInstanceOf(AdNotInExpectedStateError);
+          expect(repository.updateOneInStatus).not.toHaveBeenCalled();
+          done();
+        },
+      });
+    });
+
+    it('rejects when the plan refuses the renewal', (done) => {
+      repository.findOne.mockReturnValue(of(expiredAd));
+      plan.renewal.mockReturnValue({ outcome: 'REFUSED', reason: 'NOT_ELIGIBLE' });
+
+      service.renew('42', 'owner-1').subscribe({
+        error: (error) => {
+          expect(error).toBeInstanceOf(AdRenewalRefusedError);
+          expect(error.reason).toBe('NOT_ELIGIBLE');
+          expect(repository.updateOneInStatus).not.toHaveBeenCalled();
+          done();
+        },
+      });
+    });
+
+    it('rejects when a concurrent transition wins the race out of EXPIRED', (done) => {
+      repository.findOne.mockReturnValue(of(expiredAd));
+      repository.updateOneInStatus.mockReturnValue(of(null));
+
+      service.renew('42', 'owner-1').subscribe({
+        error: (error) => {
+          expect(error).toBeInstanceOf(AdNotInExpectedStateError);
+          done();
+        },
       });
     });
   });

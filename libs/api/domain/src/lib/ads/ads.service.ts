@@ -1,8 +1,12 @@
-import { Observable, OperatorFunction, throwError } from 'rxjs';
+import { Observable, of, OperatorFunction, throwError } from 'rxjs';
 import { concatMap } from 'rxjs/operators';
 
 import { AdEntity, AdStatus } from './ad.entity';
-import { AdNotInExpectedStateError } from './ads.errors';
+import {
+  AdNotInExpectedStateError,
+  AdNotOwnedError,
+  AdRenewalRefusedError,
+} from './ads.errors';
 import { AdsRepository } from './ads.repository';
 import { FilterCriteria, FilterOptions } from './models';
 import { UserEntity } from '../users/user.entity';
@@ -169,6 +173,55 @@ export class AdsService {
           extra.moderatedBy = moderatedBy;
         }
         return extra;
+      })
+    );
+  }
+
+  /**
+   * Lets an EXPIRED ad's owner ask for it to go live again. Ownership is
+   * checked here (unlike publish's, which the controller checks) because
+   * "only the owner renews" is itself the business rule being enforced, not
+   * an authorization concern layered on top of one.
+   */
+  renew(id: string, requesterId: string): Observable<AdEntity> {
+    return this.adsRepository.findOne(id).pipe(
+      concatMap((ad) => {
+        if (!ad) {
+          return throwError(
+            () => new AdNotInExpectedStateError(id, AdStatus.EXPIRED)
+          );
+        }
+        if (!ad.owner || ad.owner.id !== requesterId) {
+          return throwError(() => new AdNotOwnedError(id));
+        }
+        if (ad.status !== AdStatus.EXPIRED) {
+          return throwError(
+            () => new AdNotInExpectedStateError(id, AdStatus.EXPIRED)
+          );
+        }
+        const now = this.clock.now();
+        const plan = this.planResolver.resolveFor(ad);
+        const decision = plan.renewal(ad, now);
+        if (decision.outcome === 'REFUSED') {
+          return throwError(
+            () => new AdRenewalRefusedError(id, decision.reason)
+          );
+        }
+        return this.adsRepository
+          .updateOneInStatus(id, AdStatus.EXPIRED, {
+            status: AdStatus.PUBLISHED,
+            publishedAt: now,
+            expiresAt: plan.expiryFrom(now),
+          })
+          .pipe(
+            concatMap((updated) =>
+              updated
+                ? of(updated)
+                : throwError(
+                    () => new AdNotInExpectedStateError(id, AdStatus.EXPIRED)
+                  )
+            )
+          );
       })
     );
   }
