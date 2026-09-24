@@ -33,6 +33,20 @@
 > de ce qui a changé, ce sur quoi il y a accord, et ce qui reste ouvert
 > pour arbitrage par l'utilisateur.
 >
+> **Mise à jour (2026-09-24, même jour) — chiffrage Phase 1bis exécuté,
+> phase reportée.** Une session Tech Lead a exécuté le chiffrage exigé par
+> la Phase 1bis (§4) avant d'écrire le moindre scénario Cypress, comme
+> demandé. Verdict : sur les trois prérequis identifiés, deux sont
+> vérifiés faisables dans cet environnement (MongoDB local, testé
+> fonctionnel ; Cloudinary, vérifié contournable — l'upload d'image n'est
+> pas obligatoire dans le flux `post-an-ad`), mais le troisième — un compte
+> de test Auth0 fonctionnel de bout en bout — est bloquant, et bloque à lui
+> seul les deux scénarios visés puisque les deux routes ciblées sont
+> gardées par un login Auth0 réel. Détail complet, alternatives évaluées
+> (dont un mock du SDK Auth0, explicitement écarté et pourquoi) et
+> conséquence actée pour les phases 4/5 : voir Phase 1bis en §4 et la
+> réponse à la question ouverte §7.10.
+>
 > **Constat clé qui change le cadrage du mandat reçu** : le mandat de départ
 > (et `CLAUDE.md`, inchangé depuis) décrit un état — Angular 14, NestJS 9,
 > Nx 15, `AdsService` avec des FIXME actifs de state machine cassée — qui
@@ -643,6 +657,120 @@ jour). Résumé :
   terminée — ou son report explicitement acté par l'utilisateur — avant le
   lancement des phases 4 et 5.
 
+**Résultat du chiffrage (exécuté le 2026-09-24) : reporté — un des trois
+prérequis est bloquant dans cet environnement, les deux autres ne le sont
+pas.** Aucun scénario Cypress n'a été écrit ; le chiffrage a précédé toute
+implémentation, comme exigé.
+
+1. **Compte de test Auth0 — bloquant, pas de contournement honnête
+   trouvé.**
+   - Aucun `.env` n'existe dans ce worktree (seulement `.env.dist`) ;
+     aucune variable d'environnement Auth0 (client secret, identifiants
+     d'un utilisateur de test) n'est présente dans cette session.
+   - Le domaine réel codé en dur dans les deux fronts
+     (`dev-bata.eu.auth0.com`, `environment.ts` webapp et admin) est
+     injoignable par défaut depuis ce sandbox — vérifié empiriquement, pas
+     supposé : `curl https://dev-bata.eu.auth0.com/.well-known/openid-configuration`
+     est explicitement refusé par la politique réseau du sandbox (`deny
+     network-outbound dev-bata.eu.auth0.com:443`), avant même la question
+     des identifiants.
+   - Même avec un accès réseau autorisé, un login Cypress headless
+     réaliste demanderait soit **(a)** un identifiant/mot de passe réels +
+     le grant "Resource Owner Password" activé sur ce client Auth0 (aucun
+     des deux disponibles, et ce mandat n'inclut pas la création d'un
+     compte dans un tenant Auth0 tiers appartenant à quelqu'un d'autre),
+     soit **(b)** mocker entièrement le SDK `@auth0/auth0-angular`/
+     `auth0-spa-js` côté front — l'alternative que le mandat demandait
+     explicitement d'évaluer. Évaluée sérieusement, elle est écartée :
+     reproduire le format interne (non documenté, instable entre versions
+     du SDK) du cache de token dans `localStorage` ne suffit pas, il
+     faudrait **aussi** qu'un JWT signé valide passe `JwtAuthGuard`, qui
+     vérifie la signature via `jwks-rsa` contre les clés publiques réelles
+     du tenant — donc mocker "juste assez" pour que les deux scénarios
+     passent reviendrait à retirer la vraie frontière de sécurité du test
+     plutôt qu'à la vérifier. C'est exactement le "mock silencieux d'une
+     chose critique" que le mandat de cette session interdit explicitement,
+     pas une simplification anodine.
+   - Alternative propre identifiée mais hors budget de cette session : un
+     serveur OIDC/JWKS local factice, avec `AUTH_ISSUER_URL`/
+     `AUTH_AUDIENCE` redirigés dessus en configuration de test, et les deux
+     `environment.ts` pointés dessus pour l'e2e. C'est un chantier
+     d'infrastructure de test à part entière (pas quelques heures),
+     cohérent avec le label "L" déjà posé par la revue senior — candidat
+     naturel pour une reprise future de cette phase, structurée comme son
+     propre spike time-boxé (sur le modèle de la Phase 0bis), pas pour
+     cette session.
+2. **MongoDB local — pas bloquant, vérifié fonctionnel.**
+   - `mongod`/`mongosh` v8.0.32 sont installés dans le sandbox. Un `mongod`
+     local démarre avec succès sur un port dédié (`--dbpath` isolé,
+     `--nounixsocket` — le socket Unix par défaut dans `/tmp/mongodb-*.sock`
+     est refusé en écriture par le sandbox ; `--nounixsocket` contourne
+     proprement, sans toucher de configuration partagée). Testé et arrêté
+     proprement pendant ce chiffrage, aucune trace laissée.
+   - Les fixtures `apps/api/src/app/infrastructure/fixtures/*.fixture.mongodb`
+     sont des scripts `mongosh` directement exécutables
+     (`db.<collection>.drop()` + `insertMany`) — une base isolée et
+     reproductible entre exécutions (nouveau `dbpath` par run, ou
+     drop+reseed avant chaque suite) est donc réaliste.
+   - Point non couvert par les fixtures existantes, à noter pour une
+     reprise future : il n'existe **aucun** `users.fixture.mongodb`, alors
+     que les deux scénarios visés dépendent d'un utilisateur applicatif
+     (`CompleteProfileGuard` webapp exige un profil complété ; le flux
+     admin dépend d'une identité modérateur en base) — une fixture dédiée
+     resterait à écrire, mais c'est un ajout, pas un blocage.
+3. **Cloudinary — pas bloquant, l'upload est réellement contournable dans
+   le flux `post-an-ad`.**
+   - Vérifié dans le code : le champ `images` du formulaire
+     (`apps/webapp/src/app/pages/post-an-ad/ad-form/ad-form.component.ts`,
+     `type: 'picture-uploader'`) n'a **pas** `required: true`, contrairement
+     à tous les autres champs du même formulaire (titre, catégorie,
+     qualité, ...).
+   - `UploadService.uploadMultiple()`
+     (`apps/webapp/src/app/shared/components/upload/upload.service.ts`)
+     court-circuite vers `of([])` quand `files` est vide/`undefined` —
+     aucun appel réseau vers Cloudinary n'est déclenché si le scénario e2e
+     ne fournit aucune image.
+   - Le scénario "poster une annonce jusqu'à SUBMITTED" peut donc être
+     écrit sans jamais toucher Cloudinary.
+
+**Verdict** : les deux scénarios visés (webapp, admin) sont chacun gardés
+par un login Auth0 réel (`AuthGuard` sur `post-an-ad` côté webapp ;
+`AuthGuard` + `PermissionsGuard` sur `dashboard`/`publications` côté
+admin), donc les deux sont bloqués par le seul point 1 ci-dessus,
+indépendamment du fait que les points 2 et 3 soient chiffrés comme
+faisables.
+
+**Décision (clause de rollback explicitement prévue par cette section) :
+Phase 1bis reportée.** Pas un abandon — le chiffrage exigé par le mandat a
+été fait concrètement (mongod réellement démarré, réseau réellement
+testé, code réellement lu), pas supposé, et le seul obstacle dur trouvé
+est documenté avec sa cause exacte plutôt que contourné en inventant des
+identifiants ou en mockant silencieusement la couche d'authentification.
+
+**Conséquence actée, comme l'exige la clause de rollback** : si les Phases
+4 et 5 sont lancées, elles avanceront **sans filet d'intégration e2e**.
+Risque accepté et écrit noir sur blanc, pas ignoré :
+- Phase 4 (store admin) : le scope obligatoire retenu (4a, nettoyage) est
+  déjà qualifié à risque faible, sans changement de comportement — impact
+  limité de l'absence d'e2e.
+- Phase 5 (standalone Angular) : c'est la phase qui en pâtit le plus — sa
+  propre section documente déjà qu'un risque de câblage inter-modules
+  (import manquant, provider mal enregistré) n'est détecté de façon fiable
+  que par un e2e ou une vérification manuelle au navigateur. Sans Phase
+  1bis, ce risque doit être couvert par une **vérification manuelle au
+  navigateur systématique par sous-vague** (webapp puis admin), en plus du
+  build/lint/test automatisé — recommandation ajoutée ici pour compenser
+  partiellement l'absence de filet automatisé ; insuffisant en soi (une
+  vérification manuelle ne remplace pas 3 exécutions automatisées stables)
+  mais mieux que rien.
+
+**Prochaine étape si cette phase est reprise plus tard** : obtenir soit
+**(a)** un compte de test Auth0 réel avec le grant "Resource Owner
+Password" activé pour ce client (décision qui doit venir de qui gère le
+tenant `dev-bata`, hors mandat Tech Lead), soit **(b)** budgéter le
+chantier "serveur OIDC/JWKS local factice" comme son propre spike
+time-boxé, sur le modèle de la Phase 0bis.
+
 ### Phase 2 — Nettoyage SOLID côté API (derrière le filet de sécurité de la phase 1)
 
 - **Objectif** : traiter §1.3 points 1-7 un par un, chacun son propre
@@ -1208,14 +1336,27 @@ chantier :
    dette perçue à un niveau organisationnel) ? Sans réponse explicite,
    cette sous-phase reste en attente indéfiniment (voir §4 phase 4 et §8) —
    ce n'est pas un refus, seulement l'absence de déclencheur.
-10. **Ajoutée après revue senior — charge de la Phase 1bis (e2e)** :
-    acceptez-vous d'investir potentiellement un chantier d'outillage e2e
-    substantiel (compte de test Auth0 fonctionnel, données de seed
-    dédiées, gestion de Cloudinary en environnement de test) avant de
-    lancer les phases 4/5, ou préférez-vous, si la charge s'avère trop
-    importante, accepter par écrit le risque documenté de lancer 4/5 sans
-    filet d'intégration complet ? Voir §4 Phase 1bis pour la clause de
-    report explicite déjà prévue.
+10. **Ajoutée après revue senior — charge de la Phase 1bis (e2e).**
+    **Répondue par le chiffrage du 2026-09-24 (voir §4, Phase 1bis,
+    "Résultat du chiffrage")** : le chiffrage a été fait concrètement
+    avant d'écrire le moindre scénario, comme demandé. Deux des trois
+    prérequis (MongoDB local, contournement Cloudinary) sont faisables
+    dans cet environnement ; le troisième (compte de test Auth0
+    fonctionnel de bout en bout) est bloquant et bloque à lui seul les
+    deux scénarios visés — aucun accès réseau au tenant `dev-bata.eu.auth0.com`
+    par défaut dans ce sandbox, aucun identifiant de test disponible, et
+    un mock complet du SDK Auth0 a été évalué puis écarté (il faudrait
+    aussi contourner la vérification JWKS côté API, ce qui reviendrait à
+    retirer la frontière de sécurité testée plutôt qu'à la vérifier).
+    **Décision actée par le Tech Lead en appliquant la clause de rollback
+    déjà posée en §4 : Phase 1bis reportée**, avec la conséquence
+    explicitement actée que les phases 4/5 avanceront sans filet
+    d'intégration e2e (compensé partiellement pour la phase 5 par une
+    vérification manuelle au navigateur systématique par sous-vague).
+    **Reste ouvert pour l'utilisateur** : l'arbitrage entre (a) obtenir un
+    vrai compte de test Auth0 (hors mandat Tech Lead — dépend de qui gère
+    le tenant) et (b) budgéter un spike "OIDC/JWKS local factice" comme
+    prochaine tentative, si cette phase est reprise.
 11. **Ajoutée 2026-09-24, découverte pendant l'exécution de la Phase 2,
     sous-point 8 (`GET /users/:id`)** : ajouter `@UseGuards(JwtAuthGuard)`
     sur `UsersController.findOne` referme la faille d'auth documentée en
