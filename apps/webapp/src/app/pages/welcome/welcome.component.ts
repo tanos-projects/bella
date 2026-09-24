@@ -1,14 +1,17 @@
+import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { finalize } from 'rxjs/operators';
 import { LoadingService } from '../../shared/components/loading/loading.service';
 import { CountriesService } from '../../shared/services/countries.service';
+import { LoginSignupLinkComponent } from '../../shared/components/buttons/login-signup-link/login-signup-link.component';
 import { WelcomeService } from './welcome.service';
 
 @Component({
   selector: 'bella-welcome',
   templateUrl: './welcome.component.html',
   styleUrls: ['./welcome.component.scss'],
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, LoginSignupLinkComponent],
 })
 export class WelcomeComponent {
   private welcomeService = inject(WelcomeService);
