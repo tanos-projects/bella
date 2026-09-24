@@ -14,8 +14,7 @@ describe('AdCardComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [AdCardComponent],
-      imports: [...commonTestImports],
+      imports: [AdCardComponent, ...commonTestImports],
       providers: [...commonTestProviders],
       schemas: [...commonTestSchemas],
     }).compileComponents();
