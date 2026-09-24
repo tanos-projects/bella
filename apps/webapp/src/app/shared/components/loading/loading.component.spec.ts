@@ -13,8 +13,7 @@ describe('LoadingComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [LoadingComponent],
-      imports: [...commonTestImports],
+      imports: [LoadingComponent, ...commonTestImports],
       providers: [...commonTestProviders],
       schemas: [...commonTestSchemas],
     }).compileComponents();
