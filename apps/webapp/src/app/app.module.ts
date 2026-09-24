@@ -22,7 +22,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { AuthenticationModule } from './auth/authentication.module';
 import { WelcomeModule } from './pages/welcome/welcome.module';
-import { DrawerModule } from './shared/components/drawer/drawer.module';
+import { DrawerComponent } from './shared/components/drawer/drawer.component';
 import { LoadingComponent } from './shared/components/loading/loading.component';
 import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
 import { VALIDATION_MESSAGE_FORMATTERS } from './shared/form/validation-messages';
@@ -43,7 +43,7 @@ registerLocaleData(localeFr);
     TabsModule,
     ProgressbarModule,
 
-    DrawerModule.forRoot(),
+    DrawerComponent,
 
     //
     AuthModule.forRoot({

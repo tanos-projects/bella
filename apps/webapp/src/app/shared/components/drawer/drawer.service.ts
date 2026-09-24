@@ -3,7 +3,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class DrawerService {
   private openStateHolder$ = new BehaviorSubject<boolean>(false);
   public opened$ = this.openStateHolder$.asObservable();

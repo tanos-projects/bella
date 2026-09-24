@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, inject } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { DrawerService } from './drawer.service';
@@ -6,7 +7,8 @@ import { DrawerService } from './drawer.service';
   selector: 'bella-drawer',
   templateUrl: './drawer.component.html',
   styleUrls: ['./drawer.component.scss'],
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule],
 })
 export class DrawerComponent implements OnDestroy {
   private drawerService = inject(DrawerService);
