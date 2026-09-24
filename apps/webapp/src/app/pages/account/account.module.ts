@@ -5,7 +5,7 @@ import { AccountRoutingModule } from './account-routing.module';
 import { AccountComponent } from './account.component';
 import { CreateProfileComponent } from './profile/create/create-profile-component';
 import { ProfileFormModule } from './profile/form/profile-form.module';
-import { LoginSignupModule } from '../../shared/components/buttons/login-signup/login-signup.module';
+import { LoginSignupComponent } from '../../shared/components/buttons/login-signup/login-signup.component';
 import { LogoutButtonModule } from '../../shared/components/buttons/logout/logout-button.module';
 
 @NgModule({
@@ -16,7 +16,7 @@ import { LogoutButtonModule } from '../../shared/components/buttons/logout/logou
     TitledPageComponent,
     ProfileFormModule,
     CreateProfileComponent,
-    LoginSignupModule,
+    LoginSignupComponent,
     LogoutButtonModule
   ]
 })

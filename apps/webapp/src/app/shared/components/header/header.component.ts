@@ -4,7 +4,7 @@ import { RouterModule } from '@angular/router';
 import { MyDeviceService } from '../../services/my-device.service';
 import { DrawerService } from '../drawer/drawer.service';
 import { AuthCustomService } from '../../../auth/auth-custom.service';
-import { LoginSignupModule } from '../buttons/login-signup/login-signup.module';
+import { LoginSignupComponent } from '../buttons/login-signup/login-signup.component';
 import { LogoutButtonModule } from '../buttons/logout/logout-button.module';
 import { SearchFilterButtonComponent } from '../search-filter-button/search-filter-button.component';
 
@@ -17,7 +17,7 @@ import { SearchFilterButtonComponent } from '../search-filter-button/search-filt
     CommonModule,
     RouterModule,
     SearchFilterButtonComponent,
-    LoginSignupModule,
+    LoginSignupComponent,
     LogoutButtonModule,
   ],
 })
