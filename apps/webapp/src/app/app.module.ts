@@ -23,7 +23,7 @@ import { AppComponent } from './app.component';
 import { AuthenticationModule } from './auth/authentication.module';
 import { WelcomeModule } from './pages/welcome/welcome.module';
 import { DrawerModule } from './shared/components/drawer/drawer.module';
-import { LoadingModule } from './shared/components/loading/loading.module';
+import { LoadingComponent } from './shared/components/loading/loading.component';
 import { SidebarModule } from './shared/components/sidebar/sidebar.module';
 import { VALIDATION_MESSAGE_FORMATTERS } from './shared/form/validation-messages';
 
@@ -98,7 +98,7 @@ registerLocaleData(localeFr);
       }
     }),
     AuthenticationModule.forRoot(),
-    LoadingModule.forRoot(),
+    LoadingComponent,
 
     //
     SidebarModule,
