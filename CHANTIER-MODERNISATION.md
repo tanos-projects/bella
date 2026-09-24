@@ -546,57 +546,62 @@ avant qu'une phase front puisse s'appuyer dessus, par exemple).
        par un test de caractérisation dédié écrit **avant** le déplacement
        — pas un simple copier-coller comme le sous-entendait la formulation
        initiale.
-  4. **[BLOQUÉ À L'EXÉCUTION, 2026-09-24 — voir détail ci-dessous]** Typer
-     les filtres de requête (`AdSearchQueryDTO` + `class-validator`) sur
-     `getAll`/`getMyPublications` — **ce point change un comportement
-     observable** (rejet de query params invalides) et doit donc être un
-     commit séparé, signalé comme tel (principe 7).
+  4. **[Débloqué et exécuté le 2026-09-24, avec une réserve
+     d'environnement documentée ci-dessous]** Typer les filtres de requête
+     (`AdSearchQueryDTO` + `class-validator`) sur `getAll`/
+     `getMyPublications` — **ce point change un comportement observable**
+     (rejet de query params invalides) et doit donc être un commit séparé,
+     signalé comme tel (principe 7).
 
-     **Blocage constaté à l'exécution** : `class-validator` et
-     `class-transformer` sont absents de l'environnement (ni dans
-     `package.json`, ni dans `node_modules` — vérifié par grep/`ls`
-     exhaustifs). Ce worktree n'a pas de `node_modules` propre : il résout
-     ses dépendances par remontée de répertoire vers celui, **physiquement
-     partagé**, du dépôt principal `/home/tanos/bella` (utilisé aussi par
-     les autres worktrees actifs, `expiration-annonces` et
-     `moderator-rename`). Installer une nouvelle dépendance de façon
-     classique (`yarn add`) depuis ce worktree écrirait donc dans cet arbre
-     partagé — exactement ce que la fiche de rôle Tech Lead interdit
-     explicitement ("ne touche jamais... à ses autres worktrees").
-     Une tentative d'installation strictement locale (overlay de symlinks
-     vers les paquets partagés existants + paquets réels ajoutés localement
-     pour `class-validator`/`class-transformer`/leurs dépendances) a été
-     testée dans une copie de travail isolée : elle fonctionne pour
-     `nx test api` mais a fait apparaître une erreur TypeScript instable
-     sur un fichier totalement étranger à ce sous-point
-     (`admin-publication.controller.ts:35`, `Property 'headers' does not
-     exist on type 'RequestWithUser'`) lors de `nx build api`. Investigation
-     poussée (3 worktrees isolés : ce commit, le commit précédent, et
-     `main` `b0912af` lui-même) : **cette erreur de build est en fait déjà
-     présente sur `main`, indépendamment de tout changement de ce
-     chantier** — l'environnement partagé (`/home/tanos/bella/node_modules`)
-     est dans un état actuellement instable pour `nx build api`
-     (vraisemblablement lié à une modification concurrente de cet arbre
-     partagé par une autre session active pendant l'exécution de cette
-     phase — plusieurs agents tournent en parallèle sur ce chantier). Ce
-     n'est donc **pas une régression causée par ce chantier**, mais ça
-     signifie que le sol sur lequel une installation de dépendance
-     s'appuierait est lui-même instable en ce moment précis.
-     **Décision** : sous-point 4 mis en attente plutôt que forcé — ni la
-     voie "toucher l'arbre partagé" (interdite) ni la voie "overlay
-     local" (fonctionnelle pour les tests mais qui a révélé, en creusant,
-     une instabilité de l'environnement de build indépendante de ce
-     chantier) ne sont satisfaisantes à traiter unilatéralement dans cette
-     session. `nx test api`/`nx lint api` sont restés verts tout au long
-     de cette investigation (seul `nx build api` est affecté, et il l'est
-     déjà sur `main`) — utilisés comme filet de sécurité pour la suite des
-     sous-points de cette phase à la place de `nx run-many
-     --target={build,lint,test} --all` tel quel. **Rends la main** sur ce
-     point précis : nécessite soit une résolution de l'installation propre
-     des dépendances par worktree (chaque worktree Nx a normalement son
-     propre `node_modules`, ce qui n'est pas le cas ici), soit une
-     confirmation que l'instabilité de `nx build api` observée sur `main`
-     est résolue avant de retenter.
+     **Historique du blocage et de sa résolution** : `class-validator` et
+     `class-transformer` étaient absents de l'environnement (ni dans
+     `package.json`, ni dans `node_modules`). Ce worktree n'a pas de
+     `node_modules` propre : il résout ses dépendances par remontée de
+     répertoire vers celui, **physiquement partagé**, du dépôt principal
+     `/home/tanos/bella` (utilisé aussi par les autres worktrees actifs).
+     Installer une dépendance classiquement (`yarn add`) depuis ce worktree
+     écrirait dans cet arbre partagé — interdit par la fiche de rôle Tech
+     Lead. Une première tentative d'overlay local (symlinks vers les
+     paquets partagés + paquets réels ajoutés localement pour
+     `class-validator`/`class-transformer`/leurs dépendances) avait fait
+     apparaître une erreur TypeScript instable sur un fichier étranger à ce
+     sous-point (`admin-publication.controller.ts:35`,
+     `Property 'headers' does not exist on type 'RequestWithUser'`) —
+     investigation poussée (3 worktrees isolés, dont `main` `b0912af` lui
+     même) : cette erreur préexistait, indépendante de tout changement de
+     ce chantier, et a été **corrigée en même temps que le sous-point 6**
+     (typage explicite de `headers` via `IncomingHttpHeaders`, voir le
+     commit du sous-point 6) — elle n'était donc pas liée à
+     `class-validator` mais l'a fait apparaître par coïncidence temporelle.
+     Une fois cette erreur corrigée, l'overlay local a été retenté :
+     **`nx build/lint/test api` passent tous les trois**, à une condition
+     près, découverte lors de cette seconde tentative — `@nestjs/common`'s
+     `ValidationPipe` charge `class-validator` via un `require()` interne
+     paresseux (`loadPackage`), résolu relativement à l'emplacement **réel**
+     de `@nestjs/common` (le lien symbolique `node_modules/@nestjs` de
+     l'overlay pointe vers le dossier réel partagé, donc Node résout ce
+     `require()` en remontant depuis ce dossier réel, jamais vers l'overlay
+     local) — l'overlay local seul ne suffit pas pour ce cas précis
+     d'usage. Contournement retenu, sans toucher l'arbre partagé : la
+     variable d'environnement standard Node `NODE_PATH` pointée vers le
+     `node_modules` de ce worktree, qui ajoute ce dossier aux chemins de
+     résolution consultés par **tout** `require()`, y compris ceux internes
+     à une dépendance.
+     **Limite connue à documenter pour la suite** : cette solution dépend
+     de deux choses non committées dans git (`node_modules` est dans
+     `.gitignore`) — l'overlay local lui-même et `NODE_PATH` positionné au
+     lancement des commandes `nx`. Une session future qui relance `nx test
+     api`/`nx build api` **sans ces deux éléments** retrouvera l'échec
+     initial (paquet introuvable). La résolution définitive et propre
+     reste un vrai `yarn install` scopé à ce worktree (chaque worktree Nx
+     devrait avoir son propre `node_modules`, ce qui n'est pas le cas ici)
+     — non tenté dans cette session par prudence sur le temps/la charge
+     réseau que ça engagerait, l'overlay + `NODE_PATH` étant suffisant pour
+     boucler ce sous-point dans l'immédiat. `package.json` a été mis à jour
+     (`class-validator`/`class-transformer` ajoutés aux `dependencies`) ;
+     **`yarn.lock` n'a volontairement pas été régénéré** (pas d'installation
+     réelle exécutée) — à faire lors du prochain vrai `yarn install` de ce
+     worktree.
   5. **Sortir `NotFoundException` (et `BadRequestException`) d'`AdMapper`
      et de `UserMapper`** — le `null`/`undefined` devient la
      responsabilité de l'appelant (SRP). **Reclassifié après revue senior
@@ -726,7 +731,7 @@ avant qu'une phase front puisse s'appuyer dessus, par exemple).
   - **[GELÉ — dépend de §7.3]** Clarifier/retirer `CitiesModule` si aucun
     contrôleur n'est prévu (§1.3 point 8) — ne démarre qu'après réponse
     explicite de l'utilisateur sur la question ouverte.
-- **Fichiers touchés** : `apps/api/src/app/infrastructure/persistence/repositories/ads-repository-nest.ts`, `apps/api/src/app/api/ads.controller.ts`, `apps/api/src/app/api/admin/admin-publication.controller.ts`, `libs/api/domain/src/lib/ads/ads.repository.ts`, `libs/api/adapters/src/lib/ad.mapper.ts`, `libs/api/domain/src/lib/cities/cities.service.ts`, `apps/api/src/app/api/users.controller.ts` (+ `.spec.ts`, sous-point 8), `apps/api/src/app/api/categories.controller.ts` (+ `.spec.ts`, sous-point 9).
+- **Fichiers touchés** : `apps/api/src/app/infrastructure/persistence/repositories/ads-repository-nest.ts`, `apps/api/src/app/api/ads.controller.ts`, `apps/api/src/app/api/admin/admin-publication.controller.ts`, `libs/api/domain/src/lib/ads/ads.repository.ts`, `libs/api/adapters/src/lib/ad.mapper.ts`, `libs/api/domain/src/lib/cities/cities.service.ts`, `apps/api/src/app/api/users.controller.ts` (+ `.spec.ts`, sous-point 8), `apps/api/src/app/api/categories.controller.ts` (+ `.spec.ts`, sous-point 9), `apps/api/src/app/api/ad-search-query.dto.ts` (+ `.spec.ts`, nouveau, sous-point 4), `package.json` (ajout `class-validator`/`class-transformer`, sous-point 4).
 - **Principes appliqués** : OCP, ISP, SRP (détaillés ci-dessus) ; 8 et 9
   sont des corrections de bug fonctionnel/faille de sécurité découvertes en
   Phase 1, pas des applications de principe SOLID au sens strict.
