@@ -4,7 +4,6 @@ import { AdDTO, CreateAdDTO } from '@bella/dtos';
 import {
   Body,
   Controller,
-  ForbiddenException,
   Get,
   NotFoundException,
   Param,
@@ -24,6 +23,7 @@ import { AdsService } from '../infrastructure/ads/ads.service';
 import { UsersService } from '../infrastructure/users/users.service';
 import { mapAdTransitionError } from '../utils/ad-transition-error.operator';
 import { MostRecentAdsShuffler } from './most-recent-ads-shuffler';
+import { PublishAuthorizationPolicy } from './publish-authorization.policy';
 
 interface RequestWithUser extends ExpressRequest {
   user: AuthUser;
@@ -32,11 +32,17 @@ interface RequestWithUser extends ExpressRequest {
 @Controller('publications')
 export class AdsController {
   private readonly mostRecentAdsShuffler = new MostRecentAdsShuffler();
+  private readonly publishAuthorizationPolicy: PublishAuthorizationPolicy;
 
   constructor(
     private adsService: AdsService,
     private usersService: UsersService
-  ) {}
+  ) {
+    this.publishAuthorizationPolicy = new PublishAuthorizationPolicy(
+      adsService,
+      usersService
+    );
+  }
 
   @Get()
   getAll(
@@ -143,25 +149,9 @@ export class AdsController {
     @Param('id') id: string,
     @Request() req: RequestWithUser
   ): Observable<AdDTO> {
-    if ((req.user.permissions ?? []).includes('manage:publications')) {
-      return this.adsService
-        .publish(id)
-        .pipe(mapAdTransitionError(), map(AdMapper.modelToDTO));
-    }
-    return this.getUser(req.user).pipe(
-      switchMap((caller) =>
-        this.adsService.findOne(id).pipe(
-          switchMap((ad) => {
-            if (!ad.owner || ad.owner.id !== caller.id) {
-              throw new ForbiddenException('Only the ad owner can publish it');
-            }
-            return this.adsService
-              .publish(id)
-              .pipe(mapAdTransitionError(), map(AdMapper.modelToDTO));
-          })
-        )
-      )
-    );
+    return this.publishAuthorizationPolicy
+      .publishIfAuthorized(id, req.user)
+      .pipe(mapAdTransitionError(), map(AdMapper.modelToDTO));
   }
 
   private getUser(user: AuthUser): Observable<UserEntity> {
