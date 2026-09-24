@@ -1327,10 +1327,19 @@ tous traités :
   interne des composants (déjà couverte par les specs unitaires
   existantes) — la nature du risque est spécifiquement celle qu'un e2e
   détecte et qu'un test unitaire ne détecte pas.
-- **Critère d'acceptation** : par sous-vague (webapp, puis admin) —
-  `nx run-many --target={build,lint,test} --all` vert, **et** les
-  scénarios e2e de la Phase 1bis passent toujours de façon stable après la
-  sous-vague, pas seulement avant.
+- **Critère d'acceptation (corrigé le 2026-09-24 après revue senior du lot
+  pilote — voir `CHANTIER-MODERNISATION-REVIEW-PHASE5-PILOTE.md` point 6)**
+  : le libellé original de ce critère (ci-dessous, barré) renvoyait à "les
+  scénarios e2e de la Phase 1bis", devenu impossible à satisfaire tel
+  qu'écrit depuis le report acté de cette phase (§7.10) — résidu de
+  rédaction jamais corrigé quand le statut "engagée" a été ajouté plus bas.
+  Le critère réellement en vigueur, par sous-vague (webapp, puis admin) :
+  `nx run-many --target={build,lint,test} --all` vert **et** la checklist
+  de vérification manuelle au navigateur ci-dessous rejouée (par lot, pas
+  composant par composant) sans régression constatée sur les parcours
+  qu'elle couvre — sans dépendance à un filet e2e qui n'existe pas.
+  ~~et les scénarios e2e de la Phase 1bis passent toujours de façon stable
+  après la sous-vague, pas seulement avant.~~
 - **Rollback** : par lot vérifié (comme déjà pratiqué pour `@if`/`@for` et
   `inject()`) — revert du lot précis en cas de régression détectée au
   build/lint/test ou par les scénarios e2e, jamais un rollback de toute la
@@ -1500,26 +1509,107 @@ sûr possible pour valider la mécanique avant d'aller plus loin :
   ci-dessus) — à faire par un humain avant de considérer ce lot
   définitivement acquis, malgré le vert automatisé.
 
-**Reste à faire pour cette sous-vague (webapp)**, dans l'ordre de risque
-croissant suggéré :
-1. Les 12 autres composants "sans spec" restants (voir tableau) —
-   `ads-previewer`/`carousel` et `picture-uploader`/`stepped-form-field`
-   traités en dernier dans ce sous-groupe vu leur complexité de câblage
-   propre (Swiper custom elements, module co-localisé).
-2. Les 28 composants "avec spec" — chacun nécessite : (a) conversion du
-   composant + propagation `NgModule`, (b) édition du `.spec.ts`
-   (`declarations` → `imports`), (c) commit séparé de (b) soumis à
-   `qa-reviewer` avant fusion définitive, (a)+propagation restant du
-   ressort du Tech Lead.
+#### Amendements actés après la revue senior du lot pilote (2026-09-24)
+
+Revue indépendante : `CHANTIER-MODERNISATION-REVIEW-PHASE5-PILOTE.md`.
+Verdict : **validé avec réserves**, toutes actionnables directement par le
+Tech Lead, aucune question produit nouvelle. Quatre amendements actés
+ci-dessous, qui remplacent la méthode initialement esquissée plus haut
+dans cette section.
+
+1. **Cadence `qa-reviewer` — répond à la question ouverte §7.13** :
+   un aller-retour `qa-reviewer` **par composant** pour un changement
+   mécaniquement identique (`declarations: [X]` → `imports: [X]`, rien
+   d'autre dans le fichier de spec) est disproportionné — le mandat de
+   `qa-reviewer` n'exige pas cette granularité, seule la règle §5 exige
+   que **chaque commit qui modifie un spec existant reste isolé**, pas
+   qu'il déclenche sa propre session de revue. **Décision actée** : un
+   commit par composant pour l'édition de spec (rollback fin, cohérent
+   avec la pratique déjà en place), mais soumission à `qa-reviewer`
+   **groupée par lots de 5 à 10 composants** plutôt qu'un aller-retour
+   unitaire — ramène la charge de process de ~32 sessions à ~4-6 sans
+   rien perdre sur l'isolement des commits ni sur la rigueur de la revue
+   individuelle par fichier. Ceci répond et clôt la question ouverte §7.13
+   (l'exécution de la règle de gouvernance §5 pour cette phase) ; §7.7
+   (qui fait la revue "en général", au-delà de cette phase précise) reste
+   ouverte.
+2. **Garde-fou `nx build`/`strictTemplates`/`NG8001` — à vérifier
+   empiriquement, pas supposé** : `apps/webapp/tsconfig.json` a
+   `strictTemplates: true`, qui active le diagnostic `NG8001` ("is not a
+   known element") pour tout élément personnalisé absent des `imports` (ou
+   `schemas`) de son unité de compilation — **indépendamment** du schéma
+   utilisé par le *spec* du composant (la plupart utilisent
+   `NO_ERRORS_SCHEMA` via `apps/webapp/src/testing/testing-support.ts`,
+   qui neutralise la détection d'un import manquant *dans le spec*, mais
+   ne neutralise rien côté compilation du composant standalone lui-même).
+   **Plan de vérification** : sur le premier composant converti qui a à la
+   fois un `.spec.ts` et des enfants de template `bella-*` (candidat
+   naturel : `header.component.ts`, qui en compose trois —
+   `bella-search-filter-button`, `bella-logout-btn`,
+   `bella-auth-login-signup`), retirer délibérément une entrée de son
+   tableau `imports` standalone, lancer `nx build webapp`, confirmer
+   l'échec `NG8001` (ou documenter l'absence d'échec si le test infirme
+   l'hypothèse), remettre l'entrée correcte, documenter le résultat ici
+   avant de committer. **Résultat** : voir sous-section dédiée plus bas,
+   remplie au moment où ce composant est traité (vague "avec spec").
+3. **Tri par accessibilité à la vérification manuelle — s'ajoute au tri
+   sans-spec/avec-spec, ne le remplace pas** : les composants de
+   formulaire (`ng-select-form-field`, `field-error`, `picture-uploader`,
+   `stepped-form-field`) ne sont utilisés que derrière
+   `AuthGuard`/`CompleteProfileGuard` (`post-an-ad`,
+   `account/profile/form`, `settings` — vérifié par grep sur
+   `app-routing.module.ts` et les `*.module.ts` qui les déclarent) : une
+   fois convertis, aucune des trois protections (spec fidèle — voir point
+   2 —, e2e, vérification humaine) ne s'applique vraiment tant qu'aucun
+   humain avec un compte Auth0 réel ne les a rejoués. **Décision actée** :
+   à l'intérieur de chaque groupe sans-spec/avec-spec, prioriser les
+   composants **accessibles publiquement** (reachable sans connexion,
+   vérifié route par route dans `app-routing.module.ts` : `annonces`,
+   `annonces/:category/:title/:id`, `profil/:id/:username` ne portent
+   qu'un `WelcomeGuard` ou aucun guard) et traiter en dernier ceux
+   **exclusivement derrière Auth0** (`account`, `post-an-ad`,
+   `bookmarks`, `my-publications`, `settings` portent `AuthGuard` et/ou
+   `CompleteProfileGuard`) — dont la mise en "acquis" définitif reste
+   gelée jusqu'à vérification humaine réelle avec un compte Auth0, pas
+   seulement jusqu'à build/lint/test verts.
+4. **Critère d'acceptation Phase 5 corrigé** : voir plus haut dans cette
+   section (résidu de rédaction pointant vers les scénarios e2e Phase 1bis,
+   remplacé par un renvoi explicite à la checklist manuelle).
+
+**Reste à faire pour cette sous-vague (webapp)**, ordonnancé par
+sans-spec/avec-spec **puis** par accessibilité (public d'abord, Auth0-gated
+en dernier) :
+
+1. Les 12 autres composants "sans spec" restants, sous-triés :
+   - **Publics** (vérifiables sans compte Auth0) : `search-results`,
+     `profile.component` (`/profil/:id/:username`), `ad-contacts`,
+     `ads-previewer`, `search-filter-button`, `search-filter`.
+   - **Derrière Auth0** (routes `account`/`post-an-ad` gardées par
+     `AuthGuard`/`CompleteProfileGuard`, ou flux de connexion lui-même) :
+     `logged-in-callback` (pas de guard de route, mais seulement
+     exerçable via le flux de redirection Auth0 réel — même blocage que
+     le parcours 4 de la checklist), `create-profile-component`,
+     `post-an-ad.component`, puis `ng-select-form-field`,
+     `picture-uploader`, `stepped-form-field` en tout dernier
+     (complexité de câblage propre en plus : module co-localisé dans le
+     même fichier que le composant pour ces deux derniers).
+2. Les 28 composants "avec spec", même sous-tri public/Auth0-gated, par
+   lots de 5-10 pour la soumission `qa-reviewer` (voir amendement 1
+   ci-dessus) : (a) conversion du composant + propagation `NgModule`,
+   (b) édition du `.spec.ts` (`declarations` → `imports`) dans un commit
+   séparé et isolé par composant, (c) une fois un lot de 5-10 composants
+   prêt, soumission groupée à `qa-reviewer` — aucun commit de (b) n'est
+   considéré acquis avant le feu vert du lot complet auquel il appartient.
 3. Puis la sous-vague `admin` (8 composants, 4 sans spec/4 avec spec),
    seulement après webapp entièrement close, comme recommandé par la
    revue senior (pas les deux apps en parallèle).
 
-**À soumettre à `senior-dev` avant de poursuivre** : la méthode elle-même
-(découpage sans-spec/avec-spec, remise de la règle lint à `off` entre les
-lots, dépendance du feu vert `qa-reviewer` par lot de specs plutôt qu'un
-lot global en fin de sous-vague) — pas seulement le résultat du lot
-pilote.
+La méthode ci-dessus (chiffrage + lot pilote + amendements 1-4) a déjà été
+soumise à et validée par `senior-dev` — voir
+`CHANTIER-MODERNISATION-REVIEW-PHASE5-PILOTE.md`. Le prochain point de
+passage `senior-dev` est la fin de la sous-vague webapp complète (ou du
+premier lot "avec spec" prêt pour `qa-reviewer`, selon ce qui arrive en
+premier).
 
 ### Phase 6 (optionnelle, à valider) — Trancher `APPROVED` dans `AdStatus`
 
@@ -1747,20 +1837,20 @@ chantier :
     session, volontairement, pour ne pas mélanger ça avec la clôture
     additive de la Phase 3. Détail complet dans
     `CHANTIER-MODERNISATION-REVIEW-PHASE3.md`.
-13. **Ajoutée 2026-09-24, découverte pendant le chiffrage de la Phase 5** :
-    le point 7 ci-dessus ("qui fait la revue QA pour une modification de
-    test existant") passe d'une question théorique à une question
-    opérationnelle immédiate — convertir un composant en
-    `standalone: true` casse son `.spec.ts` s'il en a un
-    (`TestBed.configureTestingModule({ declarations: [X] })` devient
-    invalide, doit passer en `imports: [X]`), et **28 des 41 composants
-    webapp + 4 des 8 composants admin** identifiés sont dans ce cas (voir
-    §4 Phase 5). Pas une question produit à trancher par l'utilisateur,
-    mais un point de process/architecture non trivial qui doit être
-    soumis à `senior-dev` avant que le Tech Lead ne s'engage sur un rythme
-    d'exécution (un aller-retour `qa-reviewer` par composant converti, ou
-    un regroupement des éditions de specs en lots plus larges soumis
-    ensemble) — non tranché unilatéralement dans cette session.
+13. **Ajoutée 2026-09-24, découverte pendant le chiffrage de la Phase 5 —
+    RÉPONDUE le 2026-09-24 par la revue senior du lot pilote.** Le point 7
+    ci-dessus ("qui fait la revue QA pour une modification de test
+    existant") était passé d'une question théorique à une question
+    opérationnelle immédiate (convertir un composant en `standalone: true`
+    casse son `.spec.ts` s'il en a un, et 28 des 41 composants webapp + 4
+    des 8 composants admin sont dans ce cas). Ce n'était pas une question
+    produit, mais un point de process soumis à `senior-dev` comme prévu
+    (voir `CHANTIER-MODERNISATION-REVIEW-PHASE5-PILOTE.md`) : **réponse
+    actée — un commit isolé par composant pour l'édition de spec, mais
+    soumission à `qa-reviewer` groupée par lots de 5 à 10 composants**,
+    pas un aller-retour unitaire (voir §4 Phase 5, amendement 1). §7.7
+    (qui fait la revue "en général", au-delà de cette phase précise) reste
+    ouverte pour l'utilisateur.
 
 ## 8. Réponse du Tech Lead aux réserves de la revue senior (2026-09-24)
 
@@ -1835,6 +1925,43 @@ report explicite assumé des phases 4/5 sans filet complet ?). Il n'y a
 pas de désaccord actif restant entre le Tech Lead et le dev senior à ce
 stade — les trois réserves bloquantes sont intégrées et le seul désaccord
 de fond (Phase 4) est tranché en acceptant l'argument du dev senior.
+
+### Réponse à la revue senior du lot pilote Phase 5 (2026-09-24)
+
+Deuxième revue indépendante, distincte de celle ci-dessus :
+`CHANTIER-MODERNISATION-REVIEW-PHASE5-PILOTE.md`, portant sur le chiffrage
+réel de la Phase 5, le commit pilote `1fa187c` (`SpinnerComponent`) et la
+méthode proposée pour la suite. **Verdict : validé avec réserves — le lot
+pilote lui-même validé sans réserve, quatre amendements actionnables
+directement par le Tech Lead sur la méthode, aucune question produit
+nouvelle.**
+
+Les quatre amendements ont été intégrés dans ce document (détail complet
+en §4 Phase 5, sous-section "Amendements actés après la revue senior du
+lot pilote") :
+
+1. Cadence `qa-reviewer` : lots de 5-10 composants avec spec plutôt qu'un
+   aller-retour par composant, commits de spec toujours isolés
+   individuellement — répond et clôt la question ouverte §7.13.
+2. Garde-fou `nx build`/`NG8001` : `NO_ERRORS_SCHEMA` neutralise
+   effectivement la détection d'un import standalone manquant *dans le
+   spec*, mais `strictTemplates: true` (`apps/webapp/tsconfig.json`) rend
+   `nx build webapp` indépendant de ce schéma pour ce risque précis — à
+   vérifier empiriquement (pas supposé) sur le premier composant "avec
+   spec + enfants de template" converti, résultat documenté dans ce
+   document au moment où ce composant est traité.
+3. Tri par accessibilité à la vérification manuelle (public d'abord,
+   Auth0-gated en dernier et gelé jusqu'à vérification humaine réelle),
+   en plus du tri sans-spec/avec-spec, pas à sa place.
+4. Correction du résidu de rédaction du critère d'acceptation Phase 5
+   (renvoi obsolète aux scénarios e2e Phase 1bis, remplacé par un renvoi
+   explicite à la checklist manuelle).
+
+Aucun désaccord entre le Tech Lead et cette deuxième revue senior — les
+quatre amendements sont acceptés intégralement, sans nuance ajoutée par
+le Tech Lead cette fois (contrairement à la première revue, où une
+précision de charge avait été ajoutée sur la Phase 1bis). Aucune question
+produit nouvelle remontée par cette revue.
 
 ---
 
