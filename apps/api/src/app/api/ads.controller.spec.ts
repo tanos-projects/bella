@@ -97,6 +97,66 @@ describe('AdsController.createAd', () => {
   });
 });
 
+describe('AdsController.getMostRecentAds', () => {
+  function createController(adsServiceOverrides: any = {}) {
+    const adsService: any = {
+      findAllPublished: jest.fn().mockReturnValue(of([])),
+      ...adsServiceOverrides,
+    };
+    const usersService: any = {};
+    return { controller: new AdsController(adsService, usersService), adsService };
+  }
+
+  // Characterization (Phase 2, sub-point 3a, written before extracting
+  // shuffle()/fakeMostRecentAds() out of the controller): the "fake most
+  // recent ads" pipeline shuffles the published ads and hands them to
+  // `.slice(0, limit)`, but the call site (`this.fakeMostRecentAds(undefined)`)
+  // always passes `limit: undefined`, never the `?limit=` query param the
+  // endpoint itself received - `slice(0, undefined)` returns every element,
+  // so no ads are ever actually dropped by this "limit". This is a real
+  // quirk/TODO ("Move this fake logic to service instead"), not something
+  // this sub-point's pure extraction is meant to fix.
+  it('queries findAllPublished with category/country/limit and returns every ad, shuffled', (done) => {
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+    const owner = { id: 'owner-1', username: 'seller' };
+    const ads = [
+      { id: '1', title: 'a', owner },
+      { id: '2', title: 'b', owner },
+      { id: '3', title: 'c', owner },
+    ];
+    const { controller, adsService } = createController({
+      findAllPublished: jest.fn().mockReturnValue(of(ads)),
+    });
+
+    controller
+      .getMostRecentAds('cars', 'CI', 2)
+      .subscribe((result) => {
+        expect(adsService.findAllPublished).toHaveBeenCalledWith(
+          { category: 'cars', country: 'CI' },
+          { limit: 2 }
+        );
+        // slice(0, undefined) - the hardcoded fakeMostRecentAds(undefined)
+        // call - returns all 3 ads, not the 2 the ?limit= query asked for.
+        expect(result).toHaveLength(3);
+        expect(result.map((ad: any) => ad.id).sort()).toEqual(['1', '2', '3']);
+        randomSpy.mockRestore();
+        done();
+      });
+  });
+
+  it('defaults limit to 0 (no limit) on findAllPublished when none is given', (done) => {
+    const { controller, adsService } = createController();
+
+    controller.getMostRecentAds(undefined as any, undefined as any, undefined as any).subscribe(() => {
+      expect(adsService.findAllPublished).toHaveBeenCalledWith(
+        { category: undefined, country: undefined },
+        { limit: 0 }
+      );
+      done();
+    });
+  });
+});
+
 describe('AdsController.getMyPublications', () => {
   function createController(adsServiceOverrides: any = {}) {
     const adsService: any = {

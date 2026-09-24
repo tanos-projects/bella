@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
-import { Observable, OperatorFunction } from 'rxjs';
+import { Observable } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 
 import { AuthUser } from '../auth/auth-user';
@@ -23,17 +23,16 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdsService } from '../infrastructure/ads/ads.service';
 import { UsersService } from '../infrastructure/users/users.service';
 import { mapAdTransitionError } from '../utils/ad-transition-error.operator';
+import { MostRecentAdsShuffler } from './most-recent-ads-shuffler';
 
 interface RequestWithUser extends ExpressRequest {
   user: AuthUser;
 }
 
-function shuffle<T>(array: Array<T>): Array<T> {
-  return [...array].sort(() => Math.random() - 0.5);
-}
-
 @Controller('publications')
 export class AdsController {
+  private readonly mostRecentAdsShuffler = new MostRecentAdsShuffler();
+
   constructor(
     private adsService: AdsService,
     private usersService: UsersService
@@ -70,8 +69,7 @@ export class AdsController {
       )
       .pipe(
         map(AdMapper.modelToDTOList),
-        // TODO Move this fake logic to service instead
-        this.fakeMostRecentAds(undefined)
+        this.mostRecentAdsShuffler.fakeMostRecentAds(undefined)
       );
   }
 
@@ -164,12 +162,6 @@ export class AdsController {
         )
       )
     );
-  }
-
-  private fakeMostRecentAds(
-    limit?: number
-  ): OperatorFunction<AdDTO[], AdDTO[]> {
-    return map((ads: AdDTO[]) => shuffle(ads).slice(0, limit));
   }
 
   private getUser(user: AuthUser): Observable<UserEntity> {
