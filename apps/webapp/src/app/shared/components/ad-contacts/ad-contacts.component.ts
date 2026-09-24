@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input, inject } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
@@ -9,7 +10,8 @@ const APP_BRAND_NAME = 'Bellannonces.com';
   selector: 'bella-ad-contacts',
   templateUrl: './ad-contacts.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule],
 })
 export class AdContactsComponent {
   private deviceService = inject(MyDeviceService);
