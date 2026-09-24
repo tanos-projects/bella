@@ -96,7 +96,6 @@ export class PublicationsStore {
   }
 
   dispatch<T>(action: StoreAction<T>): void {
-    console.log(`Dispatch ${action.type}`);
     this._actions$.next(action);
   }
 

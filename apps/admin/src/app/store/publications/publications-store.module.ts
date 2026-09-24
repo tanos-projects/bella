@@ -10,7 +10,6 @@ import { PublicationsStore } from './publications.store';
 })
 export class PublicationsStoreModule {
   static forRoot(): ModuleWithProviders<PublicationsStoreModule> {
-    console.log('Load PublicationsStoreModule')
     return {
       ngModule: PublicationsStoreModule,
       providers: [PublicationsActions, PublicationsEffects, PublicationsState, PublicationsStore, ],
