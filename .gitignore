@@ -52,3 +52,8 @@ Thumbs.db
 # Nx local cache and daemon/workspace state (Nx 19+ adds workspace-data
 # alongside cache — none of .nx/ is meant to be committed)
 /.nx
+
+# git worktrees for parallel feature work — nested under the repo root so
+# Nx's project globbing must not see them, or every project collides with
+# its own copy inside each worktree ("multiple projects named X" errors)
+/.worktrees
