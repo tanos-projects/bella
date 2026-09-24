@@ -1705,37 +1705,100 @@ depuis reçu le feu vert `qa-reviewer`
 les 7 commits d'édition de spec sont désormais considérés **acquis** au
 sens de la règle de gouvernance §5.
 
+#### Deuxième lot "avec spec" (2026-09-25 session tech-lead, post-fix reflect-metadata) — en préparation, 7 composants, PAS encore soumis à `qa-reviewer`
+
+Classification vérifiée par grep sur `app-routing.module.ts` et les
+`*.module.ts`/`*.component.ts` consommateurs (pas supposée) avant
+conversion :
+
+1. `TitledPageComponent` — public (consommé par `settings`, seul guard
+   `WelcomeGuard`, en plus des consommateurs Auth0-gated
+   `bookmarks`/`post-an-ad`/`account`/`create-profile`). Aucun provider,
+   `titled-page.module.ts` supprimé.
+2. `LoginSignupLinkComponent` — public (page `welcome`, aucun guard ;
+   consommé aussi par `LoginSignupComponent`). Aucun provider,
+   `login-signup-link.module.ts` supprimé.
+3. `LoginSignupComponent` — public (`HeaderComponent`/`SidebarComponent`,
+   affiché app-wide aux visiteurs anonymes). Étend
+   `LoginSignupLinkComponent` (héritage de classe TS, pas de sélecteur
+   dans son propre template). Aucun provider, `login-signup.module.ts`
+   supprimé.
+4. `LogoutButtonComponent` — public (même raisonnement que 3). Aucun
+   provider, `logout-button.module.ts` supprimé.
+5. `SidebarComponent` — public (importé directement par `AppModule`,
+   panneau de navigation mobile app-wide, aucun guard de route). Dépend
+   des composants 3 et 4, déjà standalone à ce stade. Aucun provider,
+   `sidebar.module.ts` supprimé.
+6. `DrawerComponent` — public (rendu directement par le template
+   d'`AppComponent`, app-wide). `DrawerService` migré de
+   `@Injectable()`/`DrawerModule.forRoot()` (appelé une seule fois, dans
+   `app.module.ts`) vers `@Injectable({ providedIn: 'root' })` — même
+   précédent que `LoadingService`/`ProfileService` (lot 1, déjà revu et
+   accepté par senior-dev), un `forRoot()` appelé une seule fois à la
+   racine produit le même singleton qu'un provider tree-shakable.
+   `drawer.module.ts` supprimé.
+7. `WelcomeComponent` — public (route `welcome`, **aucun guard du
+   tout**). `WelcomeService` et `WelcomeGuard` migrés du même schéma
+   `forRoot()` unique (`WelcomeModule.forRoot()` dans `app.module.ts`)
+   vers `providedIn: 'root'` — même précédent, même raisonnement. Le
+   provider de composant existant sur `SettingsComponent` (`providers:
+   [WelcomeService]`, lui donnant sa propre instance dédiée) reste
+   inchangé et continue de fonctionner à l'identique : Angular DI résout
+   toujours le provider le plus proche, indépendamment de `providedIn`.
+   `welcome.module.ts` devenu entièrement mort (plus rien à fournir en
+   `forRoot()`, et un composant standalone routé directement n'a besoin
+   d'aucun `NgModule`) — supprimé, ainsi que son import dans
+   `app.module.ts`.
+
+Chaque conversion suit le même schéma à deux commits (production, puis
+spec isolé), `nx lint/build/test webapp` vérifié vert après chacun,
+baselines inchangées (39 problèmes lint : 5 erreurs/34 warnings ; 38/38
+suites, 87/87 tests) — y compris `settings.component.spec.ts`, l'autre
+consommateur de `WelcomeService`, revérifié non affecté par la migration
+du point 7. `nx build webapp` (garde-fou NG8001) vert après chaque
+commit de production.
+
 **Reste à faire pour cette sous-vague (webapp)** :
 
-1. 21 composants "avec spec" restants à convertir, même sous-tri
-   public/Auth0-gated (candidats publics probables : `app.component`,
-   `main.component`, `home.component`, `ads-by-category.component`,
-   `ad-detail.component`, `welcome.component`, `settings.component`
-   — `/settings` ne porte que `WelcomeGuard`, pas `AuthGuard`, vérifié
-   dans `app-routing.module.ts`, à confirmer composant par composant au
-   moment de la conversion plutôt que supposé ici ; `login-signup*`,
-   `logout-button`, `drawer`, `sidebar`, `titled-page` à vérifier
-   individuellement — probablement publics vu leur usage dans le
-   header/layout partagé — puis les composants clairement Auth0-gated :
-   `account.component`, `profile-form.component`, `bookmarks.component`,
-   `my-publications.component`, `ad-form.component`, `field-error`,
-   `form.component`, `upload.component`).
-2. **Compléter le premier lot à 5-10 composants** (7 aujourd'hui, dans la
-   fourchette basse) ou l'étendre avant soumission — décision de la
-   prochaine session tech-lead — puis le soumettre à `qa-reviewer` en une
-   fois (amendement 1). Ne pas déclarer un seul de ces commits de spec
-   acquis avant ce feu vert.
+1. 14 composants "avec spec" restants à convertir (21 − 7 de ce lot),
+   même tri public/Auth0-gated : probablement publics —
+   `app.component` (racine, bootstrap), `main.component`,
+   `home.component`, `ads-by-category.component`, `ad-detail.component`
+   (route sans aucun guard), `settings.component` (`WelcomeGuard` seul,
+   déjà vérifié en §4 chiffrage) — 6 candidats ; clairement Auth0-gated,
+   vérifiés via `account`/`post-an-ad` (tous deux `AuthGuard`) —
+   `account.component`, `profile-form.component`, `bookmarks.component`
+   (`AuthGuard`+`CompleteProfileGuard`), `my-publications.component`
+   (idem), `ad-form.component`, `field-error.component` (consommé
+   uniquement par `profile-form.module.ts`, gated), `form.component`
+   (consommé uniquement par `ad-form.module.ts`/`account.module.ts`,
+   gated), `upload.component` (consommé uniquement par
+   `picture-uploader.ts`, gated) — 8 candidats. Total 6 + 8 = 14, à
+   reconfirmer composant par composant au moment de la conversion comme
+   toujours plutôt que supposé ici.
+2. **Compléter ce deuxième lot à 5-10 composants** (7 aujourd'hui, comme
+   le premier) ou l'étendre avant soumission — décision de la prochaine
+   session tech-lead — puis le soumettre à `qa-reviewer` en une fois
+   (amendement 1). Ne pas déclarer un seul de ces 7 commits de spec
+   acquis avant ce feu vert. **Ne pas faire tourner `senior-dev` et
+   `qa-reviewer` en parallèle sur ce worktree** (risque de collision
+   d'édition constaté et documenté par la revue du lot 1, voir
+   `CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2.md` §2).
 3. Puis la sous-vague `admin` (8 composants, 4 sans spec/4 avec spec),
    seulement après webapp entièrement close, comme recommandé par la
    revue senior (pas les deux apps en parallèle).
 
 La méthode (chiffrage + lot pilote + amendements 1-4) a déjà été soumise
 à et validée par `senior-dev` — voir
-`CHANTIER-MODERNISATION-REVIEW-PHASE5-PILOTE.md`. Le prochain point de
-passage `senior-dev` est la fin de la sous-vague webapp complète (ou la
-soumission du premier lot "avec spec" à `qa-reviewer`, selon ce qui
-arrive en premier) — pas cette session-ci, qui n'a pas encore de lot
-complet prêt.
+`CHANTIER-MODERNISATION-REVIEW-PHASE5-PILOTE.md` (méthode) et
+`CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2.md` (exécution du lot 1,
+validée avec réserves mineures, toutes traitées — voir plus haut dans
+cette section et §5). Le prochain point de passage `senior-dev` est la
+fin de la sous-vague webapp complète (ou la soumission de ce deuxième
+lot "avec spec" à `qa-reviewer`, selon ce qui arrive en premier) — pas
+cette session-ci, qui n'a pas encore de lot complet prêt à soumettre
+elle-même (le mandat de cette session est d'exécuter, pas de déclencher
+la revue).
 
 ### Phase 6 (optionnelle, à valider) — Trancher `APPROVED` dans `AdStatus`
 
