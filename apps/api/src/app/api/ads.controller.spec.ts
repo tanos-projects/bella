@@ -97,6 +97,47 @@ describe('AdsController.createAd', () => {
   });
 });
 
+describe('AdsController.getAll', () => {
+  function createController(adsServiceOverrides: any = {}) {
+    const adsService: any = {
+      findAllPublished: jest.fn().mockReturnValue(of([])),
+      ...adsServiceOverrides,
+    };
+    const usersService: any = {};
+    return { controller: new AdsController(adsService, usersService), adsService };
+  }
+
+  it('defaults limit to 0 when the filter carries none', (done) => {
+    const { controller, adsService } = createController();
+
+    controller.getAll({} as any).subscribe(() => {
+      expect(adsService.findAllPublished).toHaveBeenCalledWith({}, { limit: 0 });
+      done();
+    });
+  });
+
+  // Regression test: getAll() used to also bind a separate
+  // `@Query('limit') limit: number` parameter alongside `filter`, so a real
+  // `?limit=` call 400'd once AdSearchQueryDTO gained
+  // forbidNonWhitelisted (see ad-search-query.dto.spec.ts for the
+  // ValidationPipe-level coverage of that 400). `limit` now lives on
+  // AdSearchQueryDTO itself and must drive pagination without leaking into
+  // the Mongo filter criteria.
+  it('reads limit off filter for pagination, without forwarding it as a filter criterion', (done) => {
+    const { controller, adsService } = createController();
+
+    controller
+      .getAll({ category: 'cars', limit: 5 } as any)
+      .subscribe(() => {
+        expect(adsService.findAllPublished).toHaveBeenCalledWith(
+          { category: 'cars' },
+          { limit: 5 }
+        );
+        done();
+      });
+  });
+});
+
 describe('AdsController.getMostRecentAds', () => {
   function createController(adsServiceOverrides: any = {}) {
     const adsService: any = {
@@ -176,8 +217,7 @@ describe('AdsController.getMyPublications', () => {
       controller.getMyPublications(
         { status: 'archived' },
         { user: { sub: 'auth0|user-1' } } as any,
-        {},
-        undefined as any
+        {}
       )
     ).toThrow(NotFoundException);
     expect(adsService.findAllByOwner).not.toHaveBeenCalled();
@@ -191,14 +231,41 @@ describe('AdsController.getMyPublications', () => {
       .getMyPublications(
         { status: 'draft' },
         { user: { sub: 'auth0|user-1' } } as any,
-        {},
-        undefined as any
+        {}
       )
       .subscribe(() => {
         expect(adsService.findAllByOwner).toHaveBeenCalledWith(
           { id: 'user-1' },
           { status: 'DRAFT' },
           { limit: 0 }
+        );
+        done();
+      });
+  });
+
+  // Regression test for the bug this sub-point's dev-lead review caught:
+  // getMyPublications() used to also bind a separate
+  // `@Query('limit') limit: number` parameter alongside `filter`, so a real
+  // `?limit=` call 400'd (see ad-search-query.dto.spec.ts for the
+  // ValidationPipe-level coverage of that). Exercising the controller
+  // method directly can't reproduce the double-@Query() binding itself
+  // (see the comment above adSearchQueryValidationPipe's declaration), but
+  // it does cover what the fix changed: `filter.limit` now drives
+  // pagination, and must not leak into the Mongo filter criteria.
+  it('reads limit off filter for pagination, without forwarding it as a filter criterion', (done) => {
+    const { controller, adsService } = createController();
+
+    controller
+      .getMyPublications(
+        { status: 'draft' },
+        { user: { sub: 'auth0|user-1' } } as any,
+        { category: 'cars', limit: 5 } as any
+      )
+      .subscribe(() => {
+        expect(adsService.findAllByOwner).toHaveBeenCalledWith(
+          { id: 'user-1' },
+          { category: 'cars', status: 'DRAFT' },
+          { limit: 5 }
         );
         done();
       });

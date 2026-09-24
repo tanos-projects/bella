@@ -1,4 +1,5 @@
-import { IsNumberString, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, IsNumberString, IsOptional, IsString } from 'class-validator';
 
 /**
  * Query-string contract for AdsController.getAll/getMyPublications (Phase
@@ -17,6 +18,19 @@ import { IsNumberString, IsOptional, IsString } from 'class-validator';
  * a raw HTTP query value is always a string, and AdsMongoFilterBuilder
  * already forwards it as-is into the Mongo filter - this DTO only rejects
  * a non-numeric value, it doesn't change what a valid one does.
+ *
+ * `limit` belongs here too, and only here: both handlers used to also bind
+ * a separate `@Query('limit') limit: number` parameter alongside
+ * `@Query() filter: AdSearchQueryDTO`. Nest resolves a keyless `@Query()`
+ * to the *entire* query object, `limit` included, so with
+ * `forbidNonWhitelisted: true` any real `?limit=` call to these routes was
+ * rejected with a 400 ("property limit should not exist") even though
+ * `limit` is a documented parameter of both - dead code today only because
+ * no front-end happens to send it on these two routes yet. Unlike
+ * minPrice/maxPrice, `limit` *is* coerced to a number (`@Type(() =>
+ * Number)`): AdsController pulls it out of this same DTO instance and
+ * passes it straight through as `FilterOptions.limit`, which is typed
+ * `number`, not forwarded into the Mongo filter as a raw string.
  */
 export class AdSearchQueryDTO {
   @IsOptional()
@@ -46,4 +60,9 @@ export class AdSearchQueryDTO {
   @IsOptional()
   @IsNumberString()
   maxPrice?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  limit?: number;
 }

@@ -40,6 +40,17 @@ interface RequestWithUser extends ExpressRequest {
 // bypasses Nest's guard/pipe pipeline entirely (see users.controller.spec.ts's
 // GUARDS_METADATA tests) - a plain call to getAll()/getMyPublications()
 // never runs this pipe.
+//
+// getAll()/getMyPublications() bind this pipe to a single, keyless
+// `@Query()` parameter and nothing else: a keyless `@Query()` resolves to
+// the entire query object, so a second, separately-bound `@Query('x')` on
+// the same handler doesn't carve `x` out of it - it just duplicates `x`
+// into that handler's own parameter *in addition to* it still being in the
+// object `@Query()` receives. With forbidNonWhitelisted, that entire
+// object gets validated against AdSearchQueryDTO, so `x` still has to be a
+// whitelisted property of it or the whole request 400s (this is exactly
+// how `?limit=` used to break both routes - see AdSearchQueryDTO's
+// `limit` field).
 export const adSearchQueryValidationPipe = new ValidationPipe({
   transform: true,
   whitelist: true,
@@ -63,12 +74,16 @@ export class AdsController {
 
   @Get()
   getAll(
-    @Query(adSearchQueryValidationPipe) filter: AdSearchQueryDTO,
-    @Query('limit') limit: number
+    @Query(adSearchQueryValidationPipe) filter: AdSearchQueryDTO
   ): Observable<AdDTO[]> {
+    // `limit` is a pagination option, not a filter criterion - pulling it
+    // off `filter` before spreading the rest keeps it out of the Mongo
+    // filter object (see AdsMongoFilterBuilder.build, which forwards every
+    // key it's given as-is).
+    const { limit, ...criteria } = filter;
     return this.adsService
       .findAllPublished(
-        { ...filter },
+        { ...criteria },
         {
           limit: limit ?? 0,
           // populate: ['owner'], // TODO Still we need this ?
@@ -103,18 +118,19 @@ export class AdsController {
     @Param() params,
     @Request() req,
     @Query(adSearchQueryValidationPipe) filter: AdSearchQueryDTO,
-    @Query('limit') limit: number,
   ): Observable<AdDTO[]> {
     const status = params.status.toUpperCase();
     if (![AdStatus.DRAFT, AdStatus.PUBLISHED, AdStatus.SUBMITTED].includes(status)) {
       throw new NotFoundException();
     }
+    // `limit` is a pagination option, not a filter criterion - see getAll().
+    const { limit, ...criteria } = filter;
     return this.getUser(req.user).pipe(
       switchMap((user) => {
         return this.adsService
         .findAllByOwner(
           user,
-          { ...filter, ...{status: status} },
+          { ...criteria, ...{status: status} },
           {
             limit: limit ?? 0,
           },

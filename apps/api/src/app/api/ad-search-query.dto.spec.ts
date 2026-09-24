@@ -35,6 +35,7 @@ describe('adSearchQueryValidationPipe (AdSearchQueryDTO)', () => {
         quality: 'good',
         minPrice: '10',
         maxPrice: '100',
+        limit: '20',
       },
       metadata
     );
@@ -47,6 +48,7 @@ describe('adSearchQueryValidationPipe (AdSearchQueryDTO)', () => {
       quality: 'good',
       minPrice: '10',
       maxPrice: '100',
+      limit: 20,
     });
   });
 
@@ -74,6 +76,30 @@ describe('adSearchQueryValidationPipe (AdSearchQueryDTO)', () => {
   it('rejects a non-string category', async () => {
     await expect(
       adSearchQueryValidationPipe.transform({ category: 123 }, metadata)
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  // Regression test for the bug the dev-lead review caught in this
+  // sub-point: getAll()/getMyPublications() used to bind this pipe to a
+  // keyless `@Query() filter: AdSearchQueryDTO` *and* a separately-bound
+  // `@Query('limit') limit: number` on the same handler. A keyless
+  // `@Query()` resolves to the entire query object, `limit` included, so
+  // that object - `limit` and all - is what actually reached this pipe;
+  // before `limit` was a whitelisted property of AdSearchQueryDTO, any
+  // real `?limit=` call to either route 400'd with "property limit should
+  // not exist", even though `limit` is a documented parameter of both.
+  it('accepts limit alongside other filters and coerces it to a number', async () => {
+    const result = await adSearchQueryValidationPipe.transform(
+      { category: 'cars', limit: '5' },
+      metadata
+    );
+
+    expect(result).toMatchObject({ category: 'cars', limit: 5 });
+  });
+
+  it('rejects a non-integer limit', async () => {
+    await expect(
+      adSearchQueryValidationPipe.transform({ limit: 'abc' }, metadata)
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

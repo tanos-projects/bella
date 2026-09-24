@@ -602,6 +602,31 @@ avant qu'une phase front puisse s'appuyer dessus, par exemple).
      **`yarn.lock` n'a volontairement pas été régénéré** (pas d'installation
      réelle exécutée) — à faire lors du prochain vrai `yarn install` de ce
      worktree.
+
+     **Bug réel trouvé par la revue dev senior sur `3bc8dfd`, corrigé le
+     2026-09-24** : `getAll`/`getMyPublications` liaient `@Query()
+     filter: AdSearchQueryDTO` **et** un `@Query('limit') limit: number`
+     séparé sur le même handler. Un `@Query()` sans clé résout à l'objet
+     `req.query` **entier** (`limit` inclus), donc avec
+     `forbidNonWhitelisted: true`, tout appel réel avec `?limit=` sur ces
+     deux routes recevait un 400 (« property limit should not exist »),
+     alors que `limit` est un paramètre documenté des deux — reproduit
+     empiriquement par le dev senior. Impact réel nul au moment de la
+     découverte (grep confirmé : aucun front n'envoie `?limit=` sur ces
+     deux routes précises), mais défaut de contrat sur un paramètre
+     documenté. Corrigé en ajoutant `limit` comme propriété de
+     `AdSearchQueryDTO` (`@IsOptional() @Type(() => Number) @IsInt()`,
+     seul champ de ce DTO coercé en nombre plutôt que gardé en chaîne
+     numérique, car `AdsController` le repasse directement en
+     `FilterOptions.limit`, typé `number` côté domaine) et en retirant le
+     second `@Query('limit')` des deux handlers — `AdsController` extrait
+     désormais `limit` du même `filter` et le sort explicitement des
+     critères avant de les passer au filtre Mongo (`AdsMongoFilterBuilder`
+     renvoie sinon tel quel toute clé qu'on lui donne). Couvert par de
+     nouveaux tests dans `ad-search-query.dto.spec.ts` (acceptation +
+     coercion de `?limit=` au niveau du pipe) et `ads.controller.spec.ts`
+     (`getAll`/`getMyPublications` lisent `limit` sur `filter` sans le
+     faire fuiter dans les critères Mongo).
   5. **Sortir `NotFoundException` (et `BadRequestException`) d'`AdMapper`
      et de `UserMapper`** — le `null`/`undefined` devient la
      responsabilité de l'appelant (SRP). **Reclassifié après revue senior
