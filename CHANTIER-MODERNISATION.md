@@ -1141,8 +1141,22 @@ tous traités :
     documentant que le pattern maison est un choix assumé (renvoi §4/§8),
     pas un oubli.
   - **4b reste gelée**, non engagée — inchangé par cette exécution.
-  - Revue `senior-dev` sollicitée après ces commits ; verdict à
-    reporter ici une fois rendu.
+  - **Revue `senior-dev` : validée, sans réserve bloquante** (2026-09-24).
+    Revue complète dans `CHANTIER-MODERNISATION-REVIEW-PHASE4A.md`
+    (fichier dédié, jamais une édition de ce document). Vérifications
+    indépendantes confirmées : le test de caractérisation verrouille la
+    branche réelle du code (pas seulement le commentaire) ; le retrait
+    des `console.log` n'a aucun effet de bord ; les nouvelles specs
+    testent un comportement réel (le test `BehaviorSubject` échouerait
+    si le sujet était rétrogradé en `Subject`, le test de resouscription
+    après échec exerce directement le risque RxJS documenté par le
+    commentaire sur `catchError`) ; l'écart "couverture zéro vs.
+    indirecte" est confirmé réel, documenter plutôt que bloquer était le
+    bon choix. Deux suggestions non bloquantes pour un futur passage sur
+    ce code : couvrir aussi les chemins d'échec de reject/archive dans le
+    test de caractérisation, et vérifier les payloads (page/pageSize) des
+    actions redispatchées, pas seulement leur type. **Phase 4a considérée
+    terminée.**
 - **Décision du Tech Lead (2026-09-24, après revue senior)** : la version
   précédente de cette phase visait un remplacement complet du store maison
   par `@ngrx/store`/`@ngrx/effects` ou `@ngrx/signals`, au nom du principe
