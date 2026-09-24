@@ -10,7 +10,8 @@ import {
   Post,
   Query,
   Request,
-  UseGuards
+  UseGuards,
+  ValidationPipe
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
@@ -23,12 +24,27 @@ import { AdsService } from '../infrastructure/ads/ads.service';
 import { UsersService } from '../infrastructure/users/users.service';
 import { mapAdTransitionError } from '../utils/ad-transition-error.operator';
 import { throwIfNullish } from '../utils/throw-if-nullish.operator';
+import { AdSearchQueryDTO } from './ad-search-query.dto';
 import { MostRecentAdsShuffler } from './most-recent-ads-shuffler';
 import { PublishAuthorizationPolicy } from './publish-authorization.policy';
 
 interface RequestWithUser extends ExpressRequest {
   user: AuthUser;
 }
+
+// whitelist+forbidNonWhitelisted: an unrecognized query param used to reach
+// AdsRepositoryNest and, from there, MongoDB unmodified (Phase 2,
+// sub-point 4) - now rejected with a 400 instead of silently forwarded.
+// Exported so ads.controller.spec.ts can exercise this exact instance
+// directly, the same way a unit test invoking a controller method
+// bypasses Nest's guard/pipe pipeline entirely (see users.controller.spec.ts's
+// GUARDS_METADATA tests) - a plain call to getAll()/getMyPublications()
+// never runs this pipe.
+export const adSearchQueryValidationPipe = new ValidationPipe({
+  transform: true,
+  whitelist: true,
+  forbidNonWhitelisted: true,
+});
 
 @Controller('publications')
 export class AdsController {
@@ -47,7 +63,7 @@ export class AdsController {
 
   @Get()
   getAll(
-    @Query() filter: any, // TODO type it !
+    @Query(adSearchQueryValidationPipe) filter: AdSearchQueryDTO,
     @Query('limit') limit: number
   ): Observable<AdDTO[]> {
     return this.adsService
@@ -86,7 +102,7 @@ export class AdsController {
   getMyPublications(
     @Param() params,
     @Request() req,
-    @Query() filter: any, // TODO type it !
+    @Query(adSearchQueryValidationPipe) filter: AdSearchQueryDTO,
     @Query('limit') limit: number,
   ): Observable<AdDTO[]> {
     const status = params.status.toUpperCase();
