@@ -21,7 +21,6 @@ import { environment } from '../environments/environment';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { AuthenticationModule } from './auth/authentication.module';
-import { ProfileModule } from './pages/user/profile/profile.module';
 import { WelcomeModule } from './pages/welcome/welcome.module';
 import { DrawerModule } from './shared/components/drawer/drawer.module';
 import { LoadingModule } from './shared/components/loading/loading.module';
@@ -104,7 +103,6 @@ registerLocaleData(localeFr);
     //
     SidebarModule,
     WelcomeModule.forRoot(),
-    ProfileModule.forRoot(),
 
     // Shared third party modules
     NgSelectModule, // For entry components (such as Modal)

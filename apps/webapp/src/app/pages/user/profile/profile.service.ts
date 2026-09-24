@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { UserProfile } from './profile.model';
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class ProfileService {
   private http = inject(HttpClient);
   private readonly baseUrl = environment.apiBaseUrl;
