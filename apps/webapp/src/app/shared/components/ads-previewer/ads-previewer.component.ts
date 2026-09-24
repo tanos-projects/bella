@@ -1,4 +1,6 @@
+import { CommonModule } from '@angular/common';
 import {
+  CUSTOM_ELEMENTS_SCHEMA,
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
@@ -6,7 +8,9 @@ import {
   Output,
   inject,
 } from '@angular/core';
+import { RouterModule } from '@angular/router';
 import Swiper from 'swiper';
+import { AdCardModule } from '../ad-card/ad-card.module';
 import { AdDTO } from '../../models/ads.model';
 import { MyDeviceService } from '../../services/my-device.service';
 
@@ -15,7 +19,9 @@ import { MyDeviceService } from '../../services/my-device.service';
   templateUrl: './ads-previewer.component.html',
   styleUrls: ['./ads-previewer.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, AdCardModule, RouterModule],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class AdsPreviewerComponent {
   private device = inject(MyDeviceService);
