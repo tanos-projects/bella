@@ -64,9 +64,11 @@ Feature domains: `ads`, `categories`, `cities`, `countries`, `users`. Adding one
 
 ### Ad lifecycle
 
-`AdStatus` (`libs/api/domain/src/lib/ads/ad.entity.ts`) declares `DRAFT → SUBMITTED → APPROVED → PUBLISHED`, plus `REJECTED` and `ARCHIVED`. Note that `APPROVED` is declared but never assigned; `publish()` moves straight to `PUBLISHED` (there is a `TODO` saying it should pass through `APPROVED` first).
+`AdStatus` (`libs/api/domain/src/lib/ads/ad.entity.ts`) declares `DRAFT → SUBMITTED → APPROVED → PUBLISHED`, plus `REJECTED`, `ARCHIVED` and `EXPIRED`. Note that `APPROVED` is declared but never assigned; `publish()` moves straight to `PUBLISHED` (there is a `TODO` saying it should pass through `APPROVED` first).
 
-`AdsService.submit`/`publish`/`reject`/`archive` are marked with `FIXME` comments and are **not** in a trustworthy state: `publish()`, `reject()` and `archive()` have their originating-state lookup commented out entirely, so they transition an ad from whatever state it happens to be in, and `submit()` spreads the result of a lookup that it never checks matched (`{...null}` is `{}` in JavaScript, so a missed guard still runs the update). Treat any change here as a state-machine change and cover it with tests.
+Every transition in `AdsService` goes through a private `transitionTo(id, expectedStatus, nextStatus, extra?)` that guards on the lookup preceding it: a `null` lookup (ad missing, or not in `expectedStatus`) raises `AdNotInExpectedStateError` instead of silently writing the new status — this used to be broken (`{...null}` is `{}` in JavaScript, so a missed guard still ran the update), but is fixed and covered by a status × transition matrix in `ads.service.spec.ts`. Treat any change here as a state-machine change and cover it with tests.
+
+**Expiration and renewal** (see `docs/adr/0001-expiration-annonces-plans-de-publication.md`): `publish()` stamps `publishedAt`/`expiresAt` from a `PublicationPlan`, resolved per-ad by a `PublicationPlanResolver` — the domain's extension point for a future paid plan. `DiscoveryPlan` (30 days, free renewal) is the only implementation today. A scheduled job (`AdExpirationJob`, `@nestjs/schedule` **pinned to `~6.1.3`** — its `latest` tag ships pure ESM and breaks Jest/ts-jest) moves `PUBLISHED` ads past `expiresAt` to `EXPIRED` every 10 minutes via an idempotent `updateMany`; only PM2 instance 0 runs it, but correctness relies on the `updateMany`'s idempotence, not that filter. The owner (checked in the domain, unlike `publish`'s ownership check which lives in the controller) can renew an `EXPIRED` ad via `POST publications/:id/renew`, guarded by a compare-and-set (`updateOneInStatus`) against a concurrent transition.
 
 ### Authorization (issue #49)
 
