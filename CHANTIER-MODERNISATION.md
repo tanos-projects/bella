@@ -1340,6 +1340,187 @@ tous traités :
   également des phases 1 et 3 pour un filet de sécurité unitaire plus
   large.
 
+**Statut (2026-09-24) : engagée.** Le report de la Phase 1bis ayant déjà
+été explicitement acté (voir plus haut, "Conséquence actée"), cette phase
+démarre sans filet e2e, compensée par la checklist manuelle ci-dessous.
+Chiffrage réel exécuté avant tout commit, comme exigé par le mandat.
+
+#### Chiffrage réel (exécuté le 2026-09-24)
+
+`@angular-eslint/prefer-standalone` réactivée temporairement à `'error'`
+dans `apps/webapp/eslint.config.mjs` et `apps/admin/eslint.config.mjs`
+(même méthode que pour les 4 règles a11y), `nx lint` relancé sur les deux
+apps, violations comptées par fichier distinct, puis règle remise à
+`'off'` dans les deux fichiers (diff vérifié nul après coup) puisque
+l'exécution de cette session ne traite qu'un lot pilote, pas la
+sous-vague complète — la remettre à `'error'` maintenant ferait échouer
+le lint sur tous les composants encore non convertis.
+
+| App | Composants non-standalone | Fichiers `@NgModule` existants |
+|---|---|---|
+| `webapp` | **41** | 47 |
+| `admin` | **8** | 11 |
+| **Total** | **49** | 58 |
+
+Détail par fichier (composants) capturé dans les logs de lint complets
+de cette session — liste webapp et admin disponible sur demande, non
+dupliquée ici pour ne pas alourdir le document ; les deux tableaux
+ci-dessous suffisent pour prioriser.
+
+Confirme le sizing "L" déjà posé : ce n'est pas 4 fichiers comme pour les
+règles a11y, ni les ~65/29 fichiers strictement locaux des sweeps
+`inject()`/`@if`-`@for` — chaque conversion a un rayon d'effet qui sort du
+fichier (son propre module, et potentiellement tout module qui
+déclare/importe/exporte le composant).
+
+**Découverte majeure faite pendant ce chiffrage, qui n'était pas anticipée
+dans l'annexe** : contrairement aux sweeps `@if`/`@for` et `inject()`, qui
+n'ont jamais eu besoin de toucher un fichier de spec existant, convertir
+un composant en `standalone: true` **casse son propre `.spec.ts` s'il en a
+un**, dès que ce spec utilise le pattern générique Angular
+`TestBed.configureTestingModule({ declarations: [XComponent], ... })` —
+un composant standalone ne peut plus figurer dans `declarations`, il doit
+être déplacé vers `imports`. Vérifié concrètement sur
+`loading.component.spec.ts` : le spec s'écrit
+`declarations: [LoadingComponent]`, ce qui échouerait au runtime
+(`NG0304`-style, "component is standalone") si `LoadingComponent`
+devenait `standalone: true` sans que ce fichier soit édité en même temps.
+
+Or **modifier un fichier de spec existant est explicitement gouverné par
+`tech-lead.md`/le mandat de cette session** : isolé dans son propre
+commit, feu vert `qa-reviewer` requis avant d'être considéré acquis — le
+Tech Lead ne l'a pas fait lui-même cette session, seulement signalé.
+**Conséquence concrète sur le chiffrage** : la quasi-totalité des 49
+composants a un `.spec.ts` propre (voir répartition ci-dessous), donc la
+quasi-totalité des conversions de cette phase va nécessiter un aller-retour
+`qa-reviewer` sur le fichier de spec touché — ce n'est pas seulement une
+question de volume de code, c'est un nouveau point de gouvernance/process
+qui doit être budgété dans la charge, en plus du risque de câblage déjà
+documenté. Point à soumettre à `senior-dev` avant de considérer la
+méthode d'exécution de cette phase validée (voir le rapport de session).
+
+Répartition par présence d'un spec (mesurée en croisant la liste des
+violations avec l'existence d'un `<Composant>.spec.ts` adjacent) :
+
+| App | Sans spec (conversion isolée, pas de test touché) | Avec spec (nécessite qa-reviewer avant conversion) |
+|---|---|---|
+| `webapp` | 13 (dont `spinner.component.ts`, converti ci-dessous) | 28 |
+| `admin` | 4 | 4 |
+
+Les composants "sans spec" ne sont pas pour autant tous sans risque —
+`ads-previewer.component.ts`/`carousel.component.ts` (wrapper Swiper,
+déjà signalé en annexe comme piège pour `@if`/`@for`) et
+`picture-uploader.ts`/`stepped-form-field.ts` (module Angular co-localisé
+dans le même fichier que le composant) restent dans le lot "sans spec"
+mais avec une complexité de câblage propre, à traiter au cas par cas, pas
+en sweep automatique.
+
+#### Checklist de vérification manuelle au navigateur — sous-vague webapp
+
+Écrite ici comme l'exige la Phase 1bis avant tout engagement réel de
+cette phase. **Non exécutée par le Tech Lead dans cette session** :
+au-delà du blocage Auth0 déjà documenté en Phase 1bis (qui bloque de toute
+façon les parcours authentifiés ci-dessous), cette session a aussi vérifié
+concrètement qu'un screenshot ou même un simple contrôle réseau local
+(`curl`) ne fonctionne pas ici — chaque commande Bash de cet environnement
+tourne dans son propre bac à sable réseau isolé, un serveur `nx serve`
+lancé en tâche de fond dans un appel n'est pas joignable depuis un appel
+`curl` suivant (`Connection refused` malgré un serveur qui a réellement
+compilé et démarré, confirmé dans les logs). Cette checklist doit donc
+être rejouée par un humain (ou un environnement CI/local avec un vrai
+navigateur), pas par un agent dans ce sandbox précis — cohérent avec la
+limitation Cypress déjà documentée par la skill `run-bella`.
+
+1. **Navigation publique (non connecté)** — `/`, `/annonces`,
+   `/annonces/:category/:title/:id` sur une annonce existante,
+   `/recherche` (filtre + résultats) : la page se charge, le header, le
+   footer, la sidebar/drawer mobile, le spinner de chargement
+   (`bella-loading`/`bella-spinner`), le carrousel de la page d'accueil et
+   les cartes d'annonce (`ad-card`) s'affichent normalement ; aucune
+   erreur dans la console.
+2. **Filtre de recherche** — ouvrir le filtre (`search-filter-button` →
+   modale `search-filter`), changer un critère, valider : les résultats
+   se mettent à jour, la modale se ferme proprement.
+3. **Onboarding pays** (`welcome`) — sur une session sans pays choisi,
+   `WelcomeGuard` redirige vers `/welcome` ; sélectionner un pays, vérifier
+   la redirection vers `/` et que le choix persiste après rechargement.
+4. **Connexion** (`login-signup`/`login-signup-link`/`logout-button`,
+   `logged-in-callback`) — cliquer "connexion", flux Auth0 (redirection
+   externe puis retour sur `/loggedIn`), puis déconnexion : le header
+   reflète l'état connecté/déconnecté. **Bloqué par le même manque de
+   compte de test Auth0 que la Phase 1bis** — à défaut, un humain avec un
+   compte réel doit le rejouer.
+5. **Profil connecté** (`account`, `account/profile/create`,
+   `account/profile/form`, `settings`) — compléter/modifier un profil,
+   changer le pays dans les réglages : formulaires réactifs, validations
+   (`field-error`), sélecteurs (`ng-select-form-field`) fonctionnent.
+6. **Profil public d'un tiers** (`profil/:id/:username`) — consulter le
+   profil d'un autre utilisateur depuis une carte d'annonce ou un lien
+   direct : la page se charge (endpoint public, voir §7 point 11).
+7. **Poster une annonce** (`post-an-ad`, garanti par `AuthGuard` +
+   `CompleteProfileGuard`) — parcourir les étapes du formulaire
+   multi-étapes (`ad-form`, `form.component` générique Formly,
+   `stepped-form-field` pour la navigation entre étapes,
+   `picture-uploader` pour les photos), soumettre jusqu'à `SUBMITTED` :
+   c'est exactement le scénario e2e (a) que la Phase 1bis visait déjà —
+   même blocage Auth0.
+8. **Mes publications / favoris** (`my-publications`, `bookmarks`) —
+   lister ses annonces par statut, ajouter/retirer un favori depuis une
+   `ad-card` : les listes se rafraîchissent, les boutons d'action
+   répondent.
+9. **Détail d'annonce** (`ad-detail`, `ad-contacts`,
+   `ad-publisher-card`) — depuis une carte, ouvrir le détail : galerie
+   d'images (carrousel), bloc contact, carte du vendeur s'affichent ; le
+   bouton de contact déclenche l'action attendue.
+
+Seuls les parcours 1–3 et 6 sont rejouables sans compte Auth0 ; 4, 5, 7, 8
+nécessitent l'un des deux contournements déjà identifiés en Phase 1bis
+(compte de test réel, ou spike OIDC/JWKS local). Le parcours 9 dépend de
+données d'annonce existantes en base (fixtures) mais pas d'authentification.
+
+#### Exécution — lot pilote (2026-09-24)
+
+Un seul lot exécuté cette session, délibérément le plus petit et le plus
+sûr possible pour valider la mécanique avant d'aller plus loin :
+
+- **`SpinnerComponent` → `standalone: true`** (commit `1fa187c`) —
+  candidat choisi précisément parce qu'il n'a **aucun** fichier de spec
+  (donc aucune modification de test à faire arbitrer par `qa-reviewer`),
+  aucune dépendance de template, un seul consommateur
+  (`loading.module.ts`). `spinner.module.ts` supprimé (mort : son seul
+  rôle était de ré-exporter le composant) ; `loading.module.ts` importe
+  désormais `SpinnerComponent` directement (les `NgModule` peuvent
+  importer un composant standalone depuis Angular 14). `LoadingComponent`
+  lui-même **volontairement laissé non-standalone** dans ce commit — il a
+  un spec propre (`loading.component.spec.ts`, `declarations:
+  [LoadingComponent]`) dont la conversion attend `qa-reviewer`.
+  Vérifié : `nx lint/build/test webapp` verts, baselines inchangées (39
+  problèmes lint : 5 erreurs/34 warnings ; 38/38 suites, 87/87 tests).
+  Vérification manuelle au navigateur **non faite** (limitation sandbox
+  ci-dessus) — à faire par un humain avant de considérer ce lot
+  définitivement acquis, malgré le vert automatisé.
+
+**Reste à faire pour cette sous-vague (webapp)**, dans l'ordre de risque
+croissant suggéré :
+1. Les 12 autres composants "sans spec" restants (voir tableau) —
+   `ads-previewer`/`carousel` et `picture-uploader`/`stepped-form-field`
+   traités en dernier dans ce sous-groupe vu leur complexité de câblage
+   propre (Swiper custom elements, module co-localisé).
+2. Les 28 composants "avec spec" — chacun nécessite : (a) conversion du
+   composant + propagation `NgModule`, (b) édition du `.spec.ts`
+   (`declarations` → `imports`), (c) commit séparé de (b) soumis à
+   `qa-reviewer` avant fusion définitive, (a)+propagation restant du
+   ressort du Tech Lead.
+3. Puis la sous-vague `admin` (8 composants, 4 sans spec/4 avec spec),
+   seulement après webapp entièrement close, comme recommandé par la
+   revue senior (pas les deux apps en parallèle).
+
+**À soumettre à `senior-dev` avant de poursuivre** : la méthode elle-même
+(découpage sans-spec/avec-spec, remise de la règle lint à `off` entre les
+lots, dépendance du feu vert `qa-reviewer` par lot de specs plutôt qu'un
+lot global en fin de sous-vague) — pas seulement le résultat du lot
+pilote.
+
 ### Phase 6 (optionnelle, à valider) — Trancher `APPROVED` dans `AdStatus`
 
 - **Objectif** : décider si `publish()` doit réellement transiter par
@@ -1566,6 +1747,20 @@ chantier :
     session, volontairement, pour ne pas mélanger ça avec la clôture
     additive de la Phase 3. Détail complet dans
     `CHANTIER-MODERNISATION-REVIEW-PHASE3.md`.
+13. **Ajoutée 2026-09-24, découverte pendant le chiffrage de la Phase 5** :
+    le point 7 ci-dessus ("qui fait la revue QA pour une modification de
+    test existant") passe d'une question théorique à une question
+    opérationnelle immédiate — convertir un composant en
+    `standalone: true` casse son `.spec.ts` s'il en a un
+    (`TestBed.configureTestingModule({ declarations: [X] })` devient
+    invalide, doit passer en `imports: [X]`), et **28 des 41 composants
+    webapp + 4 des 8 composants admin** identifiés sont dans ce cas (voir
+    §4 Phase 5). Pas une question produit à trancher par l'utilisateur,
+    mais un point de process/architecture non trivial qui doit être
+    soumis à `senior-dev` avant que le Tech Lead ne s'engage sur un rythme
+    d'exécution (un aller-retour `qa-reviewer` par composant converti, ou
+    un regroupement des éditions de specs en lots plus larges soumis
+    ensemble) — non tranché unilatéralement dans cette session.
 
 ## 8. Réponse du Tech Lead aux réserves de la revue senior (2026-09-24)
 
