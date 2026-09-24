@@ -2,7 +2,6 @@ import { Observable } from 'rxjs';
 import { CityEntity } from './city.entity';
 import { CitiesRepository } from './cities.repository';
 
-// TODO Create interface / abstract Repository to factories code
 export class CitiesService {
   constructor(protected citiesRepository: CitiesRepository) {}
   findOne(id: string): Observable<CityEntity> {
