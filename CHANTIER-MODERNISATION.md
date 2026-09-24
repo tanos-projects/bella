@@ -1110,6 +1110,39 @@ tous traités :
 
 ### Phase 4 — Store admin : nettoyer, pas remplacer (révisée après revue senior — décision en §8)
 
+- **Statut (2026-09-24) : 4a terminée et committée** (4 commits sur
+  `chantier/modernisation`, entre `b15fecb` et `ccb9896`). Détail :
+  - Écart constaté par rapport à ce document en démarrant l'exécution :
+    la "couverture indirecte actuelle via `PublicationsComponent`"
+    mentionnée plus bas n'existe pas — `PublicationsComponent` n'a
+    **aucun** `.spec.ts`, donc `PublicationsStore`/`PublicationsEffects`
+    partaient d'une couverture zéro, pas seulement indirecte. Corrigé
+    ici, sans remettre en cause le périmètre 4a lui-même.
+  - Test de caractérisation de `handleActionResult` écrit et vert
+    **avant** tout nettoyage (`publications.effects.spec.ts`, commit
+    `b15fecb`) : confirme le comportement décrit dans le commentaire du
+    code — approve recharge uniquement "unpublished", reject recharge
+    "unpublished"+"archived", archive recharge les trois listes, un
+    échec ne recharge rien.
+  - Les trois `console.log` de debug retirés (commit `c0bcf21`) :
+    `PublicationsEffects.start()` ("Init effects"),
+    `PublicationsStore.dispatch()` ("Dispatch ..."),
+    `PublicationsStoreModule.forRoot()` ("Load PublicationsStoreModule").
+    Le `console.error` de `loadPage()` est conservé (erreur réelle, pas
+    du bruit de debug).
+  - Specs dédiées ajoutées (commit `34444c4`) : `publications.store.spec.ts`
+    (nouveau) et extension de `publications.effects.spec.ts` (effets de
+    chargement unpublished/published/archived, cas succès et échec).
+    Couverture admin passée de 9 à 25 tests passants (+16), zéro
+    régression sur les 6 projets (`nx run-many --target=test --all`
+    vert avant et après, mêmes chiffres api/api-domain/api-adapters/
+    webapp qu'à la baseline).
+  - Commentaire ajouté dans `store/utils.ts` (commit `ccb9896`)
+    documentant que le pattern maison est un choix assumé (renvoi §4/§8),
+    pas un oubli.
+  - **4b reste gelée**, non engagée — inchangé par cette exécution.
+  - Revue `senior-dev` sollicitée après ces commits ; verdict à
+    reporter ici une fois rendu.
 - **Décision du Tech Lead (2026-09-24, après revue senior)** : la version
   précédente de cette phase visait un remplacement complet du store maison
   par `@ngrx/store`/`@ngrx/effects` ou `@ngrx/signals`, au nom du principe
