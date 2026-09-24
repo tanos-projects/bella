@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AdsService } from './ads.service';
 
@@ -12,10 +12,23 @@ export function isPrimaryInstance(env: NodeJS.ProcessEnv = process.env): boolean
 }
 
 @Injectable()
-export class AdExpirationJob {
+export class AdExpirationJob implements OnApplicationBootstrap {
   private readonly logger = new Logger(AdExpirationJob.name);
 
   constructor(private readonly adsService: AdsService) {}
+
+  /**
+   * Catches up immediately on whatever should have expired while the
+   * process was down (deploy, crash, maintenance) — expireDue() matches on
+   * expiresAt, not elapsed uptime, so one run absorbs any gap. Without this,
+   * the catch-up would only happen on the next @Cron tick, up to 10 minutes
+   * after restart. `@Cron`'s own `initialDelay` option can't do this: `0` is
+   * falsy in JS, so `initialDelay: 0` is treated as "no delay option set"
+   * and the job just waits for its normal schedule instead of running now.
+   */
+  onApplicationBootstrap(): void {
+    this.handleExpiration();
+  }
 
   @Cron(CronExpression.EVERY_10_MINUTES, { waitForCompletion: true })
   handleExpiration(): void {

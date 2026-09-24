@@ -80,6 +80,16 @@ chantier-ci a tranché autrement.
   que sur l'instance `NODE_APP_INSTANCE=0` (`isPrimaryInstance`), pour
   éviter le travail en double — mais la correction elle-même repose sur
   l'idempotence de l'`updateMany`, pas sur ce filtre.
+- **Rattrapage au démarrage** : le job est en mémoire du process — s'il
+  est arrêté (déploiement, crash, maintenance), rien n'expire pendant ce
+  temps, mais rien n'est perdu non plus puisque `expireDue` filtre sur
+  `expiresAt`, une date, pas sur un temps écoulé. Sans garde-fou, le
+  rattrapage n'aurait lieu qu'au prochain tick, jusqu'à 10 minutes après
+  le redémarrage. `AdExpirationJob` implémente donc `OnApplicationBootstrap`
+  et appelle `handleExpiration()` une première fois immédiatement. Le
+  paramètre `initialDelay` de `@Cron` ne convient pas pour ça : `0` est
+  falsy en JS, donc `initialDelay: 0` est ignoré et le job attend son
+  cycle normal comme si l'option n'était pas posée.
 - **Renouvellement** : `AdsService.renew(id, requesterId)` vérifie la
   propriété **dans le domaine** (contrairement à `publish`, où ce
   contrôle vit dans le contrôleur) — « seul le propriétaire renouvelle »

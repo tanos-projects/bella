@@ -48,4 +48,24 @@ describe('AdExpirationJob', () => {
 
     expect(() => job.handleExpiration()).not.toThrow();
   });
+
+  describe('onApplicationBootstrap', () => {
+    it('runs the expiration check immediately, without waiting for the first tick', () => {
+      delete process.env.NODE_APP_INSTANCE;
+      adsService.expireDue.mockReturnValue(of(0));
+
+      job.onApplicationBootstrap();
+
+      expect(adsService.expireDue).toHaveBeenCalled();
+    });
+
+    it('still respects the primary-instance guard', () => {
+      process.env.NODE_APP_INSTANCE = '1';
+
+      job.onApplicationBootstrap();
+
+      expect(adsService.expireDue).not.toHaveBeenCalled();
+      delete process.env.NODE_APP_INSTANCE;
+    });
+  });
 });
