@@ -2415,13 +2415,25 @@ puisque même un visiteur non authentifié ne peut être rejoué sans
 navigateur réel dans ce sandbox). Les 4 composants "sans spec" n'ont pas
 de spec à faire approuver, mais restent soumis à la même limitation de
 vérification humaine au navigateur pour leur statut "acquis" au sens
-produit/UX (pas seulement build/lint/test verts). **Prochain point de
-passage : soumission des 4 commits de spec du lot "avec spec" à
-`qa-reviewer`** (groupés, même cadence que webapp — amendement 1, §4
-Phase 5 plus haut), puis passage devant `senior-dev` pour la clôture
-complète de la sous-vague `admin` et de la Phase 5 dans son ensemble
-(webapp + admin), la Phase 5 n'ayant plus d'autre sous-vague à
-démarrer une fois celle-ci close.
+produit/UX (pas seulement build/lint/test verts). **Mise à jour** : les
+4 commits de spec du lot "avec spec" ont été soumis et **APPROUVÉS SANS
+RÉSERVE par `qa-reviewer`** (`CHANTIER-MODERNISATION-QA-PHASE5-ADMIN.md`,
+traitement renforcé sur `NavbarComponent` — `RouterTestingModule`
+confirmé nécessaire, pas un contournement), puis la sous-vague `admin`
+et la Phase 5 dans son ensemble (webapp + admin) ont été **VALIDÉES
+techniquement sans réserve bloquante par `senior-dev`**
+(`CHANTIER-MODERNISATION-REVIEW-PHASE5-CLOTURE-GLOBALE.md`).
+
+**Phase 5 : terminée techniquement (webapp 41/41, admin 8/8, 100% des
+composants recensés convertis en `standalone: true`), vérification
+humaine au navigateur en attente** pour les composants restés gelés
+(14 côté webapp, 4 côté admin) — bloquée par l'absence d'un compte de
+test Auth0 fonctionnel dans ce sandbox (§7 point 10). Aucune autre
+sous-vague à démarrer sur cette phase. Trois questions produit restent
+ouvertes et correctement non tranchées par les agents : §7.10 (compte
+de test Auth0), §7.14 (où doit vivre `UploadService` — bug confirmé
+empiriquement, `NG0201` levé en production), §7.15 (sort de
+`SidenavComponent`, code mort antérieur à ce chantier).
 
 ### Phase 6 (optionnelle, à valider) — Trancher `APPROVED` dans `AdStatus`
 
