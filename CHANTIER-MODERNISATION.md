@@ -1797,11 +1797,20 @@ l'exécution du troisième lot (voir plus bas) :
    partagent la même limitation de vérification (§7 point 10, pas de
    compte de test Auth0 dans ce sandbox) et restent donc gelées ensemble
    au même titre.
-2. Puis la sous-vague `admin` (8 composants, 4 sans spec/4 avec spec),
-   **n'a pas encore démarré** — seulement après webapp entièrement close
-   (y compris le passage `qa-reviewer`/`senior-dev` du quatrième lot
-   ci-dessus), comme recommandé par la revue senior (pas les deux apps en
-   parallèle).
+2. La sous-vague `admin` (8 composants, 4 sans spec/4 avec spec) —
+   **mise à jour** : la condition initialement posée ici ("seulement
+   après webapp entièrement close, y compris `qa-reviewer`/`senior-dev`
+   du quatrième lot") a été explicitement levée par `senior-dev` dans sa
+   revue de clôture de la sous-vague webapp
+   (`CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT4-CLOTURE-WEBAPP.md` §7,
+   verdict "VALIDÉ, sans réserve bloquante", GO explicite pour démarrer
+   `admin` sans attendre le passage `qa-reviewer` du quatrième lot
+   webapp) — la recommandation "pas les deux apps en parallèle" visait
+   le risque de cumuler deux surfaces de régression d'intégration
+   **non vérifiées** simultanément, pas de bloquer `admin` tant qu'un
+   aller-retour `qa-reviewer` purement administratif sur webapp traîne.
+   **`admin` est maintenant convertie techniquement à 100% (8/8)** — voir
+   sous-section dédiée plus bas.
 
 La méthode (chiffrage + lot pilote + amendements 1-4) a déjà été soumise
 à et validée par `senior-dev` — voir
@@ -2218,6 +2227,202 @@ passage : soumission de ce quatrième et dernier lot "avec spec" webapp à
 `qa-reviewer`** — puis passage devant `senior-dev` pour la clôture
 complète de la sous-vague webapp (voir statut global ci-dessous).
 
+#### Sous-vague `admin` (2026-09-25, session tech-lead, après GO explicite
+de `senior-dev` — `CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT4-CLOTURE-WEBAPP.md`
+§7 : "La sous-vague webapp de la Phase 5 peut passer à la sous-vague
+`admin`")
+
+**Chiffrage revérifié indépendamment avant tout commit**, comme l'exige
+le mandat (rien acquis sans revérification, y compris un chiffre déjà
+posé par une session antérieure) : `@angular-eslint/prefer-standalone`
+réactivée temporairement à `'error'` dans `apps/admin/eslint.config.mjs`,
+`nx lint admin` relancé, violations comptées, règle remise à `'off'`
+(diff nul vérifié après coup, même méthode que le chiffrage initial
+Phase 5). **8 composants confirmés** — exactement le chiffre du
+chiffrage initial (§4 plus haut, "Chiffrage réel"), pas simplement
+recopié :
+
+| Composant | Fichier | Spec |
+|---|---|---|
+| `AppComponent` | `apps/admin/src/app/app.component.ts` | oui |
+| `NavbarComponent` | `apps/admin/src/app/shared/components/navbar/navbar.component.ts` | oui |
+| `AccessDeniedComponent` | `apps/admin/src/app/pages/access-denied/access-denied.component.ts` | oui |
+| `DashboardComponent` | `apps/admin/src/app/pages/dashboard/dashboard.component.ts` | oui |
+| `PublicationsComponent` | `apps/admin/src/app/pages/publications/publications.component.ts` | non |
+| `PublicationsListComponent` | `apps/admin/src/app/pages/publications/components/list/publications-list.component.ts` | non |
+| `ConfirmationDialogComponent` | `apps/admin/src/app/shared/components/confirmation-dialog/confirmation-dialog.component.ts` | non |
+| `SidenavComponent` | `apps/admin/src/app/shared/components/sidenav/sidenav.component.ts` | non |
+
+Répartition **4 sans spec / 4 avec spec**, confirmée indépendamment
+(présence d'un `.spec.ts` adjacent vérifiée fichier par fichier) —
+identique au chiffrage initial.
+
+**Critère de tri revérifié composant par composant, pas supposé**,
+conformément au mandat qui demandait explicitement de ne pas assumer que
+"public d'abord" n'a pas de sens pour `admin`. Lecture de
+`apps/admin/src/app/app.routes.ts` : contrairement à l'hypothèse de
+départ ("admin est probablement intégralement derrière Auth0 +
+`PermissionsGuard`"), il existe une vraie distinction à trois niveaux,
+pas deux :
+
+1. **Coquille applicative, aucun guard du tout** (rendue
+   inconditionnellement au bootstrap, avant toute évaluation de garde de
+   route — même raisonnement que `AppComponent`/`DrawerComponent`/
+   `SidebarComponent` côté webapp, lot 3) : `AppComponent` (composant
+   racine) et `NavbarComponent` (enveloppe le `<router-outlet>` dans le
+   template d'`AppComponent`, `app.component.html`).
+2. **`AuthGuard` seul, sans `PermissionsGuard`** : `AccessDeniedComponent`
+   (route `access-denied`) — accessible à tout utilisateur connecté,
+   même sans la permission `manage:publications`. C'est exactement la
+   distinction que le mandat anticipait comme possible ("une page
+   access-denied accessible sans permission complète, vs. le reste du
+   dashboard") — confirmée réelle, pas supposée.
+3. **`AuthGuard` + `PermissionsGuard` (`manage:publications`)** :
+   `DashboardComponent` (route `dashboard`), `PublicationsComponent` et
+   `PublicationsListComponent` (route `publications`,
+   `PublicationsListComponent` en étant un descendant),
+   `ConfirmationDialogComponent` (ouvert uniquement par
+   `PublicationsListComponent` via `MatDialog.open()`, jamais par
+   sélecteur de template — même portée que son unique consommateur).
+
+**Découverte annexe, non tranchée ici** : `SidenavComponent` n'a **aucun
+consommateur vivant** — son seul point d'usage,
+`apps/admin/src/app/app.component.html`, est commenté
+(`<!-- <bella-sidenav></bella-sidenav> -->`), et `app.module.ts`
+l'importait quand même sans que rien ne le rende jamais. Confirmé par
+grep exhaustif sur `apps/admin/src`, aucune autre référence. Ce n'est pas
+introduit par ce sweep — le commentaire prédate cette session — et n'est
+pas corrigé ici (décision produit potentielle : supprimer le composant
+mort, ou réactiver le sélecteur commenté — aucune des deux n'est du
+ressort d'une conversion mécanique standalone). Signalé pour
+information, pas ajouté comme question ouverte formelle en §7 puisque
+rien ne bloque : le composant reste tel quel, converti par cohérence
+avec le reste du sweep (toujours compté par `nx lint`/
+`prefer-standalone`, donc toujours dans le périmètre mécanique de cette
+phase), simplement inerte comme avant.
+
+**Ordre d'exécution** : sans-spec d'abord (mandat), triés par
+simplicité technique au sein du groupe (aucune distinction
+d'accessibilité applicable — les 4 sont soit pleinement gated, soit
+`SidenavComponent`, inerte) : `ConfirmationDialogComponent`,
+`SidenavComponent`, `PublicationsListComponent`, `PublicationsComponent`
+(dans cet ordre, feuille avant parent pour les deux derniers, même
+précédent que `FormComponent`→`AdFormComponent` côté webapp lot 4). Puis
+avec-spec, triés par le critère d'accessibilité ci-dessus, coquille
+d'abord : `NavbarComponent`, `AppComponent`, `AccessDeniedComponent`,
+`DashboardComponent`.
+
+**Exécution — 4 composants sans spec, tous convertis, un commit par
+composant, acquis** :
+
+1. `ConfirmationDialogComponent` — ouvert uniquement via
+   `MatDialog.open()` (jamais par sélecteur direct dans un template,
+   même précédent que les modales dynamiques webapp).
+   `imports: [CommonModule, MatDialogModule, MatButtonModule]`,
+   reproduisant exactement `confirmation-dialog.module.ts`, supprimé
+   (mort). `publications-list.module.ts` mis à jour (import retiré,
+   n'existait que pour rendre `MatDialogModule` "disponible" — inutile,
+   `MatDialog` est `providedIn: 'root'`).
+2. `SidenavComponent` — `imports: [RouterModule, MatListModule,
+   MatIconModule]`, reproduisant `sidenav.module.ts`, supprimé (mort).
+   `app.module.ts` mis à jour (import `SidenavModule` retiré — voir
+   découverte "zéro consommateur vivant" ci-dessus).
+3. `PublicationsListComponent` — Auth0-gated (tier 3). `imports:
+   [CommonModule, MatTableModule, MatButtonModule, MatIconModule,
+   MatPaginatorModule]`, reproduisant `publications-list.module.ts`,
+   supprimé (mort). `publications.module.ts` mis à jour (import
+   `PublicationsListComponent` directement, pas via un module — un
+   `NgModule` peut importer un composant standalone depuis Angular 14).
+4. `PublicationsComponent` — Auth0-gated (tier 3). `imports:
+   [CommonModule, MatTabsModule, PublicationsListComponent]`.
+   `MatSnackBarModule` retiré (jamais nécessaire au template,
+   `MatSnackBar` est `providedIn: 'root'`, même raisonnement que
+   `MatDialog`/point 1). `publications.module.ts` réduit à `imports:
+   [RouterModule.forChild(routes)]` — même schéma que
+   `SettingsModule`/`AccountModule` côté webapp (lots 3/4) : reste en
+   vie comme cible `loadChildren` de la route `publications`.
+
+Chaque commit vérifié `nx build/lint/test admin` vert après coup,
+baselines inchangées (13 problèmes lint : 3 erreurs/10 avertissements ;
+7/7 suites, 25/26 tests + 1 skip préexistant).
+
+**Exécution — 4 composants avec spec, tous convertis (production +
+spec isolé, 8 commits), PAS encore soumis à `qa-reviewer`** —
+conformément au mandat, cette session (tech-lead) ne se soumet pas
+elle-même à `qa-reviewer` :
+
+1. `NavbarComponent` — coquille (tier 1). Module co-localisé dans
+   `navbar.component.ts` lui-même (même fichier), pas un
+   `navbar.module.ts` séparé — même motif déjà documenté côté webapp
+   pour `picture-uploader.ts`/`stepped-form-field.ts`. `imports:
+   [CommonModule, RouterModule, MatToolbarModule, MatSidenavModule,
+   MatListModule, MatIconModule, MatButtonModule]`, reproduisant
+   `NavbarModule`. `app.module.ts` mis à jour (`NavbarComponent` importé
+   directement). **Commit de spec marqué "NOT purement mécanique"** :
+   `navbar.component.spec.ts` échouait avec `NG0201: No provider found
+   for \`ActivatedRoute\`` après le simple renommage
+   `declarations`→`imports` — empiriquement identifié : sous l'ancien
+   `TestBed` basé sur `declarations`, les `imports` propres de
+   `NavbarModule` (dont `RouterModule`) n'entraient jamais dans le
+   module de test dynamique, donc `routerLink`/`routerLinkActive`
+   restaient des attributs plats inertes, jamais liés à la vraie
+   directive `RouterLink`. Devenu standalone, les `imports` du composant
+   s'appliquent toujours, `RouterLink` devient réelle et injecte
+   `ActivatedRoute`/`Router` — corrigé en ajoutant `RouterTestingModule`
+   (déjà un motif établi dans cette app, `app.component.spec.ts`),
+   aucune assertion touchée.
+2. `AppComponent` — coquille (tier 1). `imports: [RouterOutlet,
+   NavbarComponent]`. `app.module.ts` : `declarations: [AppComponent]`
+   retiré (`bootstrap: [AppComponent]` inchangé — un composant
+   standalone peut rester l'entrée `bootstrap` sans y être déclaré, même
+   précédent que webapp) ; import `NavbarComponent` retiré des `imports`
+   du module (devenu redondant, `AppComponent` le fournit lui-même
+   désormais). Commit de spec purement mécanique (`RouterTestingModule`
+   déjà présent avant cette conversion).
+3. `AccessDeniedComponent` — tier 2 (`AuthGuard` seul). `imports:
+   [CommonModule, MatButtonModule]`, reproduisant
+   `access-denied.module.ts`, réduit à `imports:
+   [RouterModule.forChild(routes)]`. Commit de spec purement mécanique.
+4. `DashboardComponent` — tier 3 (pleinement gated). Aucun `imports`
+   nécessaire (template statique, `<p>dashboard works!</p>`, vérifié par
+   lecture, pas supposé). `dashboard.module.ts` réduit à `imports:
+   [RouterModule.forChild(routes)]`. Commit de spec purement mécanique.
+
+Chaque commit de production vérifié `nx build/lint admin` vert (le
+commit de production échoue systématiquement, et volontairement, au
+test tant que le commit de spec isolé suivant n'est pas fait — même
+séquence que webapp) ; chaque commit de spec revérifié `nx
+build/lint/test admin` vert, baselines inchangées (13 problèmes lint : 3
+erreurs/10 avertissements ; 7/7 suites, 25/26 tests + 1 skip
+préexistant).
+
+**Vérification finale de complétude** : `@angular-eslint/prefer-standalone`
+réactivée une dernière fois après les 8 conversions — **0 violation**,
+confirmant que les 8 composants comptés au chiffrage sont bien les 8
+convertis, aucun oublié. Remise à `'off'`, diff nul revérifié.
+`nx run-many --target={build,lint,test} --all` (6 projets) vert,
+baselines identiques à celles déjà documentées pour webapp (`api`
+21/130, `api-domain` 6/41, `api-adapters` 5/28, `webapp` 39/89 — +1
+suite/+2 tests du test de caractérisation §7.14 ci-dessus, `admin`
+7/26+1 skip ; lint `api` 120/0, `webapp` 39/5-34, `admin` 13/3-10).
+
+**Statut : sous-vague `admin` convertie techniquement à 100% (8/8)**,
+même situation que webapp : tous les composants "avec spec" (4) restent
+**GELÉS** au sens de l'amendement 3 de la revue du lot pilote webapp
+(même limitation §7 point 10 — pas de compte de test Auth0 dans ce
+sandbox — s'applique aux trois tiers, y compris le tier 1 "coquille",
+puisque même un visiteur non authentifié ne peut être rejoué sans
+navigateur réel dans ce sandbox). Les 4 composants "sans spec" n'ont pas
+de spec à faire approuver, mais restent soumis à la même limitation de
+vérification humaine au navigateur pour leur statut "acquis" au sens
+produit/UX (pas seulement build/lint/test verts). **Prochain point de
+passage : soumission des 4 commits de spec du lot "avec spec" à
+`qa-reviewer`** (groupés, même cadence que webapp — amendement 1, §4
+Phase 5 plus haut), puis passage devant `senior-dev` pour la clôture
+complète de la sous-vague `admin` et de la Phase 5 dans son ensemble
+(webapp + admin), la Phase 5 n'ayant plus d'autre sous-vague à
+démarrer une fois celle-ci close.
+
 ### Phase 6 (optionnelle, à valider) — Trancher `APPROVED` dans `AdStatus`
 
 - **Objectif** : décider si `publish()` doit réellement transiter par
@@ -2623,6 +2828,26 @@ chantier :
     entièrement ouverte et n'est pas tranchée par ce test — seul le
     diagnostic est maintenant empirique plutôt que déduit par lecture de
     code.
+15. **Ajoutée 2026-09-25, découverte pendant le chiffrage de la sous-vague
+    `admin` (Phase 5)** : `SidenavComponent`
+    (`apps/admin/src/app/shared/components/sidenav/sidenav.component.ts`)
+    n'a aucun consommateur vivant — son unique point d'usage,
+    `apps/admin/src/app/app.component.html`, est un sélecteur commenté
+    (`<!-- <bella-sidenav></bella-sidenav> -->`), confirmé par grep
+    exhaustif sur `apps/admin/src` (aucune autre référence). Ce n'est pas
+    introduit par cette session : le commentaire prédate ce chantier de
+    modernisation. **Question à trancher, pas tranchée ici** : le
+    composant doit-il être (a) supprimé (dead code, `NavbarComponent`
+    couvre déjà la navigation), (b) réactivé (le sélecteur commenté
+    suggère une fonctionnalité de navigation latérale jamais terminée ou
+    désactivée sans documentation), ou (c) laissé tel quel en attendant
+    un besoin produit futur ? Aucune des trois n'est du ressort d'une
+    conversion mécanique standalone (le mandat de cette phase). Non
+    bloquant pour la Phase 5 : le composant a été converti
+    `standalone: true` par cohérence avec le reste du sweep (toujours
+    compté par `@angular-eslint/prefer-standalone`), sans changer son
+    statut d'inertie. Détail complet dans la sous-section "Sous-vague
+    `admin`" plus haut (§4 Phase 5).
 
 ## 8. Réponse du Tech Lead aux réserves de la revue senior (2026-09-24)
 
