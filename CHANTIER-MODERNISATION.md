@@ -382,6 +382,71 @@ caractérisation sur `AdsController`/`AdsRepositoryNest` et leurs query
 params) le jour où le palier NestJS 11→12 est repris — pas dans le même
 commit que le fix Jest.
 
+**Mise à jour (2026-09-25) — piste Node ≥24.9 testée empiriquement,
+verrou Jest/ESM levé.** L'utilisateur a installé Node `v24.21.0` via `nvm`
+spécifiquement pour tester la piste identifiée le 2026-09-24 (jamais
+essayée jusqu'ici). Détail complet en §4 Phase 0bis (reprise). Résumé du
+résultat, en trois points :
+
+1. **`nx test api` passe intégralement sous NestJS 12.1.0 + Node 24.21.0**
+   — mêmes 21 suites / 130 tests qu'en baseline NestJS 11.x, **sans
+   toucher `apps/api/jest.config.ts` ni `tsconfig.spec.json`**. C'est mieux
+   que ce que le spike du 24 anticipait (qui supposait qu'une montée de
+   Node suffirait seule, mais s'attendait à devoir aussi retenter une
+   configuration ESM/babel spécifique).
+2. **Nuance non documentée par le message d'erreur Jest lui-même** : "Node
+   v24.9+" est nécessaire mais **pas suffisant**. Le gate exact dans
+   `jest-runtime` (`node_modules/jest-runtime/build/index.js`,
+   `supportsSyncEvaluate`) teste `vm.SourceTextModule.prototype.hasAsyncGraph`
+   — et `vm.SourceTextModule` reste derrière le flag expérimental Node
+   `--experimental-vm-modules` **même en Node 24.21** (vérifié
+   empiriquement : `typeof require('vm').SourceTextModule` vaut
+   `undefined` sans le flag, `'function'` avec). Il faut donc **les deux**:
+   Node ≥ 24.9 *et* `NODE_OPTIONS=--experimental-vm-modules` au démarrage
+   du processus qui exécute `nx`. Une fois les deux réunis, Jest 30 route
+   le chargement ESM de `@nestjs/*` vers le `require(esm)` natif de Node,
+   synchrone, sans passer par le linker `--experimental-vm-modules`
+   "ancien style" (mode (b) du spike du 24, qui échouait sur le linking
+   `export * from`) — c'est un mécanisme différent, ajouté dans Jest 30
+   spécifiquement pour ce cas.
+3. **Caveat opérationnel découvert en testant `nx run-many`, pas seulement
+   `nx test api` seul** : `@nx/jest`'s executor appelle `jest.runCLI(...)`
+   **in-process** (pas de `node jest ...` séparé par projet) —
+   `apps/api/../../node_modules/@nx/jest/src/executors/jest/jest.impl.js`.
+   `NODE_OPTIONS` ne peut être positionné qu'au démarrage d'un processus
+   Node, donc en le passant en variable d'environnement pour toute
+   l'invocation `nx run-many --target=test --all`, il fuit vers **tous**
+   les processus que Nx forke pour les autres projets — cassant `webapp`
+   et `admin` (`ReferenceError: module is not defined` en chargeant
+   `@angular/core/fesm2022/core.mjs` via `jest-preset-angular`, un mode de
+   panne différent des deux du spike précédent). Testé isolément (`nx test
+   api` seul avec le flag, puis `nx run-many --target=test --all
+   --exclude=api` sans le flag) : **les deux passent séparément avec les
+   mêmes comptes qu'en baseline**, mais **aucune commande unique ne teste
+   les 6 projets ensemble avec ce flag global** — il faudrait soit deux
+   invocations distinctes (CI en deux étapes), soit une façon de scoper
+   `NODE_OPTIONS` au seul target `api` (mécanisme Nx par-projet non
+   exploré dans le budget de ce spike — candidat: `options.env` sur le
+   target `test` d'`apps/api/project.json`, à vérifier si cette piste est
+   reprise).
+4. **`nx build api` (webpack) et `nx lint` (`api`, `api-domain`,
+   `api-adapters`, `dtos`) restent verts** sous NestJS 12.1.0, sans erreur
+   nouvelle (uniquement les mêmes warnings `no-explicit-any` préexistants).
+5. **Express 5.2.1** (voir découverte annexe ci-dessus) reste **non
+   qualifié** — non testé au runtime (pas de `.env`/MongoDB disponible
+   dans ce spike), et les tests de caractérisation sur
+   `AdsController`/`AdsRepositoryNest` demandés par le mandat pour ce
+   sous-point n'ont **pas** été écrits dans cette session (hors budget du
+   spike Jest/Node). Reste un vrai sous-point ouvert avant d'adopter la
+   migration en confiance.
+6. **Rien commité** : conformément au mandat ("succès complet et
+   *validé*" — la validation `senior-dev` n'a pas encore eu lieu),
+   `package.json`/`yarn.lock` ont été restaurés à l'identique
+   (`git checkout --` puis `yarn install` sous Node 22 pour reconstituer
+   `node_modules` NestJS 11.x) après avoir confirmé le résultat. Seule
+   cette mise à jour de documentation est committée. État détaillé et
+   méthode complète en §4 Phase 0bis.
+
 ### 1.5 Couverture de tests par domaine — synthèse
 
 | Domaine / lib | Specs présentes | Trous principaux |
@@ -592,6 +657,147 @@ jour). Résumé :
    ce n'est donc pas un échec du chantier. Prochaine étape si reprise :
    évaluer la piste Node ≥ 24.9 (point 5) comme nouvelle option a, avant
    de retenter (a)/(b) telles quelles.
+
+**Reprise du spike (2026-09-25) — piste Node ≥24.9, succès technique,
+en attente de revue `senior-dev` avant adoption.** L'utilisateur a
+installé Node `v24.21.0` via `nvm` (`~/.nvm/versions/node/v24.21.0`),
+**sans le rendre par défaut** (`~/.nvm/alias/default` reste `22`,
+`package.json` `engines` reste `>=22 <23` — non touchés, conformément au
+mandat) spécifiquement pour tester cette piste. Méthode et résultat,
+dans l'ordre exécuté :
+
+1. **Sanity check Node 24 seul, NestJS 11.x inchangé** (`npx nx run-many
+   --target={build,lint,test} --all` sous `nvm use 24.21.0`) : **vert**.
+   - `build` : les 3 apps buildent ; le seul échec initial
+     (`admin:build:production`) était un refus réseau du sandbox vers
+     `fonts.googleapis.com` (rien à voir avec Node) — résolu en autorisant
+     ce host, build vert ensuite.
+   - `lint` : `admin`/`webapp`/`webapp-e2e`/`admin-e2e` échouent — mais
+     **à l'identique sous Node 22 et Node 24** (reproduit les deux, diff
+     nul), donc préexistant sur cette branche, indépendant de ce spike
+     (constructeurs vides `@typescript-eslint/no-empty-function` dans
+     `dashboard.component.ts`/`carousel.component.ts`/
+     `my-publications.component.ts`, et une erreur de config ESLint sur
+     `plugin:cypress/recommended` dans les projets e2e — ni l'un ni
+     l'autre ne sont dans le périmètre de ce spike, non corrigés).
+   - `test` : 6/6 projets verts, mêmes comptes qu'au dernier relevé
+     (`api-domain` 6/41, `api-adapters` 5/28, `api` 21/130, `admin` 7
+     suites/26 tests (1 skip), `webapp` 39/89 — la hausse webapp/admin
+     vs. le relevé du 24 reflète le travail de couverture fait entre
+     temps sur d'autres sous-vagues, pas une variation due à Node 24).
+   - **Conclusion sanity check : Angular 22/Nx 22/le reste de la stack
+     tolèrent Node 24 sans régression.**
+2. **État réel des versions re-vérifié avant tout changement** (pas
+   supposé) : `node_modules/@nestjs/{common,core,platform-express}`
+   à `11.2.6`, exactement comme déclaré dans `package.json` — donc bien
+   11→12 direct à tenter, pas de palier intermédiaire déjà fait sur cette
+   branche. Découverte notable en creusant l'état réel : **ce worktree a
+   son propre `node_modules` indépendant**, pas un symlink partagé vers
+   `/home/tanos/bella/node_modules` (vérifié en écrivant un fichier
+   marqueur dans l'un, en constatant son absence dans l'autre) — l'overlay
+   par symlinks-éclatés du spike du 24 n'est donc plus nécessaire ; un
+   vrai `yarn install` scopé à ce worktree suffit et ne touche jamais
+   l'arbre partagé (confirmé par le même test de marqueur après
+   l'installation). Le commentaire dans `apps/api/jest.config.ts`
+   décrivant "un symlink unique... vers le node_modules partagé" est donc
+   **obsolète** (drift documentaire mineur, non corrigé dans ce spike —
+   la logique du `moduleNameMapper` qu'il justifie reste correcte et
+   nécessaire, seule l'explication du *pourquoi* a changé).
+3. **Overlay/installation** : `package.json` édité (`@nestjs/axios`
+   `~4.0.1→~12.0.1`, `common`/`core` `~11.2.6→~12.1.0`, `config`
+   `~4.0.4→~12.0.1`, `mongoose` `~11.0.4→~12.0.0`, `passport`
+   `~11.0.5→~12.0.0`, `platform-express` `~11.2.6→~12.1.0`, `swagger`
+   `~11.4.7→~12.0.2`, `terminus` `~11.1.1→~12.1.0`, `schematics`
+   `~11.1.0→~12.0.5`, `testing` `~11.2.6→~12.1.0` ; `@nestjs/jwt` déjà à
+   `~12.0.2` sur cette branche, inchangé). Versions choisies après
+   vérification une à une des `peerDependencies` publiées sur le registre
+   npm (toutes compatibles entre elles pour `@nestjs/common@^12.0.0` /
+   `@nestjs/core@^12.0.0`, `mongoose@^9.10.2` satisfait le peer
+   `@nestjs/mongoose@12.0.0`, `typescript@~6.0.3` satisfait le peer
+   `@nestjs/swagger@12.0.2`/`@nestjs/schematics@12.0.5`
+   `>=6.0.0`/`^5.5.0||^6.0.0`). `yarn install --ignore-engines` (le flag
+   `--ignore-engines`, pas une édition du champ `engines` de
+   `package.json`, pour contourner le refus de Yarn 1 de tourner sous
+   Node 24 alors que `engines` dit `>=22 <23` — champ non touché,
+   conformément au mandat) exécuté sous `nvm use 24.21.0`, avec `yarn`
+   obtenu via `corepack` du Node 24 lui-même (`corepack` est fourni
+   nativement par Node ≥16.9, aucune installation globale nécessaire).
+   Résultat : install propre, aucun conflit de peer bloquant. Confirmé
+   installé : `@nestjs/{common,core,platform-express,testing}@12.1.0`,
+   `mongoose`-wrapper/`passport`-wrapper `@12.0.0`, `swagger@12.0.2`,
+   `terminus@12.1.0`, `axios-wrapper@12.0.1`, `config@12.0.1`,
+   `schematics@12.0.5`. Seuls `package.json`/`yarn.lock` modifiés — **zéro
+   changement sur `apps/api/jest.config.ts`, `tsconfig.spec.json` ou
+   `jest.preset.js`**.
+4. **`nx test api` sous Node 24.21.0 + `NODE_OPTIONS=--experimental-vm-modules`**
+   (voir §1.4 pour le détail technique de pourquoi les deux sont
+   nécessaires) : **21 suites / 130 tests, tous verts — identique au
+   compte baseline NestJS 11.x.** C'est le résultat central de la reprise
+   de ce spike : le verrou Jest/ESM des deux tentatives du 24 est levé,
+   sans qu'aucune des deux configurations qui avaient échoué
+   (`babel-jest` scopé, mode ESM natif `ts-jest`/`extensionsToTreatAsEsm`)
+   n'ait été nécessaire.
+5. **`nx build api` (webpack)** : vert, sous Node 24, avec NestJS 12.1.0.
+   **`nx lint`** sur `api`/`api-domain`/`api-adapters`/`dtos` : vert (0
+   erreur, uniquement les mêmes warnings `no-explicit-any` préexistants
+   qu'en baseline). `nx run-many --target=test --all --exclude=api` (sans
+   le flag ESM) : les 5 autres projets verts, mêmes comptes qu'en
+   baseline — la présence de NestJS 12.1.0 dans l'arbre ne casse rien
+   côté webapp/admin.
+6. **Caveat découvert en testant la combinaison `run-many` + flag global**
+   (détaillé en §1.4 point 3) : `NODE_OPTIONS=--experimental-vm-modules`
+   positionné pour toute l'invocation `nx run-many --target=test --all`
+   fait échouer `admin:test`/`webapp:test` (`ReferenceError: module is not
+   defined` dans `@angular/core/fesm2022/core.mjs` chargé par
+   `jest-preset-angular`) car `@nx/jest` exécute `jest.runCLI` in-process
+   et Nx forke un processus par projet en héritant de `NODE_OPTIONS` —
+   donc le flag fuit vers des projets qui n'en ont pas besoin et que ça
+   casse. **Aucune commande unique ne fait passer les 6 projets ensemble**
+   avec ce flag global ; testé et vert **séparément** (`nx test api` seul
+   avec le flag, `run-many --exclude=api` sans). Point resté ouvert :
+   scoper `NODE_OPTIONS` au seul target `test` d'`api` (candidat non
+   exploré : `options.env` sur ce target dans `apps/api/project.json`, si
+   ce mécanisme existe en Nx 22 — pas vérifié dans le budget de ce spike).
+7. **Express 5.2.1 non qualifié** (voir découverte annexe déjà documentée
+   en §1.4) : confirmé toujours d'actualité — `@nestjs/platform-express@12.1.0`
+   épingle exactement `express@5.2.1`, installé cette fois pour de vrai
+   (nesté sous `node_modules/@nestjs/platform-express/node_modules/express`,
+   Yarn 1 ayant gardé `express@4.22.3` au niveau racine pour
+   `swagger-ui-express`). Non testé au runtime réel (pas de `.env`/MongoDB
+   dans ce spike) ; les tests de caractérisation sur
+   `AdsController`/`AdsRepositoryNest` demandés par le mandat pour ce
+   sous-point **n'ont pas été écrits** — reste un sous-point à part entière
+   avant d'adopter la migration en confiance, pas traité dans cette
+   session.
+8. **Nettoyage** : conformément au mandat ("succès complet **et validé**"
+   — la validation `senior-dev` n'a pas eu lieu dans cette session),
+   `package.json`/`yarn.lock` restaurés (`git checkout --`), puis
+   `yarn install` relancé sous Node 22 (par défaut, sans
+   `--ignore-engines`, cette fois conforme à `engines`) pour reconstituer
+   `node_modules` à l'identique de l'état NestJS 11.x (`@nestjs/common`
+   confirmé revenu à `11.2.6`, `express` racine confirmé revenu à
+   `4.22.3`). `npx nx run-many --target=test --all --skip-nx-cache` sous
+   Node 22 reconfirmé vert, mêmes 21/130 côté `api` qu'avant le spike.
+   Aucun binaire global installé de façon persistante (le `yarn` utilisé
+   sous Node 24 vient de `corepack`, fourni par la distribution Node
+   elle-même, rien ajouté à `~/.nvm`). `~/.nvm/alias/default` et
+   `package.json` `engines` **non touchés**. `git status` propre en fin
+   de session hormis cette mise à jour de documentation — **aucun commit
+   de code n'a résulté de cette reprise**, seule la documentation est
+   committée.
+9. **Décision** : le verrou technique Jest/ESM qui bloquait le palier
+   NestJS 11→12 depuis le 2026-09-24 est **levé** — la piste Node ≥24.9
+   fonctionne, à la fois plus simple (zéro fichier de config Jest touché)
+   et plus contraignante (nécessite `--experimental-vm-modules` en plus
+   de Node ≥24.9, et un caveat d'invocation `run-many` non résolu) que ce
+   que le message d'erreur Jest laissait entendre. **Ne pas considérer ce
+   palier acquis** : (a) migration Express 5 non qualifiée par des tests
+   de caractérisation (mandat, point 4/7 ci-dessus), (b) caveat
+   d'invocation `run-many`/`NODE_OPTIONS` à résoudre avant intégration CI,
+   (c) décision de faire de Node 24 le runtime par défaut du poste de dev
+   / CI / PM2-EC2 est **hors mandat de ce spike**, à remonter séparément à
+   l'utilisateur si cette voie est retenue. Prêt pour revue `senior-dev`
+   — à déclencher séparément par l'utilisateur.
 
 ### Phase 1 — Filet de sécurité : tests de caractérisation sur les domaines non couverts
 
