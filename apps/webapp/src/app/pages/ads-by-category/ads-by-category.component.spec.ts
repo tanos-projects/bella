@@ -13,8 +13,7 @@ describe('AdsByCategoryComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ AdsByCategoryComponent ],
-      imports: [...commonTestImports],
+      imports: [AdsByCategoryComponent, ...commonTestImports],
       providers: [...commonTestProviders],
       schemas: [...commonTestSchemas],
     })
