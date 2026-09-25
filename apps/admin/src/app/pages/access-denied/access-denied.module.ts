@@ -1,6 +1,4 @@
-import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
 import { Route, RouterModule } from '@angular/router';
 
 import { AccessDeniedComponent } from './access-denied.component';
@@ -13,7 +11,6 @@ const routes: Route[] = [
 ];
 
 @NgModule({
-  imports: [CommonModule, RouterModule.forChild(routes), MatButtonModule],
-  declarations: [AccessDeniedComponent],
+  imports: [RouterModule.forChild(routes)],
 })
 export class AccessDeniedModule {}
