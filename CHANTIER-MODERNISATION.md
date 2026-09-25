@@ -3318,7 +3318,7 @@ chantier :
     /users/:id` et ne dit donc rien de trompeur sur ce point — pas de mise
     à jour nécessaire.
 12. **Ajoutée 2026-09-24, découverte par `senior-dev` pendant la revue de la
-    Phase 3** : `UserSettingsService.reset()` (`apps/webapp/src/app/shared/services/user-settings.service.ts`)
+    Phase 3 — RÉSOLUE (2026-09-25).** `UserSettingsService.reset()` (`apps/webapp/src/app/shared/services/user-settings.service.ts`)
     ne fait que `window.localStorage.removeItem(...)` — il ne pousse jamais
     `''` sur `this._country$`. Donc après un `reset()`, `getCountry()` et
     `hasCountrySet()` continuent de renvoyer la valeur en mémoire précédente
@@ -3341,6 +3341,35 @@ chantier :
     session, volontairement, pour ne pas mélanger ça avec la clôture
     additive de la Phase 3. Détail complet dans
     `CHANTIER-MODERNISATION-REVIEW-PHASE3.md`.
+
+    **Décision de l'utilisateur (2026-09-25), tranchée directement : c'est
+    un bug réel à corriger, pas un comportement voulu.** Corrigé :
+    `reset()` route désormais par le setter existant `setCountry('')` au
+    lieu d'appeler `window.localStorage.removeItem(...)` directement —
+    cohérent avec le seul autre chemin d'écriture de `_country$` dans la
+    classe (`setCountry`), qui pousse `country || ''` sur le
+    `BehaviorSubject` puis laisse la souscription du constructeur
+    (persistante, pas seulement au démarrage) répercuter la valeur falsy
+    vers `localStorage.removeItem` — le comportement `localStorage` reste
+    donc identique à l'ancien code, seule la mise à jour en mémoire
+    manquante est ajoutée. Commit `7632bdd`
+    (`fix(webapp): UserSettingsService.reset() also clears in-memory
+    country`).
+
+    Le test existant `user-settings.service.spec.ts` (cas `reset()
+    removes the persisted country entry directly`) a été renforcé pour
+    verrouiller le nouveau comportement complet
+    (`getCountry() === ''`/`hasCountrySet() === false` en plus de
+    l'assertion `localStorage` déjà présente) — **modification d'un test
+    existant** au sens de la gouvernance (§5/`tech-lead.md`), isolée dans
+    son propre commit séparé du fix de code : `492f73a`
+    (`test(webapp): strengthen reset() spec to lock in-memory country
+    clearing`). **Ce commit attend un feu vert `qa-reviewer` écrit avant
+    d'être considéré définitif** — non sollicité dans cette session, une
+    revue séparée est attendue pour le clore.
+
+    `nx test webapp` relancé après le fix : 39/39 suites, 89/89 tests
+    verts, sans régression.
 13. **Ajoutée 2026-09-24, découverte pendant le chiffrage de la Phase 5 —
     RÉPONDUE le 2026-09-24 par la revue senior du lot pilote.** Le point 7
     ci-dessus ("qui fait la revue QA pour une modification de test
