@@ -14,12 +14,10 @@ import { PreloadAllModules, RouterModule } from '@angular/router';
 import { AppComponent } from './app.component';
 import { appRoutes } from './app.routes';
 import { AuthenticationModule } from './auth/authentication.module';
-import { NavbarComponent } from './shared/components/navbar/navbar.component';
 import { StoreModule } from './store/store.module';
 
 registerLocaleData(localeFr);
 @NgModule({
-  declarations: [AppComponent],
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
@@ -39,7 +37,6 @@ registerLocaleData(localeFr);
     MatSidenavModule,
     MatIconModule,
     MatListModule,
-    NavbarComponent,
   ],
   providers: [{ provide: LOCALE_ID, useValue: 'fr' }],
   bootstrap: [AppComponent],
