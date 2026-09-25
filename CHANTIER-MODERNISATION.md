@@ -1758,33 +1758,27 @@ consommateur de `WelcomeService`, revérifié non affecté par la migration
 du point 7. `nx build webapp` (garde-fou NG8001) vert après chaque
 commit de production.
 
-**Reste à faire pour cette sous-vague (webapp)** :
+**Reste à faire pour cette sous-vague (webapp)**, mis à jour après le feu
+vert `qa-reviewer` du deuxième lot (voir sous-section suivante) et
+l'exécution du troisième lot (voir plus bas) :
 
-1. 14 composants "avec spec" restants à convertir (21 − 7 de ce lot),
-   même tri public/Auth0-gated : probablement publics —
-   `app.component` (racine, bootstrap), `main.component`,
-   `home.component`, `ads-by-category.component`, `ad-detail.component`
-   (route sans aucun guard), `settings.component` (`WelcomeGuard` seul,
-   déjà vérifié en §4 chiffrage) — 6 candidats ; clairement Auth0-gated,
-   vérifiés via `account`/`post-an-ad` (tous deux `AuthGuard`) —
-   `account.component`, `profile-form.component`, `bookmarks.component`
+1. ~~14 composants "avec spec" restants~~ → **8 restants** après le
+   troisième lot ci-dessous, tous Auth0-gated, vérifiés via
+   `account`/`post-an-ad` (tous deux `AuthGuard`) : `account.component`,
+   `profile-form.component`, `bookmarks.component`
    (`AuthGuard`+`CompleteProfileGuard`), `my-publications.component`
    (idem), `ad-form.component`, `field-error.component` (consommé
    uniquement par `profile-form.module.ts`, gated), `form.component`
    (consommé uniquement par `ad-form.module.ts`/`account.module.ts`,
    gated), `upload.component` (consommé uniquement par
-   `picture-uploader.ts`, gated) — 8 candidats. Total 6 + 8 = 14, à
-   reconfirmer composant par composant au moment de la conversion comme
-   toujours plutôt que supposé ici.
-2. **Compléter ce deuxième lot à 5-10 composants** (7 aujourd'hui, comme
-   le premier) ou l'étendre avant soumission — décision de la prochaine
-   session tech-lead — puis le soumettre à `qa-reviewer` en une fois
-   (amendement 1). Ne pas déclarer un seul de ces 7 commits de spec
-   acquis avant ce feu vert. **Ne pas faire tourner `senior-dev` et
-   `qa-reviewer` en parallèle sur ce worktree** (risque de collision
-   d'édition constaté et documenté par la revue du lot 1, voir
-   `CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2.md` §2).
-3. Puis la sous-vague `admin` (8 composants, 4 sans spec/4 avec spec),
+   `picture-uploader.ts`, gated). À reconfirmer composant par composant
+   au moment de la conversion comme toujours plutôt que supposé ici — et
+   à traiter en dernier au sens de l'amendement 3 de la revue du lot
+   pilote (§4 plus haut) : leur mise en "acquis" définitif restera gelée
+   jusqu'à vérification humaine réelle avec un compte Auth0, qui suppose
+   elle-même le blocage runtime `class-validator` résolu (voir
+   sous-section dédiée ci-dessous — **résolu** depuis cette session).
+2. Puis la sous-vague `admin` (8 composants, 4 sans spec/4 avec spec),
    seulement après webapp entièrement close, comme recommandé par la
    revue senior (pas les deux apps en parallèle).
 
@@ -1792,13 +1786,265 @@ La méthode (chiffrage + lot pilote + amendements 1-4) a déjà été soumise
 à et validée par `senior-dev` — voir
 `CHANTIER-MODERNISATION-REVIEW-PHASE5-PILOTE.md` (méthode) et
 `CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2.md` (exécution du lot 1,
-validée avec réserves mineures, toutes traitées — voir plus haut dans
-cette section et §5). Le prochain point de passage `senior-dev` est la
-fin de la sous-vague webapp complète (ou la soumission de ce deuxième
-lot "avec spec" à `qa-reviewer`, selon ce qui arrive en premier) — pas
-cette session-ci, qui n'a pas encore de lot complet prêt à soumettre
-elle-même (le mandat de cette session est d'exécuter, pas de déclencher
-la revue).
+validée avec réserves mineures, toutes traitées). Le prochain point de
+passage `senior-dev`/`qa-reviewer` est la soumission du troisième lot
+"avec spec" ci-dessous (6 composants) — pas encore faite par cette
+session (le mandat de cette session est d'exécuter, pas de déclencher la
+revue).
+
+#### Deuxième lot "avec spec" — feu vert `qa-reviewer` et revue senior reçus, acquis (2026-09-25)
+
+`CHANTIER-MODERNISATION-QA-PHASE5-LOT2.md` : **APPROUVÉ, sans réserve**,
+pour les 7 modifications de `.spec.ts` du deuxième lot
+(`TitledPageComponent`, `LoginSignupLinkComponent`, `LoginSignupComponent`,
+`LogoutButtonComponent`, `SidebarComponent`, `DrawerComponent`,
+`WelcomeComponent`) — chaque diff vérifié strictement mécanique
+(`declarations` → `imports`), impact de la migration
+`forRoot()` → `providedIn: 'root'` (`DrawerService`/`WelcomeService`/
+`WelcomeGuard`) vérifié nul sur tout spec existant (harnais partagé,
+`settings.component.spec.ts`, `drawer.service.spec.ts`), suite complète
+revérifiée (38/38 suites, 87/87 tests). Les 7 commits d'édition de spec
+de ce lot sont désormais **acquis** au sens de la règle de gouvernance §5.
+
+`CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2-SUITE.md` (revue `senior-dev`
+indépendante, même portée) : **validée avec réserves** — décompte 21
+reconfirmé, fix `reflect-metadata`/`api:test` reconfirmé stable (5
+exécutions directes supplémentaires, toutes vertes), le deuxième lot
+"avec spec" lui-même confirmé propre (échantillon de 4 diffs complets sur
+7, portée du singleton `providedIn: 'root'` vérifiée neutre en
+production, `nx run-many --target={build,lint,test} --all` vert sur les 6
+projets). **Un point bloquant distinct du code livré** : le fix
+`98d552d` ne corrige la résolution `class-validator`/`class-transformer`
+que pour Jest (`moduleNameMapper`) — le serveur réel
+(`node dist/apps/api/main.js`, donc aussi `nx serve api`) plantait
+toujours au démarrage dans ce worktree au moment de cette revue,
+empêchant toute vérification manuelle des items Auth0-gated. Traité en
+premier par la session suivante — voir sous-section dédiée ci-dessous.
+La citation trompeuse des commits `ab693f6`/`1d0defe` signalée par
+`qa-reviewer` a également été confirmée par cette revue — voir la
+sous-section "Correction de citation" ci-dessous.
+
+Les deux documents étaient untracked dans ce worktree (produits par des
+sessions d'agent précédentes) ; ajoutés au suivi git par le commit doc de
+cette section.
+
+#### Résolution du blocage runtime `class-validator` (serveur réel) — 2026-09-25
+
+**Contexte** : depuis la Phase 2 sous-point 4 (§4 plus haut) et confirmé
+par la revue `CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2-SUITE.md` §1.c,
+`node dist/apps/api/main.js` (et donc `nx serve api`) plantait
+immédiatement (`[Nest] ERROR [PackageLoader] The "class-validator"
+package is missing`, `process.exit(1)` dans `loadPackage` d'`@nestjs/common`)
+: `class-validator`/`class-transformer` n'étaient installés que dans un
+overlay local à ce worktree (4 paquets réels ajoutés manuellement),
+jamais dans l'arbre `node_modules` partagé vers lequel pointait le
+symlink unique `node_modules/@nestjs` — la résolution Node, partant du
+chemin réel (post-symlink) d'`@nestjs/common`, ne retombait jamais dans
+l'overlay local. Ce blocage empêchait toute vérification manuelle réelle
+des composants Auth0-gated encore gelés en Phase 5, et l'usage du skill
+`run-bella` dans ce worktree.
+
+**Fix tenté et exécuté cette session** : le fix propre identifié depuis
+la Phase 2 mais jamais exécuté par prudence sur le temps/la charge
+réseau — un vrai `yarn install`, scopé à ce worktree uniquement (jamais
+de `yarn add`/`install` dans `/home/tanos/bella` ni dans un autre
+worktree, aucune écriture dans l'arbre partagé).
+
+1. Réseau vérifié accessible avant tout install complet (`curl` ciblé
+   vers `registry.yarnpkg.com`, `HTTP 200`), conformément au mandat de
+   prudence.
+2. Deux premières tentatives d'installation ont échoué avec le message
+   trompeur de yarn classic `"You don't appear to have an internet
+   connection"` : la cause réelle était un cache local corrompu
+   (`/tmp/.../.yarn-cache-1000/.../npm-@rspack-binding-darwin-x64-1.6.8-.../`
+   — une extraction incomplète d'un paquet binaire optionnel pour une
+   plateforme non pertinente ici, macOS Intel, alors que ce worktree
+   tourne sous Linux x64) et non un problème réseau : un `curl` direct du
+   même fichier a réussi instantanément (18.5 Mo). Cache corrompu purgé,
+   puis `node_modules` existant (mélange de 917 symlinks vers l'arbre
+   partagé + 4 paquets réels de l'overlay) entièrement supprimé — sûr,
+   `node_modules` est dans `.gitignore` de ce worktree, confirmé par
+   `git check-ignore -v` avant suppression — et un install complet
+   propre relancé.
+3. **Install complet réussi en ~53s**, aucune écriture dans l'arbre
+   partagé (`git -C /home/tanos/bella status --short` revérifié inchangé
+   par cette opération). `node_modules` de ce worktree contient désormais
+   **0 symlink** (contre 917 avant) — chaque worktree Nx a maintenant son
+   propre arbre `node_modules` réel pour ce worktree, comme visé depuis
+   la Phase 2. `yarn.lock` régénéré (29 lignes ajoutées, incluant enfin
+   `class-validator`/`class-transformer` et leurs dépendances — non fait
+   lors de leur ajout initial en Phase 2, comme documenté à l'époque).
+
+**Vérification** (pas seulement `nx build`/`nx test`, qui ne font que
+compiler — exactement la limite pointée par la revue senior) :
+- `node dist/apps/api/main.js` lancé en arrière-plan, logs surveillés,
+  process tué proprement après vérification (rien laissé tournant) : le
+  serveur **démarre sans planter**, progresse à travers toute
+  l'initialisation Nest (`MyConfigModule`, `PassportModule`,
+  `DatabaseModule`, `MongooseModule`, `HttpModule`, `AppModule`,
+  `ConfigModule` ×3, `TerminusModule`, `InfrastructureModule`) — aucune
+  trace de l'erreur `PackageLoader`/`class-validator`. Le process reste
+  ensuite en attente (connexion Mongo avec une URI `undefined`, aucun
+  `.env` dans ce worktree — comportement attendu et hors périmètre de ce
+  fix, pas un nouveau problème).
+- `nx build api` : vert (`webpack compiled successfully`).
+- `nx run-many --target={build,lint,test} --all` (les 6 projets) :
+  **vert, baselines identiques à celles documentées précédemment** —
+  `api` 21/21 suites 130/130 tests, `api-domain` 6/41, `api-adapters`
+  5/28, `webapp` 38/87, `admin` 7/26 (1 skip) ; lint `api` 120
+  warnings/0 erreur, `webapp` 39 problèmes (5 erreurs/34 avertissements),
+  `admin` 13 problèmes (3 erreurs/10 avertissements) — tous identiques
+  aux chiffres de référence déjà documentés, aucune régression introduite
+  par l'install. `admin:build:production` a d'abord échoué sur
+  `fonts.googleapis.com` bloqué par le bac à sable de cette session
+  (artefact déjà documenté dans les revues précédentes, pas une
+  régression), vert une fois le domaine autorisé pour la commande.
+
+**Statut : résolu.** Le serveur réel démarre désormais dans ce worktree.
+La limite précédemment documentée en Phase 2 (« deux choses non
+committées dans git : l'overlay local et `NODE_PATH` ») n'existe plus —
+il n'y a plus d'overlay ni de `NODE_PATH` à positionner, juste un
+`node_modules` réel et complet issu d'un `yarn install` standard.
+**Reste ouvert / à surveiller pour la suite** : `node_modules` restant
+hors git (normal, `.gitignore`), toute session future qui supprimerait ce
+`node_modules` (ou tout worktree recréé à neuf) devra refaire ce même
+`yarn install` — ce n'est plus un contournement fragile, c'est
+l'opération standard désormais possible. Les items Auth0-gated encore
+gelés en Phase 5 (§4) restent gelés pour une autre raison, indépendante :
+il manque toujours un compte de test Auth0 fonctionnel dans ce sandbox
+(§7 point 10) — ce fix lève le blocage "serveur qui ne démarre pas", pas
+le blocage "pas de compte Auth0 de test".
+
+#### Correction de citation — commits `ab693f6`/`1d0defe` (2026-09-25)
+
+Signalé par `qa-reviewer` (`CHANTIER-MODERNISATION-QA-PHASE5-LOT2.md`,
+« Remarque non bloquante sur la citation de précédent ») et confirmé
+indépendamment par `senior-dev`
+(`CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2-SUITE.md` §4) : les messages
+des commits `ab693f6` (`DrawerComponent standalone: true`) et `1d0defe`
+(`WelcomeComponent standalone: true`) citent
+`CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2.md §1` comme précédent « déjà
+revu et accepté » pour le pattern `forRoot()` → `providedIn: 'root'`
+appliqué à `DrawerService`, `WelcomeService` et `WelcomeGuard`. C'est
+inexact : ce §1 couvre exclusivement `ProfileService` et `LoadingService`
+(lot précédent) — `DrawerService`/`WelcomeService`/`WelcomeGuard` n'y
+sont pas mentionnés, et n'avaient été vérifiés par personne avant la
+session QA du deuxième lot.
+
+**Conformément au mandat (jamais réécrire l'historique git existant),
+cette correction est consignée ici plutôt que par un amend/rebase** :
+- Le résultat technique cité par ces deux commits est correct — vérifié
+  indépendamment à la fois par `qa-reviewer` (impact nul sur tout spec
+  existant) et par `senior-dev` (portée du singleton `providedIn: 'root'`
+  vérifiée neutre en production par lecture des points d'appel réels,
+  pas par analogie). Ce n'est donc pas un problème de fond sur le code
+  livré.
+- C'est une pratique de citation à corriger : un message de commit ne
+  doit pas s'attribuer une couverture de revue qu'il n'avait pas encore
+  reçue au moment où il a été écrit, même quand la conclusion se révèle
+  juste après coup. La couverture réelle de `DrawerService`/
+  `WelcomeService`/`WelcomeGuard` date de la session QA du deuxième lot
+  (`CHANTIER-MODERNISATION-QA-PHASE5-LOT2.md`) et de la revue senior qui
+  l'a suivie (`CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2-SUITE.md` §3),
+  pas du §1 de `CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2.md` cité à tort
+  par ces deux messages.
+
+#### Troisième lot "avec spec" (2026-09-25, session tech-lead post-fix runtime) — 6 composants, PAS encore soumis à `qa-reviewer`
+
+Classification vérifiée par lecture directe de `app-routing.module.ts`,
+`main-routing.module.ts` et des `*.module.ts` consommateurs (pas
+supposée) avant conversion — les 6 candidats identifiés par la session
+précédente comme "probablement publics" (voir "reste à faire" ci-dessus)
+ont bien été vérifiés route par route, pas traités comme acquis
+d'office :
+
+1. `HomeComponent` — public (route enfant de `annonces`, dont le seul
+   guard parent est `WelcomeGuard`, onboarding, pas Auth0 — vérifié dans
+   `app-routing.module.ts`/`main-routing.module.ts`). `HomeService`
+   déplacé de `HomeModule.providers` (portée module, un seul consommateur)
+   vers `providers: [HomeService]` sur le composant lui-même — **pas**
+   `providedIn: 'root'`, contrairement au précédent Loading/Profile/
+   Drawer/Welcome : `HomeService` n'a jamais été enregistré via un
+   `forRoot()` explicite, juste un `@Injectable()` nu porté par un module
+   à portée normale ; le déplacer vers le composant (son unique
+   consommateur) préserve exactement la même portée d'injecteur qu'avant
+   (un seul consommateur déclaré par `HomeModule`), sans élargir la
+   portée à `providedIn: 'root'` par analogie non vérifiée avec un
+   pattern différent. `home.module.ts` supprimé (mort : plus rien à
+   déclarer ni fournir) ; `main.module.ts` mis à jour (import retiré —
+   `HomeComponent` n'a jamais eu besoin d'y figurer, il est routé
+   directement par `main-routing.module.ts`, jamais utilisé par sélecteur
+   de template dans `MainModule`).
+2. `AdsByCategoryComponent` — public (même route parent `annonces`,
+   route enfant `:category`). Aucun provider. `ads-by-category.module.ts`
+   supprimé (même raisonnement), `main.module.ts` mis à jour.
+3. `MainComponent` — public (route `annonces`, `WelcomeGuard` seul sur le
+   parent). `HeaderComponent`/`FooterComponent` (déjà standalone, lot 1)
+   importés directement sur le composant plutôt que via `MainModule` —
+   ils n'y étaient que pour son template. `main.module.ts` perd son
+   `declarations` (vide désormais) ; reste en vie comme cible
+   `loadChildren` de la route `annonces` (routage inchangé,
+   `MainRoutingModule` route toujours `component: MainComponent`
+   directement).
+4. `AdDetailComponent` — public (route racine
+   `annonces/:category/:title/:id`, **aucun guard du tout**, vérifié dans
+   `app-routing.module.ts`). `imports`: mêmes composants qu'
+   `ad-detail.module.ts` déclarait (`AdContactsComponent`, `TranslatePipe`,
+   `HeaderComponent`, `CarouselComponent`, `AdPublisherCardComponent`),
+   tous déjà standalone. `ad-detail.module.ts` supprimé — son seul
+   consommateur était `main.module.ts`, pour une route commentée dans
+   `main-routing.module.ts` (la vraie route vit dans `AppRoutingModule`
+   racine et référence `AdDetailComponent` directement, sans jamais avoir
+   eu besoin du module).
+5. `SettingsComponent` — public (route `settings`, `canLoad: [WelcomeGuard]`
+   seul, déjà vérifié au chiffrage §4). Son `providers: [WelcomeService]`
+   au niveau composant (donnant sa propre instance dédiée, distincte du
+   singleton `providedIn: 'root'` depuis le lot 2) reste inchangé — un
+   provider de composant est toujours le plus proche dans l'arbre de DI,
+   standalone ou non. `settings.module.ts` conservé en vie (cible
+   `loadChildren` de la route `settings`, toujours nécessaire pour le
+   lazy loading) mais réduit à `imports: [SettingsRoutingModule]` —
+   `CommonModule`/`TitledPageComponent`/`HttpClientModule` n'y étaient
+   que pour déclarer `SettingsComponent`, et `HttpClientModule` était de
+   toute façon déjà redondant avec celui importé à la racine
+   (`app.module.ts`).
+6. `AppComponent` — public par construction (composant racine/bootstrap,
+   rendu pour tout visiteur quel que soit son état d'authentification).
+   `imports: [RouterOutlet, DrawerComponent, SidebarComponent,
+   LoadingComponent]` — les trois mêmes composants que `app.module.ts`
+   importait déjà juste pour le template d'`AppComponent` (tous déjà
+   standalone), plus `RouterOutlet` (première utilisation d'une directive
+   standalone du routeur dans ce codebase, nécessaire pour le
+   `<router-outlet>` nu du template). `app.module.ts` perd son
+   `declarations: [AppComponent]` (un composant standalone peut rester
+   l'entrée `bootstrap` d'un module NgModule sans y être déclaré — les
+   deux sont indépendants) ; `bootstrap: [AppComponent]` inchangé.
+
+Chaque conversion suit le même schéma à deux commits (production, puis
+spec isolé) déjà utilisé pour les lots précédents, `nx lint/build/test
+webapp` vérifié vert après **chaque** commit de production (pas
+seulement à la fin du lot), baselines inchangées (39 problèmes lint : 5
+erreurs/34 avertissements ; 38/38 suites, 87/87 tests) à chaque étape.
+`nx run-many --target=test --all` (6 projets) revérifié vert en fin de
+lot, toutes baselines identiques.
+
+**12 commits de code** (6 paires refactor+spec), entre `97cb77c` (exclu,
+doc qui clôt le lot précédent) et `d98445c` (inclus) :
+`c06761c`/`538e961` (Home), `ea174c9`/`5e129b5` (AdsByCategory),
+`20c67ea`/`afcee3c` (Main), `06a5e23`/`6d0f439` (AdDetail),
+`091c045`/`a13bfc9` (Settings), `3c80c2c`/`d98445c` (App).
+
+**Statut : lot complet (6/6), PAS encore soumis à `qa-reviewer`** —
+conformément au mandat, ce commit doc ne déclare pas les 6 commits
+d'édition de spec acquis. **Prochain point de passage : soumission de ce
+troisième lot à `qa-reviewer`** (feu vert requis avant que les 6 commits
+de spec soient considérés acquis, §5) — puis, une fois la sous-vague
+webapp entièrement close (8 composants Auth0-gated restants, voir "reste
+à faire" ci-dessus), passage devant `senior-dev` pour la fin de la
+sous-vague webapp complète, comme prévu. **Ne pas faire tourner
+`senior-dev` et `qa-reviewer` en parallèle sur ce worktree** (risque de
+collision d'édition déjà documenté, `CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2.md`
+§2).
 
 ### Phase 6 (optionnelle, à valider) — Trancher `APPROVED` dans `AdStatus`
 
