@@ -9,7 +9,7 @@
     "test": "nx test"
   },
   "engines": {
-    "node": ">=22 <23"
+    "node": ">=24.9 <25"
   },
   "private": true,
   "dependencies": {
