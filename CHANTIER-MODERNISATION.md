@@ -3576,19 +3576,35 @@ chantier :
    par un spike avant de s'engager sur l'un ou l'autre — ce document ne
    prend pas position, faute d'avoir testé les deux sur ce cas précis.
 7. **Qui/quoi fait la "revue QA dédiée" pour la modification d'un test
-   existant (§5)** — un humain désigné, un second agent avec un rôle
-   distinct, un processus de PR avec un tag spécifique ? La contrainte est
-   posée, son exécution ne l'est pas encore.
+   existant (§5) — RÉPONDUE (2026-09-25).** Question : un humain désigné,
+   un second agent avec un rôle distinct, un processus de PR avec un tag
+   spécifique ? **Décision de l'utilisateur : garder le cycle
+   senior-dev/qa-reviewer déjà utilisé partout dans ce chantier** (ex. le
+   fix `reset()` du point 12 ci-dessus, ou le lot Phase 5 du point 13) —
+   pas de nouveau processus à instaurer. Ce n'était en pratique déjà plus
+   une question théorique depuis le point 13 (réponse opérationnelle pour
+   Phase 5), cette réponse la clôt formellement pour l'ensemble du
+   chantier. **Point 7 définitivement clos.**
 8. **Périmètre exact de "libs/api/domain" et "libs/api/adapters"
    confirmé transitif** : ce document les traite comme pleinement dans le
    périmètre (ils le sont mécaniquement, `apps/api` en dépend), mais à
    confirmer qu'aucune contrainte n'exclut certains de leurs fichiers.
-9. **Ajoutée après revue senior — Phase 4b (bascule complète NgRx)** :
-   voulez-vous la déclencher malgré l'absence de bug fonctionnel démontré,
-   pour une raison explicite hors ROI pur (standard d'équipe, recrutement,
-   dette perçue à un niveau organisationnel) ? Sans réponse explicite,
-   cette sous-phase reste en attente indéfiniment (voir §4 phase 4 et §8) —
-   ce n'est pas un refus, seulement l'absence de déclencheur.
+9. **Ajoutée après revue senior — Phase 4b (bascule complète NgRx) —
+   RÉPONDUE (2026-09-25).** Question : voulez-vous la déclencher malgré
+   l'absence de bug fonctionnel démontré, pour une raison explicite hors
+   ROI pur (standard d'équipe, recrutement, dette perçue à un niveau
+   organisationnel) ? **Décision de l'utilisateur : Phase 4b est
+   explicitement déclinée, pas seulement laissée sans déclencheur.**
+   Contrairement à la formulation précédente de ce point (« sans réponse
+   explicite, en attente indéfiniment, ce n'est pas un refus »), il y a
+   désormais une réponse explicite, et c'en est un : aucune raison hors ROI
+   pur n'a été fournie, et l'utilisateur a choisi de ne pas engager cette
+   sous-phase. **Phase 4b reste donc hors périmètre de ce chantier,
+   fermée** (voir §4 Phase 4 pour le détail de 4a, seule partie exécutée).
+   Le spike comparatif `@ngrx/store` vs. `@ngrx/signals` du point 6
+   ci-dessus reste réalisé à titre informationnel seulement, pour le jour
+   où cette décision serait rouverte — il ne relance pas 4b de lui-même.
+   **Point 9 définitivement clos.**
 10. **Ajoutée après revue senior — charge de la Phase 1bis (e2e).**
     **Répondue par le chiffrage du 2026-09-24 (voir §4, Phase 1bis,
     "Résultat du chiffrage")** : le chiffrage a été fait concrètement
