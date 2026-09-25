@@ -13,8 +13,7 @@ describe('MyPublicationsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [MyPublicationsComponent],
-      imports: [...commonTestImports],
+      imports: [MyPublicationsComponent, ...commonTestImports],
       providers: [...commonTestProviders],
       schemas: [...commonTestSchemas],
     }).compileComponents();
