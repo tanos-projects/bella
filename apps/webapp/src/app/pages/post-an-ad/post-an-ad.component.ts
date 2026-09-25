@@ -5,7 +5,7 @@ import { UploadService } from '../../shared/components/upload/upload.service';
 import { AdDTO } from '../../shared/models/ads.model';
 import { AdsService } from '../../shared/services/ads.service';
 import { TitledPageComponent } from '../../shared/layouts/titled-page/titled-page.component';
-import { AdFormModule } from './ad-form/ad-form.module';
+import { AdFormComponent } from './ad-form/ad-form.component';
 
 type ImageFile = File /*& { data: SafeUrl }*/;
 
@@ -13,7 +13,7 @@ type ImageFile = File /*& { data: SafeUrl }*/;
   selector: 'bella-post-an-ad',
   templateUrl: './post-an-ad.component.html',
   standalone: true,
-  imports: [CommonModule, TitledPageComponent, AdFormModule],
+  imports: [CommonModule, TitledPageComponent, AdFormComponent],
 })
 export class PostAnAdComponent {
   private adsService = inject(AdsService);

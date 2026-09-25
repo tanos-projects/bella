@@ -27,6 +27,7 @@ import {
 import { CountriesService } from '../../../shared/services/countries.service';
 import { QualitiesService } from '../../../shared/services/qualities.service';
 import { UserSettingsService } from '../../../shared/services/user-settings.service';
+import { FormComponent } from '../../../shared/form/form.component';
 
 interface AdFormModel {
   category: FormControl<string>;
@@ -43,7 +44,8 @@ interface AdFormModel {
   templateUrl: './ad-form.component.html',
   styleUrls: ['./ad-form.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false,
+  standalone: true,
+  imports: [FormComponent],
 })
 export class AdFormComponent implements OnInit {
   private fb = inject(FormBuilder);
