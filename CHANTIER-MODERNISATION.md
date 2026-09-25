@@ -3964,6 +3964,41 @@ chantier :
     statut d'inertie. Détail complet dans la sous-section "Sous-vague
     `admin`" plus haut (§4 Phase 5).
 
+    **Décision de l'utilisateur (2026-09-25) : option (a), supprimer.**
+    Pas de préférence forte de l'utilisateur, qui a suivi la recommandation
+    du Tech Lead lui-même (dead code confirmé, `NavbarComponent` couvre
+    déjà la navigation).
+
+    **Exécution (2026-09-25, session tech-lead).** Grep exhaustif
+    re-vérifié avant toute suppression (méthodologie déjà établie dans ce
+    document — vérifier avant de conclure) : `grep -rn
+    "SidenavComponent\|components/sidenav" apps/admin/src apps/admin-e2e`
+    ne retourne, en dehors du fichier du composant lui-même, strictement
+    rien — la seule autre occurrence de la chaîne `sidenav` dans
+    `apps/admin/src` est le sélecteur déjà commenté dans
+    `app.component.html`, plus des usages sans rapport de `MatSidenavModule`/
+    `mat-sidenav` (le composant Material générique, utilisé par
+    `NavbarComponent` pour son propre tiroir de navigation — homonymie de
+    nom, pas une dépendance à `SidenavComponent`). Confirmé : dead code
+    réel, aucun faux négatif.
+
+    Supprimés : `sidenav.component.ts` et `sidenav.component.html`
+    (le composant n'avait ni `.spec.ts` ni feuille de style dédiée). Le
+    composant étant déjà `standalone: true` et n'ayant jamais été déclaré
+    ni importé dans aucun `@NgModule`, aucune déclaration/export/import de
+    module ne pointait dessus — rien à nettoyer de ce côté. Retiré aussi le
+    sélecteur commenté `<!-- <bella-sidenav></bella-sidenav> -->` de
+    `app.component.html` (documentation morte d'un composant maintenant
+    lui-même supprimé).
+
+    `nx test admin` : 7 suites, 25/26 tests passants (1 skip pré-existant,
+    inchangé) — vert. `nx build admin` (production) : vert (seul
+    avertissement pré-existant, budget de bundle initial dépassé, sans
+    rapport avec ce changement). Commit isolé (suppression de code mort,
+    pas une modification de test — pas de gate `qa-reviewer` requise pour
+    ce commit) : `a60aee6` (`chore(admin): remove dead SidenavComponent
+    (§7.15)`). **Point 15 définitivement clos.**
+
 ## 8. Réponse du Tech Lead aux réserves de la revue senior (2026-09-24)
 
 Cette section synthétise ce qui a changé dans ce document suite à la
