@@ -1,4 +1,7 @@
 import { Component, OnInit } from '@angular/core';
+import { MatIconModule } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
+import { RouterModule } from '@angular/router';
 
 export enum routes {
   DASHBOARD = '/dashboard',
@@ -8,7 +11,8 @@ export enum routes {
 @Component({
   selector: 'bella-sidenav',
   templateUrl: './sidenav.component.html',
-  standalone: false,
+  standalone: true,
+  imports: [RouterModule, MatListModule, MatIconModule],
 })
 export class SidenavComponent {
   // constructor() {}
