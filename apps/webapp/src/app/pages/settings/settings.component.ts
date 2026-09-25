@@ -1,16 +1,19 @@
+import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { MyDeviceService } from '../../shared/services/my-device.service';
 import { environment } from '../../../environments/environment';
 import { WelcomeService } from '../welcome/welcome.service';
+import { TitledPageComponent } from '../../shared/layouts/titled-page/titled-page.component';
 
 @Component({
   selector: 'bella-settings',
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.scss'],
+  standalone: true,
+  imports: [CommonModule, TitledPageComponent],
   providers: [WelcomeService],
-  standalone: false,
 })
 export class SettingsComponent {
   private deviceService = inject(MyDeviceService);
