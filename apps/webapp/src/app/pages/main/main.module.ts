@@ -4,7 +4,6 @@ import { FooterComponent } from '../../shared/components/footer/footer.component
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { AdsByCategoryModule } from '../ads-by-category/ads-by-category.module';
 import { AdDetailModule } from '../ad-detail/ad-detail.module';
-import { HomeModule } from '../home/home.module';
 import { SettingsModule } from '../settings/settings.module';
 import { MainRoutingModule } from './main-routing.module';
 import { MainComponent } from './main.component';
@@ -15,7 +14,6 @@ import { SearchResultsComponent } from '../search-results/search-results.compone
 
   imports: [
     CommonModule,
-    HomeModule,
     AdsByCategoryModule,
     AdDetailModule,
     MainRoutingModule,
