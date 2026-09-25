@@ -4,7 +4,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatTableModule } from '@angular/material/table';
-import { ConfirmationDialogModule } from '../../../../shared/components/confirmation-dialog/confirmation-dialog.module';
 
 import { PublicationsListComponent } from './publications-list.component';
 
@@ -15,7 +14,6 @@ import { PublicationsListComponent } from './publications-list.component';
     MatButtonModule,
     MatIconModule,
     MatPaginatorModule,
-    ConfirmationDialogModule,
   ],
   exports: [PublicationsListComponent],
   declarations: [PublicationsListComponent],
