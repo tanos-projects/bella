@@ -1041,6 +1041,86 @@ sous-points qui restaient à qualifier avant de considérer le palier
 NestJS 12/Node ≥24.9 "acquis en confiance" sont donc definitivement
 clos** — seule la décision produit/infra ci-dessus reste ouverte.
 
+**Phase 0bis — ADOPTION RÉELLE (2026-09-25), sur décision explicite
+utilisateur ("il veut committer ce bump pour de vrai maintenant").**
+Distinct de tout ce qui précède dans cette section : les deux spikes
+ci-dessus (24 et 25 septembre) ont chacun **restauré** `package.json`/
+`yarn.lock` après vérification — zéro commit de code de production n'en
+avait résulté, seule la documentation avait été committée. Cette fois,
+le bump est resté, avec `yarn.lock` régénéré pour de vrai et le code de
+production qui en dépend committé sur cette branche. Résumé de ce qui a
+changé, dans l'ordre exécuté :
+
+1. **Bump réel `package.json`** vers exactement les versions
+   spike-qualifiées listées au point 3 de la reprise du spike
+   (2026-09-25) ci-dessus : `@nestjs/axios ~12.0.1`, `@nestjs/common
+   ~12.1.0`, `@nestjs/config ~12.0.1`, `@nestjs/core ~12.1.0`,
+   `@nestjs/mongoose ~12.0.0`, `@nestjs/passport ~12.0.0`,
+   `@nestjs/platform-express ~12.1.0`, `@nestjs/swagger ~12.0.2`,
+   `@nestjs/terminus ~12.1.0`, `@nestjs/schematics ~12.0.5`,
+   `@nestjs/testing ~12.1.0` (`@nestjs/jwt` déjà `~12.0.2`, inchangé).
+   `yarn install --ignore-engines` sous `nvm use 24.21.0` (via
+   `corepack`) a régénéré `yarn.lock` proprement, aucun conflit de peer
+   bloquant. Commit `2acff86`.
+2. **Vérification complète re-exécutée sous Node 24.21.0 avant tout
+   commit** (pas supposée acquise des spikes précédents) : `nx run-many
+   --target=test --all --skip-nx-cache`, **`NODE_OPTIONS` non positionné
+   dans le shell** — les 6 projets verts en une seule commande
+   (`api-domain` 6/41, `api-adapters` 5/28, `admin` 7/26 (1 skip),
+   `webapp` 39/89, `dtos` aucun test, `api` 21/**134**, warning
+   `ExperimentalWarning` visible uniquement sur la tâche `api:test`,
+   preuve directe que `apps/api/.env.test` isole bien le flag comme
+   qualifié) ; `nx run-many --target=build --all` vert sur les 3 apps ;
+   `nx lint` vert (0 erreur) sur `api`/`api-domain`/`api-adapters`/`dtos`,
+   et échoue à l'identique sur `admin`/`webapp`/`webapp-e2e`/`admin-e2e`
+   avec les mêmes erreurs déjà identifiées comme préexistantes et
+   indépendantes de la version Node/NestJS (constructeurs/lifecycle vides
+   dans `dashboard.component.ts`/`carousel.component.ts`/
+   `my-publications.component.ts`, config `plugin:cypress/recommended`
+   invalide dans les projets e2e) — non corrigées ici, hors périmètre de
+   ce palier. `express@5.2.1` reconfirmé nesté sous
+   `node_modules/@nestjs/platform-express/node_modules/express`, racine
+   Yarn 1 reconfirmée à `express@4.22.3` pour `swagger-ui-express`.
+3. **`package.json` `engines`** passé de `>=22 <23` à `>=24.9 <25` — la
+   borne basse reflète le besoin technique réel (`require(esm)` natif de
+   Jest, qui lève le verrou documenté en §1.4/§4), la borne haute
+   reprend la même largeur "un majeur, pas de surprise" que l'ancienne
+   plage. `yarn install` (sans `--ignore-engines`) confirmé passant sous
+   Node 24.21.0 une fois ce champ mis à jour. Commit `bc7b7f1`.
+4. **`.nvmrc` créé** à la racine, épinglant `24.21.0` — la version exacte
+   sur laquelle tous les spikes et cette adoption ont été vérifiés, pas
+   seulement une version quelconque dans la plage `engines`.
+   `~/.nvm/alias/default` **non touché** (réglage machine-large de
+   l'utilisateur, hors dépôt, hors mandat) — signalé à l'utilisateur en
+   fin de session plutôt qu'exécuté. Commit `bc7b7f1`.
+5. **CI** : recherché (`.github/workflows/`, `.gitlab-ci.yml`,
+   équivalents) — **aucune configuration CI n'existe dans ce dépôt** à ce
+   jour, donc rien à mettre à jour pour cohérence avec `.nvmrc`/
+   `engines`. Pas une action à charge de ce palier (créer une CI n'était
+   pas demandé).
+6. **`ecosystem.config.js` (déploiement PM2/EC2 réel)** : lu en entier —
+   il n'épingle **aucune** version de Node explicitement (pas de champ
+   `interpreter`) ; PM2 utilise le `node` trouvé sur le `PATH` de l'host
+   EC2 au moment de l'exécution. Documenté dans `CLAUDE.md` (§Deployment)
+   plutôt que modifié : ce bump ne "marche" en production qu'une fois
+   Node ≥24.9 installé sur cet host réel (ex. via `nvm`/`apt`) et
+   `pm2 reload`/redéploiement effectué — **hors mandat, aucun accès à
+   cette infrastructure, rien exécuté dessus.**
+7. **Documentation** : `CLAUDE.md` corrigé ("NestJS 11" → "NestJS 12"),
+   plus deux ajouts (exigence Node `>=24.9 <25`/`.nvmrc` en tête de
+   §Commands, caveat `ecosystem.config.js` en §Deployment). Cette
+   section. Commit de doc séparé du bump de code, comme les deux commits
+   précédents.
+
+**Décision : Phase 0bis et §7 point 5 sont désormais définitivement
+RÉSOLUES/adoptées** — ce n'est plus un spike réversible documenté sans
+committer, comme les deux tentatives précédentes, mais un changement de
+dépendances de production réellement en place sur `chantier/modernisation`,
+vérifié vert sur `build`/`lint`/`test` pour tous les projets concernés
+avant commit. Reste ouvert, hors mandat tech-lead/senior-dev comme déjà
+noté : la mise à niveau réelle de l'infrastructure de déploiement (host
+EC2) et, si l'utilisateur le souhaite, `~/.nvm/alias/default`.
+
 ### Phase 1 — Filet de sécurité : tests de caractérisation sur les domaines non couverts
 
 - **Objectif** : combler les trous de §1.5 **avant** de toucher au code
@@ -3421,8 +3501,24 @@ chantier :
    comme un retrait — l'action a changé de nature (implémentation, pas
    suppression) — retiré de la liste des sous-points en attente de
    retrait ISP.
-5. **NestJS 12 (Phase 0bis) — reformulée une seconde fois (2026-09-25),
-   après qualification des deux derniers sous-points bloquants.** L'état
+5. **NestJS 12 (Phase 0bis) — RÉSOLUE/ADOPTÉE POUR DE VRAI (2026-09-25,
+   sur décision explicite utilisateur).** Contrairement à la
+   reformulation ci-dessous (qui ne qualifiait que les deux derniers
+   sous-points bloquants d'un palier resté à l'état de spike réverti), le
+   bump est cette fois resté committé : `package.json`/`yarn.lock` bumpés
+   pour de vrai (commit `2acff86`), `engines`/`.nvmrc` mis à jour en
+   conséquence (commit `bc7b7f1`), `nx run-many
+   --target={build,lint,test} --all` vert sous Node 24.21.0 avant chacun
+   de ces commits. Détail complet de l'adoption : §4, sous-section
+   "Phase 0bis — ADOPTION RÉELLE (2026-09-25)", juste avant la Phase 1.
+   Seul point resté ouvert, hors mandat tech-lead/senior-dev : la mise à
+   niveau de l'infrastructure de déploiement réelle (host EC2 —
+   `ecosystem.config.js` n'épingle aucune version Node, donc c'est le
+   `node` de l'host qui doit monter) et, si souhaité,
+   `~/.nvm/alias/default`. Historique de la qualification technique qui a
+   précédé cette adoption, conservé tel quel ci-dessous :
+
+   L'état
    antérieur de cette question (voir §4, revue `senior-dev` du spike Node
    24, verdict **VALIDÉ avec une réserve non bloquante**) laissait deux
    sous-points non qualifiés avant de considérer le palier NestJS 11→12

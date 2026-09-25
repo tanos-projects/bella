@@ -8,7 +8,7 @@ Bella is a classifieds/listings platform ("annonces") for an African market — 
 
 - `apps/webapp/` — Angular 22 PWA, the public product UI (port 4200)
 - `apps/admin/` — Angular 22 back-office for moderating publications, NgRx store (port 4300)
-- `apps/api/` — NestJS 11 API on MongoDB/Mongoose (port 3000, global prefix `/api`)
+- `apps/api/` — NestJS 12 API on MongoDB/Mongoose (port 3000, global prefix `/api`)
 - `apps/webapp-e2e/`, `apps/admin-e2e/` — Cypress e2e projects
 
 Shared libraries under `libs/`, imported through the `@bella/*` path aliases declared in `tsconfig.base.json`:
@@ -22,6 +22,8 @@ Shared libraries under `libs/`, imported through the `@bella/*` path aliases dec
 `libs/dtos` is what keeps the front-ends and the API in sync — a DTO change is a cross-app change.
 
 ## Commands
+
+Node `>=24.9 <25` (`package.json` `engines`; `.nvmrc` pins the exact version this repo is qualified against, `24.21.0` — run `nvm use` before installing). Required since the NestJS 11→12 bump: `apps/api`'s Jest suite needs Jest's native `require(esm)` support, which lands at Node 24.9 (see `apps/api/.env.test`, which scopes `NODE_OPTIONS=--experimental-vm-modules` to the `api` project's `test` target only, so `nx run-many --target=test --all` doesn't need it set in the shell and it doesn't leak into `webapp`/`admin`'s test runs).
 
 Nx drives everything; the root `package.json` scripts are thin wrappers (`yarn start` → `nx serve`, etc.). Target a project explicitly:
 
@@ -106,3 +108,5 @@ Locale is French (`LOCALE_ID: 'fr'`), translations under `src/assets/i18n/` via 
 ## Deployment
 
 `ecosystem.config.js` describes the only wired-up deployment: **PM2 in cluster mode on an AWS EC2 host**, serving `dist/apps/api/main.js`, with `pm2 deploy` targeting `origin/dev` (development) and `origin/main` (production). `Procfile` (`web: yarn start api`) is a leftover from a Heroku-style buildpack host. Neither front-end has a deployment configuration in the repository.
+
+`ecosystem.config.js` doesn't pin a Node version itself (no `interpreter` path) — it runs under whatever `node` PM2 finds on the EC2 host's `PATH`, so the NestJS 12 bump (needs Node `>=24.9`, see Commands above) only actually works in production once that host's Node is upgraded — outside this repo, not tracked here.
