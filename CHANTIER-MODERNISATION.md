@@ -3572,9 +3572,165 @@ chantier :
    effectivement bumper NestJS 11→12 en production. Aucun sous-point
    technique ne bloque plus cette décision — elle reste entièrement à
    arbitrer par l'utilisateur.
-6. **`@ngrx/store` classique vs. `@ngrx/signals` (Phase 4)** : à trancher
-   par un spike avant de s'engager sur l'un ou l'autre — ce document ne
-   prend pas position, faute d'avoir testé les deux sur ce cas précis.
+6. **`@ngrx/store` classique vs. `@ngrx/signals` (Phase 4) — RÉPONDUE
+   (2026-09-25), spike exécuté sur instruction explicite de
+   l'utilisateur.** Rappel : **Phase 4b reste déclinée** (§7.9) — ce spike
+   est purement informationnel, à réutiliser si 4b est un jour rouverte,
+   il ne la déclenche pas.
+
+   **Correction factuelle préalable, avant le spike lui-même** : l'intitulé
+   de cette question compare à tort le hand-rolled actuel à « `@ngrx/store`
+   classique », comme si le code de production utilisait déjà un vrai
+   package `@ngrx/*`. Vérifié avant de conclure quoi que ce soit (méthode
+   tech-lead.md) : ni `@ngrx/store` ni `@ngrx/signals` ne sont dans
+   `package.json`/`node_modules` de ce repo — `store/publications/` est
+   entièrement hand-rolled (`Subject`/`BehaviorSubject` + `dispatch()`/
+   `ofType()` réécrits dans `store/utils.ts`, déjà documenté comme choix
+   assumé, §4 Phase 4). Le spike ci-dessous compare donc en réalité trois
+   options, pas deux : (i) le hand-rolled actuel (réel, existant), (ii)
+   `@ngrx/signals` (construit et exécuté pour de vrai ci-dessous), (iii)
+   `@ngrx/store` classique (actions/reducer/effects/selectors — **non
+   construit**, seulement estimé par lecture de son idiome standard, pour
+   ne pas doubler la charge d'un spike purement informationnel sur une
+   sous-phase déclinée ; voir réserve explicite plus bas).
+
+   **Méthode du spike réellement exécuté** : réplique de
+   `store/publications/{state,store,effects,action}.ts` en `@ngrx/signals`
+   `22.0.1` (version réelle publiée, compatible peer dep `@angular/core
+   ^22.0.0` — vérifiée sur le registre npm avant de choisir la version),
+   dans un répertoire jetable hors du repo
+   (`$TMPDIR/.../scratchpad/ngrx-signals-spike/`, jamais dans
+   `apps/admin/`), avec ses propres `package.json`/`node_modules`
+   installés via npm — **aucune modification de
+   `package.json`/`yarn.lock`/`node_modules` de ce worktree**, revérifié
+   par `git status`/`git diff --stat` après coup : zéro changement. Code
+   réellement compilé (`tsc`, zéro erreur contre les vrais types
+   `@ngrx/signals`/`@angular/core`) et **réellement exécuté** avec
+   `@angular/compiler` en JIT (`Injector.create()` + `runInInjectionContext()`,
+   sans `TestBed`/zone.js/`jest-preset-angular` — un `signalStore` est une
+   classe injectable ordinaire, pas besoin du harnais Angular complet pour
+   l'instancier). Un service mock reproduit la forme d'
+   `AdminPublicationsService`. Le script d'exécution reproduit exactement
+   les assertions métier déjà verrouillées par
+   `publications.effects.spec.ts`/`publications.store.spec.ts` (le
+   commentaire `handleActionResult` : approve ne recharge que
+   "unpublished" ; reject recharge "unpublished"+"archived" ; archive
+   recharge les trois ; un échec ne recharge rien) — **les 8 assertions
+   passent, y compris le cas d'échec**, confirmant que le pattern
+   `@ngrx/signals` reproduit fidèlement le comportement métier réel, pas
+   seulement en théorie.
+
+   **Résultats, dimension par dimension** :
+   - **Boilerplate/LOC** : version `@ngrx/signals` du spike = 182 lignes
+     dans un seul fichier (`publications.signal-store.ts`, state + effets +
+     actions fusionnés — `@ngrx/signals` n'a pas de concept d'"effects"
+     séparé, tout vit dans `withMethods`). Version hand-rolled actuelle,
+     partie spécifique à `publications` (hors `utils.ts` générique
+     partagé, 57 lignes, et hors le fichier de module DI, 18 lignes) :
+     `state`(12) + `store`(105) + `effects`(158) + `action`(68) = 343
+     lignes. **Le spike signals fait environ moitié moins de lignes** pour
+     un comportement équivalent, principalement parce qu'il n'a besoin ni
+     du `dispatch()`/`ofType()` maison (remplacé par de simples appels de
+     méthode) ni de `Subject`/`BehaviorSubject` explicites (l'état est un
+     objet unique gattaché à `withState`, muté par `patchState`). Réserve
+     honnête : la contrainte actée en §4 Phase 4 pour une 4b réelle est de
+     préserver l'API publique de `PublicationsState`/`PublicationsActions`
+     (mêmes noms de méthode, mêmes observables exposés) pour que
+     `publications.component.ts` n'ait rien à changer — une vraie migration
+     ajouterait donc une fine couche de façade (`toObservable()` sur
+     chaque signal exposé) que ce spike n'a pas eu besoin d'écrire, ce qui
+     réduit l'écart réel un peu en dessous de ce ratio brut.
+   - **Lisibilité** : le hand-rolled actuel oblige à suivre un flux
+     indirect (`dispatch()` pousse sur un `Subject` générique, un
+     `effects.start()` séparé s'y réabonne via un filtre `ofType` par
+     chaîne de caractères) pour comprendre qu'une méthode "fait" quelque
+     chose. `@ngrx/signals` rend ce flux direct : appeler
+     `store.approveUnpublishedPublication(...)` déclenche directement le
+     `rxMethod` du même nom, pas de dispatch/filtre par type intermédiaire
+     à suivre. Contrepartie découverte en écrivant le spike, non anticipée
+     par la littérature : **`withMethods()` impose un ordre de
+     déclaration** — les méthodes `approve`/`reject`/`archive` doivent
+     être dans un second bloc `withMethods()` déclaré après celui qui
+     définit `loadUnpublished`/`loadPublished`/`loadArchived`, parce
+     qu'elles les appellent et ont besoin que `store` les expose déjà.
+     Cette contrainte de dépendance n'existe pas dans la version
+     hand-rolled (deux classes injectables séparées,
+     `PublicationsStore`/`PublicationsEffects`, câblées par un simple
+     `subscribe()`) — un piège réel pour une équipe qui découvrirait
+     `@ngrx/signals` sans lecture préalable de sa documentation sur
+     l'ordre des features.
+   - **Testabilité** : confirmée nettement plus simple dans le spike — pas
+     de `TestBed`, pas de `fakeAsync`/`tick()`, pas de souscription
+     manuelle à des observables : lire l'état est un simple appel de
+     fonction synchrone (`store.unpublished()`), après un `await` de
+     microtâche pour laisser le `switchMap` interne du `rxMethod` se
+     résoudre. Les tests actuels (`publications.store.spec.ts` +
+     `publications.effects.spec.ts`, 107+256 = 363 lignes de tests pour
+     343 lignes de code spécifique à `publications`, ratio ~1.06:1)
+     reposent sur des abonnements RxJS explicites (`BehaviorSubject`
+     réel vérifié par souscription) — plus verbeux mécaniquement, mais pas
+     moins fiable ; le spike n'a pas cherché à égaler leur exhaustivité
+     (8 assertions contre une suite bien plus large), seulement à
+     démontrer la mécanique de test.
+   - **Coût/risque de migration (si 4b était un jour déclenchée)** :
+     risque concentré sur le même point que 4b identifiait déjà
+     (§4 Phase 4 : seul flux utilisateur visible en continu de tout
+     `admin`) — inchangé par ce spike. Le spike ajoute un risque
+     **nouveau et concret**, découvert seulement en écrivant du vrai code,
+     pas en le lisant : l'ordre de déclaration `withMethods()` ci-dessus,
+     à documenter explicitement si `@ngrx/signals` est un jour adopté pour
+     de vrai, sous peine d'une erreur TypeScript peu explicite pour qui ne
+     le sait pas déjà. Empreinte de dépendances : `@ngrx/signals` +
+     `@ngrx/operators` seulement (léger, pas de `@ngrx/store`/
+     `@ngrx/effects`/`@ngrx/store-devtools`, pas de `StoreModule.forRoot()`
+     global à poser sur `AppModule` — `providedIn: 'root'` suffit).
+     `@ngrx/store` classique (non construit, estimé par idiome connu :
+     fichiers actions/reducer/effects/selectors séparés, de l'ordre de
+     250-300 lignes pour ce même périmètre) demanderait en plus un
+     `StoreModule.forRoot()`/`EffectsModule.forRoot()` global —
+     actuellement absent d'`admin` — un changement d'empreinte plus large
+     que les deux autres options, pour un gain de lisibilité non démontré
+     ici face au hand-rolled actuel.
+   - **DevTools/débogage** : différentiateur net en faveur de `@ngrx/store`
+     classique si ce critère pesait seul — `@ngrx/store-devtools` donne un
+     historique d'actions avec time-travel dans Redux DevTools, chose
+     qu'aucune des deux autres options n'offre nativement. `@ngrx/signals`
+     `22.0.1` n'a pas d'équivalent officiel : le débogage passerait par
+     Angular DevTools (qui sait déjà inspecter la valeur des signaux dans
+     l'arbre de composants) mais sans journal d'actions ni time-travel. Le
+     hand-rolled actuel n'a ni l'un ni l'autre (seul un `console.error` sur
+     échec de chargement, retiré des `console.log` de debug en 4a) — sur
+     ce seul critère, `@ngrx/signals` n'est donc pas un progrès par rapport
+     à l'existant, contrairement à `@ngrx/store`.
+
+   **Recommandation, informationnelle uniquement (Phase 4b reste
+   déclinée, §7.9)** : si 4b est un jour rouverte pour une raison hors ROI
+   pur, **`@ngrx/signals` est le candidat à privilégier plutôt que
+   `@ngrx/store` classique** — boilerplate significativement réduit,
+   lisibilité du flux appel→effet plus directe, testabilité plus simple
+   sans `TestBed`, empreinte de dépendances plus légère, pas de store
+   racine global à introduire pour un seul slice — au prix du seul vrai
+   contre-argument solide, l'absence de DevTools avec time-travel, jugé
+   secondaire face au reste vu qu'aucun bug fonctionnel réel ne motive 4b
+   aujourd'hui (§4 Phase 4) et que le hand-rolled actuel n'offre de toute
+   façon pas ce DevTools non plus. Réserve explicite : ce spike n'a
+   construit et exécuté que le côté `@ngrx/signals` ; le côté `@ngrx/store`
+   classique reste une estimation raisonnée, pas un code testé — si 4b est
+   un jour engagée pour de vrai, refaire au moins un spike minimal
+   `@ngrx/store` avant de considérer cette recommandation acquise plutôt
+   qu'indicative.
+
+   Code jetable de ce spike **non conservé** (conforme à l'usage déjà
+   établi pour les spikes de cette phase, ex. Phase 0bis overlay) — ce
+   paragraphe et les résultats ci-dessus sont l'artefact durable, pas le
+   code lui-même, qui vivait entièrement hors du repo
+   (`$TMPDIR/.../scratchpad/`) et n'a jamais touché
+   `package.json`/`yarn.lock`/`node_modules` du worktree. `nx test admin`
+   et `nx build admin` relancés après le spike pour confirmer que
+   l'application réelle est inchangée : verts (7 suites / 25 tests, build
+   production réussi — mêmes chiffres qu'après le commit `a60aee6`, aucun
+   artefact du spike n'a fuité dans le repo). **Point 6 définitivement
+   clos.**
 7. **Qui/quoi fait la "revue QA dédiée" pour la modification d'un test
    existant (§5) — RÉPONDUE (2026-09-25).** Question : un humain désigné,
    un second agent avec un rôle distinct, un processus de PR avec un tag
