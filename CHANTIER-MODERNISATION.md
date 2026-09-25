@@ -1781,6 +1781,22 @@ l'exécution du troisième lot (voir plus bas) :
    n'est donc PAS déclarée "terminée" au sens plein** — uniquement
    "convertie techniquement, vérification humaine en attente" pour sa
    partie gelée, conformément au mandat.
+
+   **Clarification cosmétique demandée par `senior-dev`
+   (`CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT4-CLOTURE-WEBAPP.md` §5)** :
+   "Auth0-gated" dans ce décompte de 14 recouvre en réalité deux notions
+   distinctes, jamais distinguées explicitement jusqu'ici — (a) gelé par
+   **garde de route** (`AuthGuard`/`CompleteProfileGuard` présent sur la
+   route, 13 des 14 composants) et (b) gelé par **dépendance fonctionnelle
+   au flot Auth0 lui-même**, sans aucun garde de route : seul
+   `LoggedInCallbackComponent` (route `loggedIn`) est dans ce second cas —
+   il ne porte aucun `AuthGuard` (vérifié dans `app-routing.module.ts`),
+   mais n'a de sens que rejoué via une vraie redirection Auth0, justifié
+   explicitement dans le message du commit `df4168b`. Ce n'est pas une
+   erreur de classification ni une reclassification : les deux catégories
+   partagent la même limitation de vérification (§7 point 10, pas de
+   compte de test Auth0 dans ce sandbox) et restent donc gelées ensemble
+   au même titre.
 2. Puis la sous-vague `admin` (8 composants, 4 sans spec/4 avec spec),
    **n'a pas encore démarré** — seulement après webapp entièrement close
    (y compris le passage `qa-reviewer`/`senior-dev` du quatrième lot
