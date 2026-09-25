@@ -2578,6 +2578,52 @@ chantier :
     sweep de conversion standalone. Documenté en détail dans le commit
     `55f4d5b` (`refactor(webapp): UploadComponent standalone: true`).
 
+    **Résultat empirique du test de caractérisation (2026-09-25, recommandé
+    par `senior-dev` en §7 de
+    `CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT4-CLOTURE-WEBAPP.md`)** :
+    l'analyse statique du graphe DI ci-dessus est **confirmée
+    empiriquement, pas seulement supposée**. Nouveau spec, purement
+    additif (aucun fichier de test existant modifié — `PostAnAdComponent`
+    n'avait aucun `.spec.ts` avant ce commit, donc pas de gouvernance
+    §5/qa-reviewer applicable) :
+    `apps/webapp/src/app/pages/post-an-ad/post-an-ad.component.spec.ts`.
+    Méthode : `TestBed` configuré avec `commonTestProviders`
+    (`testing-support.ts`) **privé explicitement de `UploadService`**, pour
+    isoler la vraie portée d'injecteur que production laisse à
+    `PostAnAdComponent` plutôt que de s'appuyer sur le raccourci du
+    harnais de test qui masque le problème (voir ci-dessus). Résultat
+    exact observé en instanciant le composant
+    (`TestBed.createComponent(PostAnAdComponent)`) dans ce contexte : une
+    erreur levée immédiatement,
+    `NG0201: No provider found for \`UploadService\`. Source:
+    Standalone[PostAnAdComponent]` (Angular 22 — le format de message a
+    changé de version en version, ce n'est plus le texte
+    `NullInjectorError: No provider for X!` des anciennes versions
+    d'Angular, mais la classe d'erreur sous-jacente reste bien un défaut
+    d'injecteur). Un second test de contrôle confirme que fournir
+    `UploadService` explicitement suffit à instancier le composant sans
+    erreur — isolant bien le problème à la portée du provider, pas à un
+    autre souci de câblage. **Conclusion factuelle, tranchant la lecture
+    1 vs. lecture 2 évoquée par `senior-dev` en §4 de sa revue** : dans le
+    graphe de modules réel de production (celui que ce test reconstitue,
+    sans le raccourci `commonTestProviders`), instancier
+    `PostAnAdComponent` échoue immédiatement et bruyamment faute de
+    provider pour `UploadService` — ce n'est pas un chemin mort qui
+    éviterait discrètement le problème. **Reste ouvert, non tranché par ce
+    test** : si ce echec se produit réellement pour un utilisateur en
+    production reste conditionné à une vérification humaine au navigateur
+    avec un compte Auth0 réel (§7.10, toujours bloqué dans ce sandbox) —
+    un test de caractérisation en environnement `TestBed` prouve le
+    comportement du graphe DI tel qu'il est câblé, pas qu'aucun mécanisme
+    runtime distinct (ex. un module chargé dynamiquement ailleurs que ce
+    que le grep a couvert) ne vienne compenser en pratique, bien
+    qu'aucune trace d'un tel mécanisme n'ait été trouvée. La décision
+    produit/architecture (où faire vivre `UploadService` :
+    `providedIn: 'root'`, provider au niveau route, ou ailleurs) reste
+    entièrement ouverte et n'est pas tranchée par ce test — seul le
+    diagnostic est maintenant empirique plutôt que déduit par lecture de
+    code.
+
 ## 8. Réponse du Tech Lead aux réserves de la revue senior (2026-09-24)
 
 Cette section synthétise ce qui a changé dans ce document suite à la
