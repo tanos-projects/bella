@@ -162,10 +162,16 @@ describe('AdsRepositoryNest', () => {
   });
 
   describe('findAllByUserId', () => {
-    it('is not implemented yet', () => {
-      expect(() => repository.findAllByUserId('1')).toThrow(
-        'Method not implemented.'
-      );
+    it('queries Mongo directly by the owner id, most recently updated first', (done) => {
+      const query = createQueryMock([{ id: 'ad-1', owner: 'user-1' }]);
+      adModel.find.mockReturnValue(query);
+
+      repository.findAllByUserId('user-1').subscribe((result) => {
+        expect(adModel.find).toHaveBeenCalledWith({ owner: 'user-1' });
+        expect(query.sort).toHaveBeenCalledWith({ updatedAt: -1 });
+        expect(result).toEqual([{ id: 'ad-1', owner: 'user-1' }]);
+        done();
+      });
     });
   });
 });

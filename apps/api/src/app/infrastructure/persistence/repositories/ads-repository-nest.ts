@@ -92,7 +92,32 @@ export class AdsRepositoryNest implements AdsRepository {
     return from(this.adModel.findOne({ _id: id, status: AdStatus.DRAFT }).exec());
   }
 
+  // Never called in production (see CHANTIER-MODERNISATION.md §7.4): no
+  // front-end (webapp/admin) or API caller was found for this interface
+  // method, and it previously threw `Method not implemented.` unconditionally
+  // - a broken contract rather than merely an unused one. Implemented here
+  // instead of removed, on explicit product instruction, since deleting a
+  // declared-but-broken interface method without confirmation risked masking
+  // a real future need. No informative git history exists for this method's
+  // original intent (present, unimplemented, since the very first commit
+  // that introduced the API project) - this implementation is this session's
+  // best-effort hypothesis, not a recovered original design: query directly
+  // by the owner's id (a plain string), which is the idiomatic way to filter
+  // a Mongoose `ObjectId` ref path (Mongoose casts a hex string to
+  // `ObjectId` for you). This deliberately does NOT delegate to
+  // `AdsService.findAllByOwner`/`AdsRepository.findAll({owner})`, which
+  // takes a full `UserEntity` object rather than a bare id - that object
+  // shape doesn't match this method's `userId: string` signature without a
+  // lossy round-trip (`{ id: userId } as UserEntity`), and would query Mongo
+  // with a whole object against an ObjectId path instead of a plain id.
   findAllByUserId(userId: string): Observable<AdEntity[]> {
-    throw new Error('Method not implemented.');
+    return from(
+      this.adModel
+        // FIXME : find a way to bind User and UserEntity properly (same
+        // untyped-owner-filter cast used by `updateOne`/`findAll` above)
+        .find({ owner: userId } as any)
+        .sort({ updatedAt: -1 })
+        .exec(),
+    );
   }
 }
