@@ -1,15 +1,18 @@
+import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
 
 import { AdDTO } from '../../shared/models/ads.model';
 import { AdsService } from '../../shared/services/ads.service';
+import { AdCardComponent } from '../../shared/components/ad-card/ad-card.component';
 
 @Component({
   selector: 'bella-ads-by-category',
   templateUrl: './ads-by-category.component.html',
   styleUrls: ['./ads-by-category.component.scss'],
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, AdCardComponent],
 })
 export class AdsByCategoryComponent {
   private route = inject(ActivatedRoute);
