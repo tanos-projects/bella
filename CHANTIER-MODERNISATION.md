@@ -1121,6 +1121,25 @@ avant commit. Reste ouvert, hors mandat tech-lead/senior-dev comme déjà
 noté : la mise à niveau réelle de l'infrastructure de déploiement (host
 EC2) et, si l'utilisateur le souhaite, `~/.nvm/alias/default`.
 
+**Revue `senior-dev` (2026-09-25) — VALIDÉ.** Vérification indépendante
+complète (pas de confiance sur parole) : `git show --stat` sur les 3
+commits confirmé, suite complète re-vérifiée sous Node 24.21.0 sans
+`NODE_OPTIONS` positionné dans le shell (6/6 projets test verts, chiffres
+identiques à l'unité près : `api` 21/134, `api-domain` 6/41,
+`api-adapters` 5/28, `admin` 7/26+1 skip, `webapp` 39/89 ; `build` vert
+sur les 3 apps ; `lint` échoue uniquement sur les erreurs déjà connues
+comme préexistantes, aucune nouvelle). Versions bumpées comparées trait
+pour trait aux deux spikes précédents — identiques, rien d'introduit sans
+qualification. `express@5.2.1` reconfirmé nesté sous
+`@nestjs/platform-express`, racine toujours `4.22.3`
+(`swagger-ui-express` protégé). `.nvmrc`/`engines` cohérents.
+`~/.nvm/alias/default` lu directement : toujours `22`, non touché, comme
+annoncé. `ecosystem.config.js` relu en entier : confirmé sans
+`interpreter`/version Node épinglée, cohérent avec la doc. Aucune
+survente trouvée dans `CHANTIER-MODERNISATION.md`/`CLAUDE.md` sur l'état
+de la prod EC2 (explicitement dite non mise à jour). Détail complet :
+`CHANTIER-MODERNISATION-REVIEW-NESTJS12-ADOPTION.md`. **Aucune réserve.**
+
 ### Phase 1 — Filet de sécurité : tests de caractérisation sur les domaines non couverts
 
 - **Objectif** : combler les trous de §1.5 **avant** de toucher au code
