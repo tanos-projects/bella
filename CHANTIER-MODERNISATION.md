@@ -444,6 +444,14 @@ recherche ci-dessus prévoyait :
   runner Jest de `apps/api` en mode ESM natif — puis seulement retenter le
   bump 11→12 une fois l'un des deux vert.
 
+**Note ajoutée 2026-09-24 (chantier expiration annonces)** : `@nestjs/schedule`
+a été ajouté, **épinglé en `~6.1.3`** plutôt que sur son tag `latest` (12.x),
+pour la même raison que ci-dessus — la 12.x est purement ESM
+(`"type": "module"`, confirmé sur le registre npm) et casserait `nx test api`
+exactement comme le reste du cœur Nest. À revoir en même temps que le point
+ci-dessus si le palier 11→12 est repris : la 6.1.3 dépend de `@nestjs/common|core@^10 || ^11`
+et cessera d'être compatible.
+
 **`@nestjs/swagger` 5→12 séparément** (ne suit pas le même rythme de
 version que le cœur Nest, donc à vérifier par palier avec son propre
 `npm view @nestjs/swagger dist-tags` plutôt que supposé aligné) :

@@ -45,6 +45,8 @@ export class Ad {
   moderatedBy?: string;
   @Prop()
   publishedAt?: Date;
+  @Prop()
+  expiresAt?: Date;
   @Prop({ default: Date.now })
   createdAt?: Date;
   @Prop({ default: Date.now })
@@ -53,3 +55,5 @@ export class Ad {
 
 export const AdSchema = SchemaFactory.createForClass(Ad);
 AdSchema.index({ title: 'text', description: 'text', city: 'text' });
+// Used by the expiration job to find PUBLISHED ads past their expiresAt.
+AdSchema.index({ status: 1, expiresAt: 1 });

@@ -32,6 +32,20 @@ export class AdsRepositoryNest implements AdsRepository {
     );
   }
 
+  updateOneInStatus(
+    id: string,
+    expectedStatus: string,
+    update: Partial<AdEntity>,
+  ): Observable<AdEntity> {
+    return from(
+      this.adModel.findOneAndUpdate(
+        { _id: id, status: expectedStatus },
+        { ...update },
+        { returnDocument: 'after' },
+      ),
+    );
+  }
+
   findAll(
     filter?: FilterCriteria,
     options?: FilterOptions,
@@ -140,5 +154,17 @@ export class AdsRepositoryNest implements AdsRepository {
 
   findAllByUserId(userId: string): Observable<AdEntity[]> {
     throw new Error('Method not implemented.');
+  }
+
+  expireDue(now: Date): Observable<number> {
+    return from(
+      this.adModel
+        .updateMany(
+          { status: AdStatus.PUBLISHED, expiresAt: { $lte: now } },
+          { $set: { status: AdStatus.EXPIRED } },
+        )
+        .exec()
+        .then((result) => result.modifiedCount),
+    );
   }
 }

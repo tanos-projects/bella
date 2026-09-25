@@ -32,4 +32,5 @@ export interface AdDTO extends BaseDTO {
   readonly approbationMessage?: string;
   readonly moderatedBy?: string;
   readonly publishedAt?: Date;
+  readonly expiresAt?: Date;
 }

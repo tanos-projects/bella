@@ -5,7 +5,34 @@
       <div class="row">
         @for (publication of (publications$ | async); track publication.id) {
           <div class="col-4 col-sm-3 col-md-2">
-            <div class="mb-2"><bella-ad-card [data]="publication"></bella-ad-card></div>
+            <div class="mb-2">
+              <bella-ad-card [data]="publication"></bella-ad-card>
+              @if (publication.expiresAt) {
+                <p class="small text-muted mb-1">Expire le {{ publication.expiresAt | date:'longDate' }}</p>
+              }
+            </div>
+          </div>
+        }
+      </div>
+      <hr />
+      <h3 class="mb-3">Mes annonces expirées</h3>
+      <div class="row">
+        @for (publication of (expiredPublications$ | async); track publication.id) {
+          <div class="col-4 col-sm-3 col-md-2">
+            <div class="mb-2">
+              <bella-ad-card [data]="publication"></bella-ad-card>
+              @if (publication.expiresAt) {
+                <p class="small text-muted mb-1">Expirée le {{ publication.expiresAt | date:'longDate' }}</p>
+              }
+              <button
+                type="button"
+                class="btn btn-sm btn-primary w-100"
+                [disabled]="renewingId === publication.id"
+                (click)="renew(publication.id)"
+              >
+                Renouveler
+              </button>
+            </div>
           </div>
         }
       </div>

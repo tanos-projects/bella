@@ -18,6 +18,11 @@ export enum AdStatus {
   PUBLISHED = 'PUBLISHED',
   REJECTED = 'REJECTED',
   ARCHIVED = 'ARCHIVED',
+  // Reached automatically once the publication plan's lifetime elapses.
+  // Distinct from ARCHIVED (a moderator's sanction, applied via archive())
+  // so an owner can renew an EXPIRED ad without being able to undo a
+  // moderation decision.
+  EXPIRED = 'EXPIRED',
 }
 
 export class AdEntity {
@@ -45,6 +50,9 @@ export class AdEntity {
   // view can still show when an ad first went live. Stays empty for ads
   // that never reached PUBLISHED (e.g. rejected straight from SUBMITTED).
   publishedAt?: Date;
+  // Set by publish()/renew() from the applicable PublicationPlan. The
+  // expiration job moves the ad to EXPIRED once this passes.
+  expiresAt?: Date;
 
   // setPublished(value: boolean): void {
   //   this.published = value;
