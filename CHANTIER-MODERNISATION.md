@@ -3397,9 +3397,15 @@ chantier :
 
 1. **Le mandat "versions cibles" visait-il une montée de version à
    planifier, ou la confirmation que l'état actuel (déjà à jour) est la
-   bonne cible ?** Ce document part de la seconde lecture (§2) — à
-   confirmer, car ça change complètement la nature de ce qu'il y avait à
-   produire.
+   bonne cible ? — RÉPONDUE dans les faits (2026-09-25), close sans
+   arbitrage séparé.** La question est devenue sans objet : l'exécution
+   réelle de Phase 0bis a tranché empiriquement dans le sens de la
+   première lecture — ce n'était pas qu'une confirmation d'un état déjà à
+   jour, une vraie montée de version (NestJS 11→12, Node ≥24.9) a été
+   identifiée comme nécessaire, planifiée, exécutée et adoptée pour de
+   vrai (voir §7.5 et Phase 0bis en §4). Aucune autre version cible du
+   périmètre ne restait à discuter. Pas d'arbitrage utilisateur distinct
+   requis : les actes valent réponse.
 2. **`AdStatus.APPROVED` (Phase 6) — RÉPONDUE (2026-09-25).** Question :
    fallait-il l'implémenter réellement (un modérateur "approuve" avant
    qu'un système ou un second modérateur "publie"), ou retirer cette
@@ -3742,9 +3748,11 @@ chantier :
    Phase 5), cette réponse la clôt formellement pour l'ensemble du
    chantier. **Point 7 définitivement clos.**
 8. **Périmètre exact de "libs/api/domain" et "libs/api/adapters"
-   confirmé transitif** : ce document les traite comme pleinement dans le
-   périmètre (ils le sont mécaniquement, `apps/api` en dépend), mais à
-   confirmer qu'aucune contrainte n'exclut certains de leurs fichiers.
+   confirmé transitif — RÉPONDUE (2026-09-25), close.** Confirmation
+   utilisateur : aucune contrainte n'exclut de fichier de ces deux libs.
+   Elles restent pleinement dans le périmètre du chantier, comme déjà
+   traité de facto dans toutes les phases exécutées (Phase 2 notamment).
+   **Point 8 définitivement clos.**
 9. **Ajoutée après revue senior — Phase 4b (bascule complète NgRx) —
    RÉPONDUE (2026-09-25).** Question : voulez-vous la déclencher malgré
    l'absence de bug fonctionnel démontré, pour une raison explicite hors
