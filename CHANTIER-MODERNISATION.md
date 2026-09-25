@@ -1235,6 +1235,19 @@ tous traités :
        de test déjà présent dans le repo, ce commit doit être soumis à
        `qa-reviewer` avant d'être considéré acquis (même règle de
        gouvernance que `efc3e09`, §5).
+     - **CLÔTURE (2026-09-25) — RÉSOLU, plan ci-dessus abandonné.**
+       L'utilisateur a tranché §7 question 11 directement : option (b),
+       garder l'endpoint public, ne pas ajouter le guard. Conséquence :
+       le plan « Fichiers touchés / Tests / Critère d'acceptation /
+       Rollback » ci-dessus, écrit pour le cas où le guard serait ajouté,
+       ne s'applique plus — **aucune de ces actions n'est exécutée**.
+       `apps/api/src/app/api/users.controller.ts` et son
+       `.spec.ts` (notamment le test `efc3e09` qui asserte
+       `Reflect.getMetadata(GUARDS_METADATA,
+       UsersController.prototype.findOne)` → `toBeUndefined()`) restent
+       **inchangés**, ce qui est désormais le comportement correct et
+       définitif, pas un report. Ce sous-point est clos comme documentation
+       pure : voir §7.11 pour la décision complète et sa justification.
   9. **Ajouté 2026-09-24, sur recommandation de la revue senior Phase 1 —
      corriger `CategoriesController.getAll`** : `@Query() selectable:
      boolean` lie tout l'objet query (toujours truthy, même `{}`) au
@@ -1327,9 +1340,9 @@ tous traités :
   comportement corrigé strictement plus conforme à l'intention documentée
   de l'endpoint) ; moyen pour 3b (policy à reproduire fidèlement), 4 et 5
   (chacun un nouveau comportement observable côté API — 5 reclassifié
-  après revue senior, voir §1.3bis) ; **8 réévalué de "bas" à moyen/élevé
-  côté produit à l'exécution** — casse potentielle de la page de profil
-  public webapp, voir détail du sous-point 8 et question ouverte §7.11.
+  après revue senior, voir §1.3bis) ; **8 CLOS (2026-09-25)** — l'utilisateur
+  a tranché §7.11 (endpoint gardé public, guard non ajouté), donc plus
+  de risque produit engagé sur ce sous-point : aucun code touché.
 - **Critère d'acceptation** : `nx run-many --target={build,lint,test}
   --all` vert après chaque commit ; pour 1/3a/6/7, zéro différence dans
   les résultats de tests hérités de la phase 1 ; pour 3b, le test de
@@ -1338,8 +1351,9 @@ tous traités :
   tests couvrent explicitement le nouveau comportement de rejet (query
   params invalides pour 4, cas introuvable/mal formé pour 5) ; pour 9,
   `?selectable=false` et `?selectable=true` produisent des filtres
-  distincts ; pour 8, voir critère d'acceptation dédié du sous-point
-  (réponse §7.11 requise avant d'être considéré définitif).
+  distincts ; pour 8, résolu par documentation seule — voir §7.11 pour la
+  décision et la clôture détaillée du sous-point, aucun critère de code à
+  vérifier puisqu'aucun changement de code n'était attendu.
 - **Rollback** : chaque sous-point est un commit isolé (principe 7, §3) —
   revert du commit précis concerné en cas de régression, jamais un
   rollback groupé, les sous-points étant indépendants entre eux.
@@ -3252,7 +3266,7 @@ chantier :
     le tenant) et (b) budgéter un spike "OIDC/JWKS local factice" comme
     prochaine tentative, si cette phase est reprise.
 11. **Ajoutée 2026-09-24, découverte pendant l'exécution de la Phase 2,
-    sous-point 8 (`GET /users/:id`)** : ajouter `@UseGuards(JwtAuthGuard)`
+    sous-point 8 (`GET /users/:id`) — RÉSOLUE (2026-09-25).** Ajouter `@UseGuards(JwtAuthGuard)`
     sur `UsersController.findOne` referme la faille d'auth documentée en
     Phase 1, mais casse aussi une fonctionnalité front existante — la page
     de profil public webapp (`profil/:id/:username`, gardée seulement par
@@ -3274,6 +3288,35 @@ chantier :
     tranche pas seul entre "fermer une faille d'auth" et "casser une page
     publique existante", les deux étant des affirmations produit
     contradictoires tant que la question n'est pas répondue.
+
+    **Décision de l'utilisateur (2026-09-25), tranchée directement, pas
+    déduite par le Tech Lead : option (b) — garder l'endpoint `GET
+    /users/:id` public, ne pas ajouter `JwtAuthGuard` sur
+    `UsersController.findOne`.** Justification actée, celle déjà posée
+    dans la question elle-même : le DTO exposé par cet endpoint est déjà
+    minimal (`UserMapper.modelToProfileDTO` : `id`/`username`/`country`/
+    `picture`, jamais l'email), donc ce n'est pas une faille d'auth non
+    traitée mais un choix produit volontaire — l'exposition publique d'un
+    profil restreint est acceptée telle quelle, pas une régression à
+    corriger. Ce choix est documenté ici comme définitif, à ne pas
+    re-ouvrir sans nouvelle décision produit explicite.
+
+    **Exécution : aucun changement de code n'était attendu ni fait.**
+    L'endpoint n'a jamais porté de guard (l'ajout était resté « suspendu
+    côté code » depuis la découverte de cette question, comme documenté
+    ci-dessus et au sous-point Phase 2.8, §4) — vérifié en relisant
+    `apps/api/src/app/api/users.controller.ts` avant de conclure quoi que
+    ce soit (méthode tech-lead.md) : `findOne` (`GET /:id`) n'a toujours
+    aucun `@UseGuards(...)`, contrairement aux cinq autres handlers du
+    controller qui en portent tous un. Aucun écart entre le code réel et
+    ce que décrit cette question — rien à retirer, rien à ajouter. Le
+    sous-point Phase 2.8 correspondant (§4) est donc clos avec le guard
+    **non ajouté**, définitivement cette fois (ce n'était plus une
+    suspension d'exécution, mais la décision finale) ; voir §4 Phase 2
+    pour la clôture détaillée. `CLAUDE.md` (racine du worktree) vérifié :
+    sa section « Authorization (issue #49) » ne mentionne pas `GET
+    /users/:id` et ne dit donc rien de trompeur sur ce point — pas de mise
+    à jour nécessaire.
 12. **Ajoutée 2026-09-24, découverte par `senior-dev` pendant la revue de la
     Phase 3** : `UserSettingsService.reset()` (`apps/webapp/src/app/shared/services/user-settings.service.ts`)
     ne fait que `window.localStorage.removeItem(...)` — il ne pousse jamais
