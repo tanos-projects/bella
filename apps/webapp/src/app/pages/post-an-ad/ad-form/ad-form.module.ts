@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
-import { FormModule } from '../../../shared/form/form.module';
+import { FormComponent } from '../../../shared/form/form.component';
 import { AdFormComponent } from './ad-form.component';
 
 @NgModule({
   declarations: [AdFormComponent],
   exports: [AdFormComponent],
-  imports: [CommonModule, FormModule]
+  imports: [CommonModule, FormComponent]
 })
 export class AdFormModule {}
