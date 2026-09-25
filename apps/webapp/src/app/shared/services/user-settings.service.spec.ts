@@ -45,13 +45,16 @@ describe('UserSettingsService', () => {
     expect(window.localStorage.getItem(COUNTRY_ENTRY_KEY)).toBeNull();
   });
 
-  it('reset() removes the persisted country entry directly', () => {
+  it('reset() clears both the persisted entry and the in-memory country', () => {
     window.localStorage.setItem(COUNTRY_ENTRY_KEY, 'CI');
     const service = new UserSettingsService();
+    expect(service.getCountry()).toBe('CI');
 
     service.reset();
 
     expect(window.localStorage.getItem(COUNTRY_ENTRY_KEY)).toBeNull();
+    expect(service.getCountry()).toBe('');
+    expect(service.hasCountrySet()).toBe(false);
   });
 
   it('stores and retrieves the profile', () => {
