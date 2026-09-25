@@ -2828,10 +2828,29 @@ supplémentaire nécessaire au-delà du fix `UploadService` déjà en place.
   s'est pas matérialisé, `AdDTO.status` n'ayant jamais dépendu de l'enum
   `AdStatus` par un type partagé.
 - **Vérification** : `npx nx run-many --target={build,lint,test} --all`
-  vert sur les 6 projets après le retrait — en particulier `nx build`
+  vert sur les 6 projets ayant un target `test` (`build` vert sur les 3
+  apps buildables) après le retrait — en particulier `nx build`
   (TypeScript) n'a signalé aucune référence orpheline à
   `AdStatus.APPROVED`, ce qui aurait été le signal le plus fiable d'un
-  oubli.
+  oubli. **Correction (revue `senior-dev`, voir ci-dessous)** : `lint`
+  tourne en réalité sur 8 projets dans ce monorepo (2 e2e en plus des 6
+  ci-dessus) et n'est **pas** intégralement vert : 8 erreurs pré-existantes
+  (5 sur `webapp`, 3 sur `admin`, toutes `@typescript-eslint/no-empty-function`/
+  `@angular-eslint/no-empty-lifecycle-method`, antérieures à ce chantier)
+  plus une casse de config `plugin:cypress/recommended` sur
+  `webapp-e2e`/`admin-e2e` (incompatibilité d'outillage, sans rapport avec
+  le code) — aucune de ces erreurs n'est liée au retrait d'`APPROVED`, mais
+  la formulation "vert" ci-dessus était trompeuse sur le périmètre réel.
+- **Revue `senior-dev` (2026-09-25)** : **VALIDÉ, sans réserve bloquante**
+  sur le retrait lui-même (grep, `AdDTO.status`, dérivation Mongoose,
+  section "Ad lifecycle" de `CLAUDE.md`, tout re-vérifié indépendamment).
+  Deux points signalés sans remettre en cause le verdict : le comptage
+  lint imprécis du tech-lead (corrigé ci-dessus) et une dette de
+  conception préexistante — `AdDTO.status` étant un `string` brut, un
+  futur changement des valeurs possibles de `status` côté API ne casserait
+  jamais la compilation TypeScript des front-ends, contrairement à ce
+  qu'un type partagé garantirait. Détail complet :
+  `CHANTIER-MODERNISATION-REVIEW-APPROVED-REMOVAL.md`.
 - **Section conservée ci-dessous telle qu'écrite au moment du chiffrage**,
   pour l'historique de la décision et de son scope initialement estimé :
 
@@ -3132,9 +3151,16 @@ chantier :
    (`ads-repository-nest.spec.ts`, bloc `describe('findAllByUserId', ...)`,
    qui verrouillait auparavant le `throw`) pour verrouiller le nouveau
    comportement à la place — **modification d'un test existant** au sens
-   de la gouvernance (§5/`tech-lead.md`) : feu vert `qa-reviewer` **non
-   sollicité dans cette session**, à obtenir avant considération
-   définitive. `nx build/lint/test api` verts après ce commit. Le
+   de la gouvernance (§5/`tech-lead.md`) : feu vert `qa-reviewer` **obtenu
+   (2026-09-25) — APPROUVÉ**, verdict porté exclusivement sur ce bloc de
+   test (commits/diff retrouvés indépendamment, mock Mongoose et
+   assertions jugées strictement plus riches que l'ancien `toThrow`,
+   cohérentes avec le style établi du fichier ; suites `api-domain`/`api`
+   relancées indépendamment, vertes ; seule réserve non bloquante :
+   `findAllByUserId` reste sans appelant réel confirmé, question déjà
+   actée ci-dessus, pas un défaut du test). Détail complet :
+   `CHANTIER-MODERNISATION-QA-FINDALLBYUSERID.md`. `nx build/lint/test
+   api` verts après ce commit. Le
    sous-point Phase 2 gelé correspondant (§4) n'a plus lieu d'être formulé
    comme un retrait — l'action a changé de nature (implémentation, pas
    suppression) — retiré de la liste des sous-points en attente de
