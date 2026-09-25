@@ -1762,25 +1762,30 @@ commit de production.
 vert `qa-reviewer` du deuxième lot (voir sous-section suivante) et
 l'exécution du troisième lot (voir plus bas) :
 
-1. ~~14 composants "avec spec" restants~~ → **8 restants** après le
-   troisième lot ci-dessous, tous Auth0-gated, vérifiés via
-   `account`/`post-an-ad` (tous deux `AuthGuard`) : `account.component`,
-   `profile-form.component`, `bookmarks.component`
-   (`AuthGuard`+`CompleteProfileGuard`), `my-publications.component`
-   (idem), `ad-form.component`, `field-error.component` (consommé
-   uniquement par `profile-form.module.ts`, gated), `form.component`
-   (consommé uniquement par `ad-form.module.ts`/`account.module.ts`,
-   gated), `upload.component` (consommé uniquement par
-   `picture-uploader.ts`, gated). À reconfirmer composant par composant
-   au moment de la conversion comme toujours plutôt que supposé ici — et
-   à traiter en dernier au sens de l'amendement 3 de la revue du lot
-   pilote (§4 plus haut) : leur mise en "acquis" définitif restera gelée
-   jusqu'à vérification humaine réelle avec un compte Auth0, qui suppose
-   elle-même le blocage runtime `class-validator` résolu (voir
-   sous-section dédiée ci-dessous — **résolu** depuis cette session).
+1. ~~14 composants "avec spec" restants~~ → ~~8 restants après le
+   troisième lot~~ → **0 restant** : le quatrième et dernier lot "avec
+   spec" webapp (`FieldErrorComponent`, `UploadComponent`, `FormComponent`,
+   `AdFormComponent`, `ProfileFormComponent`, `AccountComponent`,
+   `BookmarksComponent`, `MyPublicationsComponent`) a été converti (voir
+   sous-section "Quatrième et dernier lot" ci-dessus) — les 8 confirmés
+   Auth0-gated route par route, pas supposés. La sous-vague webapp est
+   donc **convertie techniquement à 100% (41/41)**, mais **14 composants
+   restent GELÉS** (6 du lot "sans spec" initial + 8 de ce dernier lot) au
+   sens de l'amendement 3 de la revue du lot pilote : leur mise en
+   "acquis" définitif reste gelée jusqu'à vérification humaine réelle au
+   navigateur avec un compte Auth0, qui suppose elle-même le blocage
+   runtime `class-validator` résolu (voir sous-section dédiée ci-dessous —
+   **résolu** depuis la session précédente) — ce fix lève uniquement le
+   blocage "serveur qui ne démarre pas", pas le blocage "pas de compte
+   Auth0 de test" (§7 point 10, toujours ouvert). **La sous-vague webapp
+   n'est donc PAS déclarée "terminée" au sens plein** — uniquement
+   "convertie techniquement, vérification humaine en attente" pour sa
+   partie gelée, conformément au mandat.
 2. Puis la sous-vague `admin` (8 composants, 4 sans spec/4 avec spec),
-   seulement après webapp entièrement close, comme recommandé par la
-   revue senior (pas les deux apps en parallèle).
+   **n'a pas encore démarré** — seulement après webapp entièrement close
+   (y compris le passage `qa-reviewer`/`senior-dev` du quatrième lot
+   ci-dessus), comme recommandé par la revue senior (pas les deux apps en
+   parallèle).
 
 La méthode (chiffrage + lot pilote + amendements 1-4) a déjà été soumise
 à et validée par `senior-dev` — voir
@@ -1949,7 +1954,7 @@ cette correction est consignée ici plutôt que par un amend/rebase** :
   pas du §1 de `CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2.md` cité à tort
   par ces deux messages.
 
-#### Troisième lot "avec spec" (2026-09-25, session tech-lead post-fix runtime) — 6 composants, PAS encore soumis à `qa-reviewer`
+#### Troisième lot "avec spec" (2026-09-25, session tech-lead post-fix runtime) — 6 composants, APPROUVÉ SANS RÉSERVE par qa-reviewer, validé sans réserve par senior-dev
 
 Classification vérifiée par lecture directe de `app-routing.module.ts`,
 `main-routing.module.ts` et des `*.module.ts` consommateurs (pas
@@ -2034,17 +2039,168 @@ doc qui clôt le lot précédent) et `d98445c` (inclus) :
 `20c67ea`/`afcee3c` (Main), `06a5e23`/`6d0f439` (AdDetail),
 `091c045`/`a13bfc9` (Settings), `3c80c2c`/`d98445c` (App).
 
-**Statut : lot complet (6/6), PAS encore soumis à `qa-reviewer`** —
-conformément au mandat, ce commit doc ne déclare pas les 6 commits
-d'édition de spec acquis. **Prochain point de passage : soumission de ce
-troisième lot à `qa-reviewer`** (feu vert requis avant que les 6 commits
-de spec soient considérés acquis, §5) — puis, une fois la sous-vague
-webapp entièrement close (8 composants Auth0-gated restants, voir "reste
-à faire" ci-dessus), passage devant `senior-dev` pour la fin de la
-sous-vague webapp complète, comme prévu. **Ne pas faire tourner
-`senior-dev` et `qa-reviewer` en parallèle sur ce worktree** (risque de
-collision d'édition déjà documenté, `CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2.md`
-§2).
+**Statut : lot complet (6/6), acquis.** `CHANTIER-MODERNISATION-QA-PHASE5-LOT3.md`
+(`qa-reviewer`) : **APPROUVÉ SANS RÉSERVE** pour les 6 commits d'édition de
+spec de ce lot — tous strictement mécaniques
+(`declarations`→`imports`), aucune assertion supprimée/affaiblie, le point
+`HomeService` (provider component-level) vérifié indépendamment et confirmé
+sans impact (aucun consommateur tiers du service). Les 6 commits de spec de
+ce lot sont donc **acquis** au sens de la règle de gouvernance §5.
+`CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT3.md` (`senior-dev`) : **validée
+sans réserve** — resolution du blocage runtime `class-validator` revérifiée
+empiriquement de zéro (serveur réel démarré et observé, `node_modules`
+confirmé sans symlink, arbre partagé `/home/tanos/bella` confirmé non
+touché), citation `ab693f6`/`1d0defe` confirmée corrigée, échantillon de 4
+diffs de production sur 6 (dont `AppComponent` et `HomeService`, les deux
+points signalés comme sensibles) confirmé propre,
+`nx run-many --target={build,lint,test} --all` revérifié vert.
+
+*(Correction apportée ici, 2026-09-25, session tech-lead suivante : cette
+section affirmait encore "PAS encore soumis à `qa-reviewer`" alors que la
+revue avait déjà eu lieu et conclu à une approbation sans réserve —
+formulation obsolète relevée par `senior-dev` lui-même en remarque non
+bloquante n°2 de `CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT3.md`, corrigée
+ici sans toucher à l'historique git des commits déjà passés.)*
+
+**Ne pas faire tourner `senior-dev` et `qa-reviewer` en parallèle sur ce
+worktree** (risque de collision d'édition déjà documenté,
+`CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT2.md` §2) — reste valable pour la
+suite.
+
+#### Quatrième et dernier lot "avec spec" webapp (2026-09-25, session
+tech-lead) — 8 composants, tous confirmés Auth0-gated, PAS encore soumis
+à `qa-reviewer`
+
+Clôt la liste des 8 composants "avec spec" restants annoncée par le
+troisième lot. Chaque composant reclassifié route par route par lecture
+directe de `app-routing.module.ts`, `account-routing.module.ts` et des
+`*.module.ts`/`*.component.ts` consommateurs (pas supposé, conformément au
+mandat) avant conversion — **les 8 se confirment Auth0-gated**, aucun ne
+s'est révélé public contrairement à l'hypothèse initiale :
+
+1. `FieldErrorComponent` — Auth0-gated (seul consommateur :
+   `ProfileFormComponent`, reachable seulement via `/account` et
+   `/account/profile/form`, `AuthGuard`). Aucun provider, aucun import
+   nécessaire (template `@if` seul, ni pipe ni directive structurelle).
+   `field-error.module.ts` supprimé (dead).
+2. `UploadComponent` — Auth0-gated (seul consommateur :
+   `PictureUploaderFormFieldComponent`, déjà standalone, reachable
+   uniquement via `/post-an-ad` et `/account/profile/form`). Template sans
+   directive/pipe ; `BsModalService` confirmé `providedIn: 'root'` depuis
+   ngx-bootstrap 21 (commentaire déjà présent dans
+   `testing-support.ts`), donc aucun `ModalModule` nécessaire non plus.
+   `upload.module.ts` supprimé (dead).
+   **Découverte non triviale, documentée en détail en §7.14** : ce module
+   était aussi le seul point de `providers: [UploadService]` en
+   production, alors que `UploadService` n'est injecté que par
+   `PostAnAdComponent` — un ancêtre de `PictureUploaderFormFieldComponent`
+   dans l'arbre de composants, donc hors de portée de tout ce que les
+   `imports` de ce dernier peuvent fournir. `PostAnAdComponent.uploadService`
+   n'a donc **aucun provider joignable en production, ni avant ni après ce
+   commit** — un défaut préexistant, ni introduit ni corrigé ici,
+   uniquement mis en lumière par la vérification route par route de ce
+   lot. Pas tranché unilatéralement : décision d'architecture hors mandat
+   d'une conversion mécanique, remontée en §7.14.
+3. `FormComponent` — Auth0-gated (seul consommateur :
+   `AdFormComponent`, reachable uniquement via `/post-an-ad`).
+   **Découverte propre à ce composant** : `FormlyModule.forChild({...})`
+   (l'enregistrement des types de champ `stepper`/`picture-uploader`/
+   `ng-select`) ne peut pas vivre directement dans les `imports` d'un
+   composant standalone — Angular le refuse (`NG2012`, confirmé par un
+   échec `nx build` immédiat et explicite dès la première tentative).
+   Contourné en isolant ce `.forChild()` dans un `@NgModule` dédié,
+   `formly-field-types.module.ts` (renommé depuis `form.module.ts`, dont
+   l'autre rôle — déclarer `FormComponent` — est devenu caduc), importé
+   directement par `FormComponent` aux côtés de `FormlyModule` (nu, pour
+   le sélecteur `<formly-form>` de son propre template, que le module
+   `.forChild()` ne réexporte pas puisqu'il ne déclare aucun `exports`).
+   `ad-form.module.ts` mis à jour (`FormModule` → `FormComponent`).
+4. `AdFormComponent` — Auth0-gated (seul consommateur :
+   `PostAnAdComponent`, `/post-an-ad`). `imports: [FormComponent]`.
+   `ad-form.module.ts` supprimé (dead) ; `post-an-ad.component.ts` mis à
+   jour (`AdFormModule` → `AdFormComponent`).
+5. `ProfileFormComponent` — Auth0-gated (deux consommateurs :
+   `AccountComponent` et `CreateProfileComponent`, tous deux uniquement
+   reachable via `/account`, `AuthGuard`). `imports: [CommonModule,
+   ReactiveFormsModule, NgSelectModule, RouterModule, FieldErrorComponent]`.
+   `profile-form.module.ts` supprimé (dead, plus aucun consommateur) ;
+   `account.module.ts` et `create-profile-component.ts` mis à jour.
+6. `AccountComponent` — Auth0-gated (`/account`, `AuthGuard` sur la route
+   parente + `CompleteProfileGuard` sur sa propre entrée de route).
+   `imports: [CommonModule, RouterModule, TitledPageComponent,
+   ProfileFormComponent, LoginSignupComponent, LogoutButtonComponent]`.
+   `account.module.ts` réduit à `imports: [AccountRoutingModule]` (même
+   schéma que `SettingsModule`/lot 3 : ses autres imports n'existaient que
+   pour déclarer `AccountComponent`), reste en vie comme cible
+   `loadChildren`.
+7. `BookmarksComponent` — Auth0-gated (`/bookmarks`, `AuthGuard` +
+   `CompleteProfileGuard` sur la route parente). `imports:
+   [TitledPageComponent]`. `bookmarks.module.ts` réduit à `imports:
+   [BookmarksRoutingModule]`.
+8. `MyPublicationsComponent` — Auth0-gated (`/my-publications`,
+   `AuthGuard` + `CompleteProfileGuard`). `imports: [CommonModule,
+   AdCardComponent, HeaderComponent, FooterComponent]`.
+   `my-publications.module.ts` réduit à `imports:
+   [MyPublicationsRoutingModule]`.
+
+**Incident de process ponctuel, sans conséquence sur le contenu livré** :
+la conversion d'`AdFormComponent` a d'abord échoué `nx test webapp` après
+son commit de production (avant le commit de spec isolé), avec une erreur
+Formly distincte du refus habituel "standalone can't be declared" :
+`[Formly Error] The type "input" could not be found`. Cause : sous
+`NO_ERRORS_SCHEMA`, `<bella-form>` était jusque-là un élément inconnu et
+inerte pour ce spec (ni `FormComponent` ni `AdFormModule` n'étaient
+visibles du `TestBed`) ; une fois `AdFormComponent` standalone et
+important réellement `FormComponent`, l'élément devient résolu et le
+`ngOnInit()` d'`AdFormComponent` (jamais exécuté à fond auparavant dans ce
+spec) peuple `fields` avec la config Formly réelle, qui exerce pour la
+première fois le rendu profond de `<formly-form>` — lequel a besoin des
+types de base ngx-formly (`input`/`select`/`textarea`/`multicheckbox`),
+fournis en production par `FormlyBootstrapModule` (`app.module.ts`,
+racine), absent de `testing-support.ts`. Corrigé en ajoutant
+`FormlyBootstrapModule` (dépendance de production déjà existante, pas une
+nouveauté) directement dans les `imports` du spec d'`AdFormComponent`
+lui-même — même précédent que l'ajout ponctuel de `CountriesService` dans
+`profile-form.component.spec.ts`, pas une modification de
+`testing-support.ts` partagé. Aucune assertion touchée (`should create`
+inchangé). **Commit de spec de ce composant marqué explicitement "NOT
+purement mécanique"** dans son propre message, pour une attention
+`qa-reviewer` renforcée par rapport au reste du lot, qui lui reste
+strictement mécanique.
+
+Chaque conversion suit le même schéma à deux commits (production, puis
+spec isolé) que les lots précédents, `nx lint/build/test webapp` vérifié
+vert après **chaque** commit de production, baselines inchangées (39
+problèmes lint : 5 erreurs/34 avertissements ; 38/38 suites, 87/87 tests)
+à chaque étape. `nx run-many --target={build,lint,test} --all` (6 projets)
+revérifié vert en fin de lot — `admin:build:production` a de nouveau
+affiché l'artefact sandbox `fonts.googleapis.com` déjà documenté dans
+toutes les revues précédentes (pas une régression), vert une fois le
+domaine autorisé pour la commande.
+
+**16 commits de code** (8 paires refactor+spec), entre `c89ab31` (exclu,
+doc qui clôt le lot précédent) et `6697154` (inclus) : `397ef09`/`f42defc`
+(FieldError), `55f4d5b`/`aa696a8` (Upload), `865c020`/`252fc0c` (Form),
+`8577a96`/`96202c9` (AdForm), `67e5c57`/`e429cd1` (ProfileForm),
+`f22c0a1`/`ed64b1a` (Account), `c8a7830`/`f82d7d1` (Bookmarks),
+`7ab1e9e`/`6697154` (MyPublications).
+
+**Statut : lot complet (8/8), PAS encore soumis à `qa-reviewer`** —
+conformément au mandat, cette session (tech-lead) ne se soumet pas
+elle-même à `qa-reviewer` ; ce commit doc ne déclare donc pas les 8
+commits d'édition de spec acquis. **Les 8 composants restent GELÉS** au
+sens de l'amendement 3 de la revue du lot pilote (§4 plus haut,
+"Amendements actés après la revue senior du lot pilote") — leur mise en
+"acquis" définitif au niveau produit/UX ne dépend pas seulement du feu
+vert `qa-reviewer` sur les specs (requis indépendamment, par la
+gouvernance §5, quel que soit le statut gelé) mais d'une vérification
+humaine réelle au navigateur avec un compte Auth0 fonctionnel, qui n'a
+toujours pas eu lieu dans ce sandbox (§7 point 10, toujours ouvert — le
+fix runtime `class-validator` lève le blocage "serveur qui ne démarre
+pas", pas le blocage "pas de compte Auth0 de test"). **Prochain point de
+passage : soumission de ce quatrième et dernier lot "avec spec" webapp à
+`qa-reviewer`** — puis passage devant `senior-dev` pour la clôture
+complète de la sous-vague webapp (voir statut global ci-dessous).
 
 ### Phase 6 (optionnelle, à valider) — Trancher `APPROVED` dans `AdStatus`
 
@@ -2369,6 +2525,42 @@ chantier :
     pas un aller-retour unitaire (voir §4 Phase 5, amendement 1). §7.7
     (qui fait la revue "en général", au-delà de cette phase précise) reste
     ouverte pour l'utilisateur.
+14. **Ajoutée 2026-09-25, découverte pendant la conversion du quatrième lot
+    "avec spec" webapp (Phase 5), en vérifiant route par route le
+    consommateur d'`UploadComponent`** : `PostAnAdComponent`
+    (`apps/webapp/src/app/pages/post-an-ad/post-an-ad.component.ts`)
+    injecte `UploadService` directement (`private uploadService =
+    inject(UploadService)`). Avant ce lot, l'unique enregistrement de
+    provider pour ce service était `UploadModule.providers`, et
+    `UploadModule` n'était lui-même importé que par
+    `PictureUploaderFormFieldComponent` (`picture-uploader.ts`, standalone
+    depuis un lot antérieur) — dans ses propres `imports`. Or les
+    `imports` d'un composant standalone n'étendent l'injecteur que pour ce
+    composant et ses descendants dans l'arbre, jamais pour ses ancêtres ;
+    `PostAnAdComponent` est un ancêtre de
+    `PictureUploaderFormFieldComponent` (rendu dynamiquement par ngx-formly
+    plus bas dans l'arbre, via `AdFormComponent`/`FormComponent`), pas un
+    descendant. **`PostAnAdComponent.uploadService` semble donc n'avoir
+    aucun provider joignable en production — ni avant ce lot (l'analyse
+    tient indépendamment de la conversion standalone elle-même), ni après**
+    (la suppression d'`upload.module.ts`, désormais mort, ne change rien à
+    cette portée puisqu'elle n'a jamais été atteignable par
+    `PostAnAdComponent`). Les tests unitaires ne le détectent pas : le
+    `TestBed` fournit `UploadService` directement via `commonTestProviders`
+    (`testing-support.ts`), en dehors du graphe de modules réel.
+    **Question à trancher, pas tranchée ici** : est-ce un bug réel (auquel
+    cas il faut décider où `UploadService` doit vivre — `providedIn:
+    'root'`, un provider au niveau route `/post-an-ad`, ou ailleurs — une
+    décision d'architecture hors du mandat purement mécanique de cette
+    conversion), ou bien `uploadMultiple(adData.images)` n'est en pratique
+    jamais atteint pour une raison que cette analyse statique du graphe DI
+    n'a pas vue (à vérifier par un humain, par ex. en rejouant réellement
+    le parcours `post-an-ad` une fois un compte de test Auth0 disponible —
+    voir §7.10) ? Le Tech Lead n'a pas tranché ni "corrigé" cette portée
+    silencieusement — un choix arbitraire de nouvelle portée serait lui
+    aussi une décision d'architecture non triviale, hors mandat d'un
+    sweep de conversion standalone. Documenté en détail dans le commit
+    `55f4d5b` (`refactor(webapp): UploadComponent standalone: true`).
 
 ## 8. Réponse du Tech Lead aux réserves de la revue senior (2026-09-24)
 
