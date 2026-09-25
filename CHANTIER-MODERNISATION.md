@@ -3364,12 +3364,25 @@ chantier :
     existant** au sens de la gouvernance (§5/`tech-lead.md`), isolée dans
     son propre commit séparé du fix de code : `492f73a`
     (`test(webapp): strengthen reset() spec to lock in-memory country
-    clearing`). **Ce commit attend un feu vert `qa-reviewer` écrit avant
-    d'être considéré définitif** — non sollicité dans cette session, une
-    revue séparée est attendue pour le clore.
+    clearing`).
 
     `nx test webapp` relancé après le fix : 39/39 suites, 89/89 tests
     verts, sans régression.
+
+    **Feu vert `qa-reviewer` obtenu (2026-09-25) — APPROUVÉ, sans
+    réserve.** Vérification indépendante du diff complet (pas seulement le
+    message de commit) : changement strictement additif (l'assertion
+    `localStorage` d'origine conservée à l'identique, trois assertions
+    ajoutées — précondition + deux postconditions), tracé manuellement
+    contre l'ancien code pour confirmer que les nouvelles assertions
+    auraient échoué avant le fix (donc pas un verrouillage vide). `nx test
+    webapp --skip-nx-cache` relancé indépendamment à deux reprises,
+    39/39/89/89 vert. Une tentative de vérification empirique
+    supplémentaire (revert temporaire du fix pour observer l'échec) a été
+    bloquée par le classifieur auto-mode et non contournée — le verdict
+    s'appuie sur la lecture directe du code, jugée suffisante. Détail
+    complet : `CHANTIER-MODERNISATION-QA-RESET-COUNTRY.md`. **Point 12
+    définitivement clos.**
 13. **Ajoutée 2026-09-24, découverte pendant le chiffrage de la Phase 5 —
     RÉPONDUE le 2026-09-24 par la revue senior du lot pilote.** Le point 7
     ci-dessus ("qui fait la revue QA pour une modification de test
