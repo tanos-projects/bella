@@ -13,8 +13,7 @@ describe('BookmarksComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [BookmarksComponent],
-      imports: [...commonTestImports],
+      imports: [BookmarksComponent, ...commonTestImports],
       providers: [...commonTestProviders],
       schemas: [...commonTestSchemas],
     }).compileComponents();
