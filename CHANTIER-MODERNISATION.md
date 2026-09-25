@@ -2459,6 +2459,112 @@ Corrigée : `UploadService` est maintenant `@Injectable({ providedIn:
 d'autre dans l'app) et sans conflit avec `commonTestProviders`. Détail
 complet, preuves et vérifications en §7.14.
 
+#### Audit systématique de rattrapage — angle mort `providers:` des modules supprimés (2026-09-25, session tech-lead)
+
+**Déclencheur** : le bug `UploadService` (§7.14) est une classe de bug
+structurelle, pas un cas isolé — la méthode utilisée pendant toute la
+Phase 5 pour décider quels imports/modules retirer s'appuyait sur un
+grep du template HTML, qui ne peut par construction pas voir un
+`providers:` consommé par la classe TypeScript (`inject()`/constructeur)
+plutôt que par le template. Objet de cet audit : vérifier si ce même
+angle mort a touché d'autres composants parmi les 49 convertis
+(41 webapp + 8 admin), de façon exhaustive plutôt que par échantillonnage.
+
+**Méthode** : `git log --all --diff-filter=D --name-only -- '**/*.module.ts'`
+recoupé avec les 43 commits de conversion Phase 5 (`git log --oneline
+--all | grep standalone`) donne **33 fichiers `*.module.ts` distincts
+supprimés pendant cette phase** (un 34e, `form-validation.module.ts`,
+supprimé par le commit `17e8d94` de migration Angular 15, antérieur à ce
+chantier — exclu, hors périmètre). Pour chacun, contenu lu juste avant
+suppression (`git show <commit>^:<path>`) et grep sur `providers`. Les 4
+composants admin sans `.module.ts` dédié (`NavbarComponent`,
+`AppComponent`, `AccessDeniedComponent`, `DashboardComponent` — déclarés
+directement dans `AppModule`/le routing, jamais dans un module par
+composant) sont structurellement hors du périmètre de ce bug : rien n'a
+été supprimé pour eux, donc rien à auditer.
+
+**Résultat exhaustif — 33 modules supprimés** :
+
+- **24 modules sans clé `providers` du tout** (rien à vérifier) :
+  `field-error`, `ad-detail`, `login-signup-link`, `login-signup`,
+  `ads-previewer`, `ads-by-category`, `titled-page`, `ad-form`,
+  `ad-contacts`, `create-profile`, `header`, `ad-card`, `logout-button`,
+  `ng-select-form-field`, `search-results`, `sidebar`, `spinner`,
+  `ad-publisher-card`, `carousel`, `footer-toolbar-action`, `footer`,
+  `search-filter-button`, `search-filter`, `profile-form` (tous webapp).
+- **3 modules avec `providers: []` (vide)** — admin : `sidenav.module.ts`,
+  `publications-list.module.ts`, `confirmation-dialog.module.ts`. Non
+  applicable : aucun service à vérifier.
+- **6 modules avec un `providers:` non vide** — le sous-ensemble
+  réellement à risque :
+
+  | Module supprimé (commit) | Service(s) | Pattern pré-Phase-5 | Verdict |
+  |---|---|---|---|
+  | `loading.module.ts` (`3325e8b`) | `LoadingService` | `LoadingModule.forRoot()` importé par `AppModule` (racine) | **OK** — migré `providedIn: 'root'`, déjà vérifié par `qa-reviewer`/`senior-dev` (lot 2), voir « Correction de citation » ci-dessus |
+  | `drawer.module.ts` (`ab693f6`) | `DrawerService` | `DrawerModule.forRoot()` importé par `AppModule` (racine) | **OK** — idem, `providedIn: 'root'` |
+  | `welcome.module.ts` (`1d0defe`) | `WelcomeService`, `WelcomeGuard` | `WelcomeModule.forRoot()` importé par `AppModule` (racine) | **OK** — idem, les deux `providedIn: 'root'` |
+  | `profile.module.ts` (`9c623c3`) | `ProfileService` | `ProfileModule.forRoot()` importé par `AppModule` (racine) | **OK** — idem, `providedIn: 'root'` |
+  | `upload.module.ts` (`55f4d5b`) | `UploadService` | `providers:` **direct** (pas `forRoot()`) sur `@NgModule`, hissé par l'import direct de `PostAnAdModule` | **CASSÉ puis CORRIGÉ** — régression introduite par `ea0ee06` (2 commits avant la suppression du module), fixée en `providedIn: 'root'` ; détail complet en §7.14 |
+  | `home.module.ts` (`c06761c`) | `HomeService` | `providers:` **direct** (pas `forRoot()`) sur `@NgModule`, hissé par l'import direct de `MainModule` | **OK, mais même topologie à risque qu'`UploadService`** — voir analyse ci-dessous |
+
+  Les 4 premiers utilisaient le pattern `static forRoot(): ModuleWithProviders`
+  et étaient importés une seule fois, à la racine (`AppModule`) — c'est
+  l'équivalent fonctionnel exact de `providedIn: 'root'` déjà avant la
+  Phase 5 (portée globale, singleton), donc la conversion vers
+  `providedIn: 'root'` est une transformation neutre, pas une réduction
+  de portée. Ce pattern est *intrinsèquement* sûr vis-à-vis de l'angle
+  mort décrit en §7.14, parce que `forRoot()` rend le provider visible
+  dans le code (pas caché derrière un import de convenance) et parce que
+  son unique importeur était déjà la racine.
+
+  Les 2 derniers (`upload.module.ts`, `home.module.ts`) utilisaient au
+  contraire le pattern `providers:` **directement dans le `@NgModule`**
+  (pas de `forRoot()`) — c'est exactement le cas structurellement
+  dangereux : le provider est hissé silencieusement à l'injecteur de
+  *tout* module qui importe ce module, y compris par un import qui n'a
+  visiblement rien à voir avec ce provider (le grep template ne peut pas
+  le détecter). `upload.module.ts` a cassé pour cette raison précise
+  (§7.14). `home.module.ts` porte la même topologie de risque : avant la
+  Phase 5, `MainModule` importait `HomeModule` directement (`git show
+  8f954a9:apps/webapp/src/app/pages/main/main.module.ts`), hissant
+  `providers: [HomeService]` à l'injecteur de `MainModule` — mais il **ne
+  s'est pas cassé**, parce que le commit `c06761c`
+  (`HomeComponent standalone: true`) a, par coïncidence ou par
+  prudence délibérée (l'historique ne permet pas de trancher lequel),
+  ajouté `providers: [HomeService]` directement sur le composant
+  standalone `HomeComponent` lui-même
+  (`apps/webapp/src/app/pages/home/home.component.ts`) — qui est l'unique
+  consommateur de ce service dans toute l'app (`grep -rln HomeService
+  apps/webapp/src` re-vérifié : seuls `home.component.ts` et
+  `home.service.ts` lui-même). Un composant standalone qui se fournit son
+  propre service à lui-même via ses propres `providers:` est toujours
+  résolvable, sans aucune ambiguïté d'ancêtre/descendant — ce n'est donc
+  **pas un bug**, mais ce n'est pas non plus une vérification
+  systématique : si le composant qui a hérité de cette responsabilité de
+  câblage n'avait pas été le bon (ex. si `HomeService` avait eu un second
+  consommateur ailleurs dans l'arbre, non descendant de `HomeComponent`),
+  le même bug que `UploadService` se serait reproduit silencieusement.
+
+**Conclusion de l'audit** : un seul bug réel trouvé et déjà corrigé
+(`UploadService`, §7.14) ; aucun autre cas cassé. `HomeService` a évité
+le même sort par un choix de câblage correct fait au moment de la
+conversion, pas par une propriété structurelle qui l'aurait protégé — à
+noter comme un aléa plutôt que comme une garantie, mais sans action
+corrective nécessaire puisqu'il fonctionne bien aujourd'hui, vérifié à
+la fois par lecture (unique consommateur) et empiriquement
+(`nx build`/`nx test webapp` verts, aucune régression).
+
+**Vérification empirique finale (2026-09-25)** : `npx nx run-many
+--target={build,lint,test} --all` relancé sur les 6 projets — build vert
+sur `webapp`/`admin`/`api` (aucune erreur de résolution d'injecteur,
+aucune régression de bundle) ; lint aux baselines déjà documentées et
+inchangées (`webapp` 5 erreurs/34 avertissements, `admin` 3 erreurs/10
+avertissements — dette de lint préexistante, sans rapport avec cet
+audit, déjà actée dans ce document) ; test vert sur les 6 projets
+(`api` 130/130, `api-domain` 41/41, `api-adapters` 28/28, `webapp`
+89/89, `admin` 25/26+1 skip préexistant). Aucun commit de correction
+supplémentaire nécessaire au-delà du fix `UploadService` déjà en place.
+
 ### Phase 6 (optionnelle, à valider) — Trancher `APPROVED` dans `AdStatus`
 
 - **Objectif** : décider si `publish()` doit réellement transiter par
