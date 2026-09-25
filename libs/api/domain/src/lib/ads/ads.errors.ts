@@ -11,3 +11,19 @@ export class AdNotInExpectedStateError extends Error {
     this.name = 'AdNotInExpectedStateError';
   }
 }
+
+/** Raised when a caller tries to renew an ad they don't own. */
+export class AdNotOwnedError extends Error {
+  constructor(readonly adId: string) {
+    super(`Ad ${adId} is not owned by the requesting user`);
+    this.name = 'AdNotOwnedError';
+  }
+}
+
+/** Raised when the applicable PublicationPlan refuses a renewal request. */
+export class AdRenewalRefusedError extends Error {
+  constructor(readonly adId: string, readonly reason: string) {
+    super(`Renewal of ad ${adId} was refused: ${reason}`);
+    this.name = 'AdRenewalRefusedError';
+  }
+}

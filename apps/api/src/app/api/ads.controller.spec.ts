@@ -1,6 +1,11 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { of } from 'rxjs';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { of, throwError } from 'rxjs';
 
+import {
+  AdNotInExpectedStateError,
+  AdNotOwnedError,
+  AdRenewalRefusedError,
+} from '@bella/api/domain';
 import { AdsController } from './ads.controller';
 
 describe('AdsController.publishAd', () => {
@@ -198,6 +203,76 @@ describe('AdsController.getMostRecentAds', () => {
   });
 });
 
+describe('AdsController.renewAd', () => {
+  function createController(adsServiceOverrides: any = {}) {
+    const adsService: any = {
+      renew: jest
+        .fn()
+        .mockReturnValue(of({ id: 'ad-1', status: 'PUBLISHED', owner: { id: 'user-1' } })),
+      ...adsServiceOverrides,
+    };
+    const usersService: any = {
+      findOneByIdpId: jest.fn().mockReturnValue(of({ id: 'user-1' })),
+    };
+    return { controller: new AdsController(adsService, usersService), adsService, usersService };
+  }
+
+  it('renews on behalf of the resolved caller', (done) => {
+    const { controller, adsService, usersService } = createController();
+
+    controller
+      .renewAd('ad-1', { user: { sub: 'auth0|user-1' } } as any)
+      .subscribe(() => {
+        expect(usersService.findOneByIdpId).toHaveBeenCalledWith('auth0|user-1');
+        expect(adsService.renew).toHaveBeenCalledWith('ad-1', 'user-1');
+        done();
+      });
+  });
+
+  it('maps AdNotOwnedError to a 403', (done) => {
+    const { controller } = createController({
+      renew: jest.fn().mockReturnValue(throwError(() => new AdNotOwnedError('ad-1'))),
+    });
+
+    controller.renewAd('ad-1', { user: { sub: 'auth0|user-1' } } as any).subscribe({
+      error: (err) => {
+        expect(err).toBeInstanceOf(ForbiddenException);
+        done();
+      },
+    });
+  });
+
+  it('maps AdNotInExpectedStateError to a 404', (done) => {
+    const { controller } = createController({
+      renew: jest
+        .fn()
+        .mockReturnValue(throwError(() => new AdNotInExpectedStateError('ad-1', 'EXPIRED'))),
+    });
+
+    controller.renewAd('ad-1', { user: { sub: 'auth0|user-1' } } as any).subscribe({
+      error: (err) => {
+        expect(err).toBeInstanceOf(NotFoundException);
+        done();
+      },
+    });
+  });
+
+  it('maps AdRenewalRefusedError to a 409', (done) => {
+    const { controller } = createController({
+      renew: jest
+        .fn()
+        .mockReturnValue(throwError(() => new AdRenewalRefusedError('ad-1', 'NOT_ELIGIBLE'))),
+    });
+
+    controller.renewAd('ad-1', { user: { sub: 'auth0|user-1' } } as any).subscribe({
+      error: (err) => {
+        expect(err).toBeInstanceOf(ConflictException);
+        done();
+      },
+    });
+  });
+});
+
 describe('AdsController.getMyPublications', () => {
   function createController(adsServiceOverrides: any = {}) {
     const adsService: any = {
@@ -222,6 +297,25 @@ describe('AdsController.getMyPublications', () => {
     ).toThrow(NotFoundException);
     expect(adsService.findAllByOwner).not.toHaveBeenCalled();
     expect(usersService.findOneByIdpId).not.toHaveBeenCalled();
+  });
+
+  it('accepts EXPIRED so owners can see their expired ads', (done) => {
+    const { controller, adsService } = createController();
+
+    controller
+      .getMyPublications(
+        { status: 'expired' },
+        { user: { sub: 'auth0|user-1' } } as any,
+        {}
+      )
+      .subscribe(() => {
+        expect(adsService.findAllByOwner).toHaveBeenCalledWith(
+          { id: 'user-1' },
+          { status: 'EXPIRED' },
+          { limit: 0 }
+        );
+        done();
+      });
   });
 
   it('accepts a lowercase status and queries findAllByOwner with it upper-cased', (done) => {

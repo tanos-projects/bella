@@ -80,6 +80,18 @@ registerLocaleData(localeFr);
             httpMethod: 'GET'
           },
           {
+            uri: `${environment.apiBaseUrl}/publications/my-publications/expired`,
+            httpMethod: 'GET'
+          },
+          {
+            // Matched by uriMatcher rather than uri: the ad id in the path
+            // makes the URL different on every call.
+            uriMatcher: (uri: string) =>
+              uri.startsWith(`${environment.apiBaseUrl}/publications/`) &&
+              uri.endsWith('/renew'),
+            httpMethod: 'POST'
+          },
+          {
             uri: `${environment.apiBaseUrl}/publications`,
             httpMethod: 'PATCH'
           },

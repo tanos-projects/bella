@@ -22,7 +22,10 @@ import { AuthUser } from '../auth/auth-user';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdsService } from '../infrastructure/ads/ads.service';
 import { UsersService } from '../infrastructure/users/users.service';
-import { mapAdTransitionError } from '../utils/ad-transition-error.operator';
+import {
+  mapAdDomainError,
+  mapAdTransitionError,
+} from '../utils/ad-transition-error.operator';
 import { throwIfNullish } from '../utils/throw-if-nullish.operator';
 import { AdSearchQueryDTO } from './ad-search-query.dto';
 import { MostRecentAdsShuffler } from './most-recent-ads-shuffler';
@@ -120,7 +123,7 @@ export class AdsController {
     @Query(adSearchQueryValidationPipe) filter: AdSearchQueryDTO,
   ): Observable<AdDTO[]> {
     const status = params.status.toUpperCase();
-    if (![AdStatus.DRAFT, AdStatus.PUBLISHED, AdStatus.SUBMITTED].includes(status)) {
+    if (![AdStatus.DRAFT, AdStatus.PUBLISHED, AdStatus.SUBMITTED, AdStatus.EXPIRED].includes(status)) {
       throw new NotFoundException();
     }
     // `limit` is a pagination option, not a filter criterion - see getAll().
@@ -191,6 +194,23 @@ export class AdsController {
     return this.publishAuthorizationPolicy
       .publishIfAuthorized(id, req.user)
       .pipe(mapAdTransitionError(), map(AdMapper.modelToDTO));
+  }
+
+  // Renewal is restricted to the ad's owner — see AdsService.renew, which
+  // enforces it as a business rule rather than an authorization check.
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/renew')
+  @ApiBearerAuth()
+  renewAd(
+    @Param('id') id: string,
+    @Request() req: RequestWithUser
+  ): Observable<AdDTO> {
+    return this.getUser(req.user).pipe(
+      switchMap((caller) =>
+        this.adsService.renew(id, caller.id).pipe(mapAdDomainError())
+      ),
+      map(AdMapper.modelToDTO)
+    );
   }
 
   private getUser(user: AuthUser): Observable<UserEntity> {

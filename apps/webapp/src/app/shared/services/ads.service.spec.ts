@@ -289,4 +289,26 @@ describe('AdsService', () => {
       expect(error?.status).toBe(500);
     });
   });
+
+  describe('getMyExpiredPublications', () => {
+    it('fetches the expired status of my-publications', () => {
+      service.getMyExpiredPublications().subscribe();
+
+      const req = httpMock.expectOne(
+        `${environment.apiBaseUrl}/publications/my-publications/expired`
+      );
+      expect(req.request.method).toBe('GET');
+      req.flush([]);
+    });
+  });
+
+  describe('renew', () => {
+    it('posts to the ad-specific renew endpoint', () => {
+      service.renew('ad-1').subscribe();
+
+      const req = httpMock.expectOne(`${environment.apiBaseUrl}/publications/ad-1/renew`);
+      expect(req.request.method).toBe('POST');
+      req.flush({ id: 'ad-1' });
+    });
+  });
 });

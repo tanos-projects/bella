@@ -35,6 +35,7 @@ export const modelToDTO: (model: AdEntity) => AdDTO = (model) => {
     approbationMessage: model.approbationMessage || null,
     moderatedBy: model.moderatedBy || null,
     publishedAt: model.publishedAt || null,
+    expiresAt: model.expiresAt || null,
   };
 };
 
