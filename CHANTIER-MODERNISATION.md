@@ -819,6 +819,206 @@ un défaut de maintenance croisée entre sections, pas une inexactitude
 factuelle sur le spike lui-même. Détail complet :
 `CHANTIER-MODERNISATION-REVIEW-SPIKE-NODE24.md`.
 
+**Qualification des deux sous-points restés ouverts (2026-09-25, session
+tech-lead post-revue senior-dev) — sur décision explicite utilisateur
+("poursuivre vers l'adoption").**
+
+**1. Express 5 — recherche croisée avec le code réel, pas une liste
+générique.** Les breaking changes Express 4→5 documentés (migration guide
+officiel) sont : (a) parseur de query string par défaut `qs`
+(extended)→`querystring` natif Node (simple) ; (b) suppression de
+`req.param(name)` ; (c) `res.status()` n'accepte plus que des entiers
+100-999 ; (d) syntaxe des routes wildcard/optionnelles/regex qui change
+(path-to-regexp v8) ; (e) `req.query` devient un getter non réassignable ;
+(f) forwarding automatique des rejets de promesses async vers les error
+handlers ; (g) signatures `res.json(obj, status)`/`res.send(body,
+status)`/`res.redirect(url, status)` supprimées au profit de
+`res.status(x).json(obj)` etc.
+
+Vérifié en lisant le code réel, pas supposé :
+- `apps/api/src/app/api/ad-search-query.dto.ts` (le DTO de
+  `AdsController.getAll`/`getMyPublications`, construit à partir de
+  `@Query()`) est **100 % scalaire** — `@IsString()`, `@IsNumberString()`,
+  `@Type(() => Number) @IsInt()` sur chaque champ (`category`, `city`,
+  `country`, `keyword`, `quality`, `minPrice`, `maxPrice`, `limit`),
+  aucun tableau, aucun objet imbriqué déclaré.
+- Grep exhaustif de tous les `@Query(...)` de `apps/api/src` (`grep -rn
+  "@Query("` hors specs) : `AdsController.getMostRecentAds`
+  (`category`/`country`/`limit`), `CategoriesController.getAll`
+  (`selectable`), `AdminPublicationController` (`page`/`pageSize` × 3
+  endpoints) — tous des `@Query('x')` scalaires individuels, aucun DTO
+  imbriqué/tableau ailleurs dans l'API.
+- Donc **le risque (a) — le changement de parseur qs vs querystring — ne
+  s'applique à aucune requête bien formée que les deux front-ends
+  envoient réellement** : pour des clés `a=1&a=2` ou des valeurs scalaires
+  simples, `qs` et `querystring` produisent un résultat identique ; ils ne
+  divergent que sur la notation imbriquée par crochets
+  (`?keyword[$ne]=1` → objet imbriqué sous `qs`, clé littérale
+  `'keyword[$ne]'` sous `querystring`), notation qu'aucun DTO de ce repo
+  n'utilise ni n'attend.
+- `grep -rn "\.param(" apps/api/src` (hors specs) : **aucune occurrence** —
+  risque (b) inapplicable.
+- `grep -rn "@Res(\|@Req(" apps/api/src` et recherche de `res.status`/
+  `res.json`/`res.send` : **aucune occurrence** — tous les contrôleurs
+  laissent Nest gérer la sérialisation/le code de statut via ses propres
+  `HttpException` (`NotFoundException`, `ForbiddenException`, ...) ;
+  risques (c) et (g) inapplicables au code applicatif (ils resteraient la
+  responsabilité de la couche de compat `@nestjs/platform-express`
+  elle-même, hors périmètre de ce repo).
+- Routes de tous les contrôleurs (`ads`, `admin/publication`, `categories`,
+  `countries`, `users`, `app`, `health`) grep-ées pour tout caractère
+  `* ( ) ?` dans les chaînes de route : **aucune** — uniquement des
+  segments littéraux et des `:param` simples, jamais de wildcard, de
+  regex ou de segment optionnel. Risque (d) inapplicable.
+- `grep -rn "\.query\s*=\|req\.query\[" apps/api/src` (hors specs) et
+  lecture de tous les guards/interceptors/`cors.config.ts` : **aucune
+  mutation de `req.query`**. Risque (e) inapplicable.
+- Risque (f) : Nest ne s'appuie pas sur le forwarding natif Express pour
+  ses propres handlers (pipeline RxJS/intercepteurs), donc sans objet ici.
+
+**Conclusion : aucun des breaking changes documentés d'Express 4→5 n'a
+d'impact fonctionnel différentiel concret sur la surface d'API actuelle de
+ce repo**, vérifié par lecture exhaustive du code plutôt que supposé. Ce
+n'est pas une raison de n'écrire aucun test : la seule zone où le choix du
+parseur *pourrait* théoriquement compter est une requête malformée/
+adverse essayant de faire passer une forme imbriquée/tableau à travers la
+validation (ex. tentative d'injection NoSQL visant
+`AdsMongoFilterBuilder`, qui étale tel quel dans le filtre Mongo tout ce
+que le pipe de validation laisse passer — voir
+`ads-mongo-filter-builder.ts`). Quatre tests de caractérisation additifs
+ont été ajoutés à `apps/api/src/app/api/ad-search-query.dto.spec.ts`
+(nouveau `describe`, aucune assertion existante modifiée), sur l'instance
+réelle `adSearchQueryValidationPipe` utilisée en production :
+1. rejet d'une valeur imbriquée façon `qs` (`{ keyword: { $ne: '1' } }`,
+   ce que produirait `?keyword[$ne]=1` sous Express 4) ;
+2. rejet d'une valeur imbriquée façon `qs` sur `minPrice`/`maxPrice` ;
+3. rejet d'une clé littérale à crochets façon `querystring`
+   (`{ 'keyword[$ne]': '1' }`, ce que produirait le même `?keyword[$ne]=1`
+   sous Express 5) ;
+4. rejet d'une valeur tableau sur un champ scalaire (`category: ['cars',
+   'bikes']`, forme identique sous les deux parseurs, donc pas une
+   divergence 4→5 en soi, mais une forme que ni le DTO ni
+   `AdsMongoFilterBuilder` ne sont censés accepter).
+
+Résultat empirique, dans l'ordre exécuté :
+- **Baseline (Node 22.23.2, `@nestjs/common@11.2.6`, `express@4.22.3`
+  racine)** : `nx test api --testPathPatterns=ad-search-query.dto.spec.ts`
+  → 12/12 verts (8 tests existants + 4 nouveaux). `nx test api
+  --skip-nx-cache` complet → 21 suites / **134** tests verts (130 + 4).
+- **Overlay Node 24.21.0 + bump réel `@nestjs/{axios,common,config,core,
+  mongoose,passport,platform-express,swagger,terminus,schematics,
+  testing}` vers leurs versions `~12.x`** (mêmes versions que la reprise
+  du spike précédent, `yarn install --ignore-engines` via `corepack`) :
+  `express` confirmé installé en `5.2.1` sous
+  `node_modules/@nestjs/platform-express/node_modules/express` (racine
+  Yarn 1 gardée à `4.22.3` pour `swagger-ui-express`, comme déjà noté).
+  `NODE_OPTIONS=--experimental-vm-modules nx test api --skip-nx-cache` →
+  **21 suites / 134 tests verts, y compris les 4 nouveaux** — aucune
+  divergence. Restauration ensuite scrupuleuse (`git checkout --
+  package.json yarn.lock`, `yarn install` sous Node 22 par défaut,
+  `@nestjs/common` reconfirmé `11.2.6`, `express` racine reconfirmé
+  `4.22.3`).
+- **Limite assumée de cette qualification** : ces tests exercent
+  `adSearchQueryValidationPipe.transform()` directement sur un objet JS
+  déjà construit — comme tout le reste de la suite `apps/api` (aucun
+  `supertest`/serveur HTTP réel dans ce repo, seulement des tests
+  unitaires/de module Nest). Ils prouvent que la couche de validation
+  applicative se comporte à l'identique après le bump de dépendances
+  (donc que rien dans la chaîne `class-validator`/`class-transformer`/
+  NestJS 12 n'a changé ce comportement), mais ils n'exercent **pas** le
+  parseur Express réel lui-même au runtime HTTP (aucun `.env`/MongoDB
+  disponible dans ce spike pour monter un serveur réel, comme déjà noté
+  au point 7 de la reprise du spike ci-dessus). Étant donné que (i) la
+  validation applicative est la seule ligne de défense pertinente ici
+  (elle rejette les deux formes possibles quel que soit le parseur qui les
+  a produites) et (ii) aucun DTO/paramètre de cette API n'utilise de forme
+  imbriquée/tableau légitime, ce niveau de test est jugé suffisant pour
+  qualifier ce risque précis sans monter un serveur HTTP réel — mais ce
+  n'est pas un test end-to-end du parseur Express lui-même, à noter pour
+  qui reprendrait ce palier avec un environnement `.env`/MongoDB
+  disponible.
+
+**Décision : le risque Express 5 documenté au point 7 de la reprise du
+spike est levé pour la surface d'API actuelle** — aucun comportement
+fonctionnel ne diverge, confirmé à la fois par lecture exhaustive du code
+et par exécution empirique des tests de caractérisation sous les deux
+stacks. Cela ne présume pas d'un futur DTO qui introduirait un champ
+tableau/imbriqué : si un tel DTO apparaît, ce point devra être requalifié.
+
+**2. Caveat `NODE_OPTIONS`/`run-many` — résolu par un mécanisme Nx natif,
+pas par `options.env` (qui n'existe pas sur cet executor).** Le candidat
+envisagé par le point 6 de la reprise du spike (`options.env` dans
+`apps/api/project.json`) a été vérifié et **n'existe pas** : le schéma de
+l'executor `@nx/jest:jest` (`node_modules/@nx/jest/src/executors/jest/
+schema.json`, `@nx/jest@22.7.12` — version confirmée dans `package.json`)
+ne déclare aucune propriété `env`/`options.env`, uniquement des options
+correspondant à des flags CLI Jest.
+
+En creusant le tasks-runner de `nx@22.7.12` lui-même
+(`node_modules/nx/dist/src/tasks-runner/task-env.js` et
+`task-env-paths.js`), Nx supporte nativement un mécanisme différent mais
+équivalent en pratique : des fichiers **dotenv scopés par projet ET par
+target**, au nom `<project-root>/.env.<target>` (et ses variantes
+`.env.<target>.local`, `.<target>.env`, `.<target>.local.env`), chargés
+automatiquement dans l'environnement du process forké pour **cette seule
+tâche** (`getEnvPathsForTask`/`loadDotEnvFilesForTask`, appelé par
+`task-orchestrator.js` avant de forker le process de chaque tâche). Ce
+chargement est actif par défaut pour `run-many`/`run-one`/`affected`
+(`NX_LOAD_DOT_ENV_FILES !== 'false'`), donc sans configuration
+supplémentaire ni flag à ajouter à la commande quotidienne.
+
+Implémenté : `apps/api/.env.test` (commenté, contenu unique :
+`NODE_OPTIONS=--experimental-vm-modules`), avec une exception dédiée dans
+`.gitignore` (`!/apps/api/.env.test`, à côté de l'exception `.env.dist`
+déjà existante — ce fichier ne contient aucun secret, uniquement un flag
+d'outillage de test).
+
+Vérifié empiriquement, dans les deux sens :
+- **Sous l'overlay Node 24/NestJS 12/Express 5**, `NODE_OPTIONS` **non
+  positionné dans le shell** (`unset NODE_OPTIONS` confirmé avant
+  exécution) : `nx run-many --target=test --all --skip-nx-cache` →
+  **les 6 projets verts en une seule commande** — `api-domain` 6/41,
+  `admin` 7/26 (1 skip), `api-adapters` 5/28, `webapp` 39/89, `api`
+  21/**134** (le process `api:test` affiche bien les warnings
+  `ExperimentalWarning: VM Modules...`, preuve que le flag a été injecté
+  pour cette seule tâche), `dtos` sans test. C'est le résultat central :
+  le caveat documenté au point 6 de la reprise du spike (`webapp`/`admin`
+  cassés par un `NODE_OPTIONS` global) est résolu — plus besoin de lancer
+  `api` séparément du reste.
+- **Sous la stack actuelle (Node 22.23.2, NestJS 11.x)**, avec
+  `apps/api/.env.test` toujours présent et `NODE_OPTIONS` toujours non
+  positionné dans le shell : `nx run-many --target=test --all
+  --skip-nx-cache` → les 6 projets verts, mêmes comptes qu'en baseline
+  (`api` 21/134 y compris les 4 nouveaux tests Express 5, `webapp` 39/89,
+  `admin` 7/26, `api-domain` 6/41, `api-adapters` 5/28) — **neutre**, le
+  flag ne casse rien sous NestJS 11 (`ts-jest` en CommonJS l'ignore
+  silencieusement ; sous Node 22 il ne produit même pas le warning
+  `ExperimentalWarning` observé sous Node 24, sans doute une différence de
+  maturité du flag entre versions Node, sans incidence sur le résultat).
+- Conforme au point 4 du mandat de cette tâche : `apps/api/project.json`
+  **n'a pas été modifié** (le mécanisme retenu ne passe pas par lui) ;
+  seul l'ajout du fichier `apps/api/.env.test` + son exception
+  `.gitignore` a un effet, et il est vérifié inoffensif sous la stack
+  actuelle — donc committable indépendamment du bump NestJS 12, comme
+  autorisé par le mandat.
+
+**Décision : le caveat `NODE_OPTIONS`/`run-many` est résolu**, par un
+mécanisme Nx documenté et natif plutôt que par un outillage ad hoc
+(`cross-env`, wrapper de script npm) qui aurait changé la façon dont
+l'équipe lance ses tests au quotidien — `nx test api` et `nx run-many
+--target=test --all` continuent de s'invoquer exactement comme avant,
+sans flag ni variable à positionner manuellement.
+
+**Ce qui reste hors mandat de cette session, à remonter à l'utilisateur**
+(inchangé par rapport à la reprise du spike) : la décision d'adopter Node
+≥24.9 comme runtime par défaut du poste de dev / CI / déploiement
+PM2-EC2 (`ecosystem.config.js`, `package.json` `engines`,
+`~/.nvm/alias/default`) pour pouvoir effectivement bumper NestJS 11→12 en
+production. Les deux sous-points qui empêchaient de considérer ce palier
+"acquis en confiance" sont maintenant qualifiés et ne bloquent plus cette
+décision produit/infra — mais la décision elle-même reste entièrement
+ouverte.
+
 ### Phase 1 — Filet de sécurité : tests de caractérisation sur les domaines non couverts
 
 - **Objectif** : combler les trous de §1.5 **avant** de toucher au code
@@ -3199,34 +3399,42 @@ chantier :
    comme un retrait — l'action a changé de nature (implémentation, pas
    suppression) — retiré de la liste des sous-points en attente de
    retrait ISP.
-5. **NestJS 12 (Phase 0bis) — reformulée (2026-09-25) après la reprise du
-   spike et sa revue `senior-dev`.** L'ancienne formulation de cette
-   question ("le coût d'investiguer/implémenter Babel-ESM justifie-t-il…")
-   est obsolète : la reprise du spike (§4, "Reprise du spike (2026-09-25)")
-   montre que ni Babel-ESM ni le mode ESM natif `ts-jest` ne sont
-   nécessaires — la voie qui fonctionne est un changement de runtime Node
-   (≥24.9), confirmé **empiriquement, à deux reprises indépendantes**
-   (tech-lead puis `senior-dev`, qui a reproduit tout le spike lui-même
-   plutôt que de faire confiance au rapport — voir
-   `CHANTIER-MODERNISATION-REVIEW-SPIKE-NODE24.md`, verdict **VALIDÉ, avec
-   une réserve non bloquante** limitée à cette maintenance croisée §4/§7).
-   Le verrou technique Jest/ESM est donc levé et n'est plus la question à
-   trancher. La question qui reste réellement ouverte, posée en toutes
-   lettres au point 9 de la section Phase 0bis (§4) et hors mandat
-   tech-lead/senior-dev : **adopter Node ≥24.9 comme runtime par défaut du
-   poste de dev / CI / déploiement PM2-EC2** (`ecosystem.config.js`), pour
-   pouvoir ensuite bumper NestJS 11→12 — sachant que deux sous-points
-   restent non qualifiés avant d'adopter ce palier en confiance : (a)
-   `@nestjs/platform-express@12.1.0` épingle Express en version majeure
-   `5.2.1`, jamais testée au runtime réel (pas de tests de caractérisation
-   écrits sur `AdsController`/`AdsRepositoryNest` pour ce risque) ; (b) un
-   caveat d'invocation Nx non résolu — `NODE_OPTIONS=--experimental-vm-modules`
-   positionné globalement pour `nx run-many --target=test --all` casse
-   `webapp:test`/`admin:test` (reproduit indépendamment par `senior-dev` :
-   39/39 suites `webapp` en échec), donc aucune commande unique ne fait
-   passer les 6 projets ensemble aujourd'hui — un scope de ce flag au seul
-   target `test` d'`api` (candidat non exploré : `options.env` dans
-   `apps/api/project.json`) reste à vérifier avant intégration CI.
+5. **NestJS 12 (Phase 0bis) — reformulée une seconde fois (2026-09-25),
+   après qualification des deux derniers sous-points bloquants.** L'état
+   antérieur de cette question (voir §4, revue `senior-dev` du spike Node
+   24, verdict **VALIDÉ avec une réserve non bloquante**) laissait deux
+   sous-points non qualifiés avant de considérer le palier NestJS 11→12
+   "acquis en confiance" : (a) Express 5 (épinglé par
+   `@nestjs/platform-express@12.1.0`) jamais testé au runtime réel ; (b) le
+   caveat `NODE_OPTIONS`/`run-many` cassant `webapp:test`/`admin:test`.
+   **Les deux sont désormais qualifiés** (§4, section "Qualification des
+   deux sous-points restés ouverts (2026-09-25)") :
+   - (a) résolu par lecture exhaustive du code + 4 tests de
+     caractérisation additifs (`ad-search-query.dto.spec.ts`), passés à la
+     fois sous la stack actuelle (Express 4.22.3, baseline) et sous
+     l'overlay réel NestJS 12/Express 5.2.1 (Node 24.21.0) : aucun des
+     breaking changes Express 4→5 documentés n'a d'impact fonctionnel
+     différentiel sur la surface d'API actuelle (tous les DTOs/paramètres
+     `@Query()` de ce repo sont scalaires — aucune forme imbriquée/tableau
+     nulle part) ;
+   - (b) résolu par un mécanisme Nx natif — un fichier dotenv scopé
+     projet+target, `apps/api/.env.test`, chargé automatiquement par Nx
+     pour la seule tâche `api:test` (pas `options.env` dans
+     `apps/api/project.json`, qui n'existe pas sur l'executor
+     `@nx/jest:jest`) — vérifié empiriquement : `nx run-many --target=test
+     --all` fait passer les 6 projets **en une seule commande**, sans
+     `NODE_OPTIONS` positionné dans le shell, aussi bien sous l'overlay
+     NestJS 12/Express 5/Node 24 que (neutre) sous la stack actuelle.
+
+   La question qui reste réellement ouverte, posée en toutes lettres au
+   point 9 de la section Phase 0bis (§4) et **hors mandat
+   tech-lead/senior-dev** (question produit/infra, pas une question
+   technique) : **adopter Node ≥24.9 comme runtime par défaut du poste de
+   dev / CI / déploiement PM2-EC2** (`ecosystem.config.js`,
+   `package.json` `engines`, `~/.nvm/alias/default`), pour pouvoir
+   effectivement bumper NestJS 11→12 en production. Aucun sous-point
+   technique ne bloque plus cette décision — elle reste entièrement à
+   arbitrer par l'utilisateur.
 6. **`@ngrx/store` classique vs. `@ngrx/signals` (Phase 4)** : à trancher
    par un spike avant de s'engager sur l'un ou l'autre — ce document ne
    prend pas position, faute d'avoir testé les deux sur ce cas précis.
