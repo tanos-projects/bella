@@ -4,7 +4,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Route, RouterModule } from '@angular/router';
 
-import { PublicationsListModule } from './components/list/publications-list.module';
+import { PublicationsListComponent } from './components/list/publications-list.component';
 import { PublicationsComponent } from './publications.component';
 
 const routes: Route[] = [
@@ -20,7 +20,7 @@ const routes: Route[] = [
     RouterModule.forChild(routes),
     MatTabsModule,
     MatSnackBarModule,
-    PublicationsListModule,
+    PublicationsListComponent,
   ],
   exports: [],
   declarations: [PublicationsComponent],

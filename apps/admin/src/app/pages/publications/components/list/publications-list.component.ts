@@ -1,6 +1,10 @@
+import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
-import { PageEvent } from '@angular/material/paginator';
+import { MatIconModule } from '@angular/material/icon';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatTableModule } from '@angular/material/table';
 import { AdDTO } from '@bella/dtos';
 import { of } from 'rxjs';
 
@@ -66,7 +70,8 @@ export class ApprobationEvent {
       }
     `,
   ],
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule, MatPaginatorModule],
 })
 export class PublicationsListComponent {
   public dialog = inject(MatDialog);
