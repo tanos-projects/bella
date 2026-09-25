@@ -2126,6 +2126,17 @@ s'est révélé public contrairement à l'hypothèse initiale :
    uniquement mis en lumière par la vérification route par route de ce
    lot. Pas tranché unilatéralement : décision d'architecture hors mandat
    d'une conversion mécanique, remontée en §7.14.
+
+   **CORRECTION (2026-09-25)** : ce diagnostic « préexistant, ni introduit
+   ni corrigé ici » est **faux** — voir la correction factuelle complète
+   en §7.14. `UploadModule` était importé directement par
+   `PostAnAdModule` (même module que `PostAnAdComponent`) avant la Phase
+   5 ; c'est le commit `ea0ee06` (`PostAnAdComponent standalone: true`,
+   deux commits avant celui-ci) qui a fait disparaître cet import en ne
+   vérifiant que les déclarables utilisés par le template, pas les
+   providers consommés par la classe. Régression Phase 5 confirmée,
+   corrigée (`UploadService` → `providedIn: 'root'`), vérifiée par build
+   et par test de caractérisation. §7.14 n'est plus une question ouverte.
 3. `FormComponent` — Auth0-gated (seul consommateur :
    `AdFormComponent`, reachable uniquement via `/post-an-ad`).
    **Découverte propre à ce composant** : `FormlyModule.forChild({...})`
@@ -2429,11 +2440,24 @@ composants recensés convertis en `standalone: true`), vérification
 humaine au navigateur en attente** pour les composants restés gelés
 (14 côté webapp, 4 côté admin) — bloquée par l'absence d'un compte de
 test Auth0 fonctionnel dans ce sandbox (§7 point 10). Aucune autre
-sous-vague à démarrer sur cette phase. Trois questions produit restent
-ouvertes et correctement non tranchées par les agents : §7.10 (compte
-de test Auth0), §7.14 (où doit vivre `UploadService` — bug confirmé
-empiriquement, `NG0201` levé en production), §7.15 (sort de
-`SidenavComponent`, code mort antérieur à ce chantier).
+sous-vague à démarrer sur cette phase. Deux questions restent ouvertes
+et correctement non tranchées par les agents : §7.10 (compte de test
+Auth0), §7.15 (sort de `SidenavComponent`, code mort antérieur à ce
+chantier).
+
+**§7.14 (`UploadService`) n'est plus une question ouverte (2026-09-25,
+session tech-lead)** : la classification précédente — « préexistant,
+décision produit à trancher » — était une erreur de diagnostic. Preuve :
+`post-an-ad.module.ts` importait `UploadModule` directement (même
+module que `PostAnAdComponent`) avant la Phase 5 (`git show
+8f954a9:...`) ; le commit `ea0ee06` (premier commit Phase 5 à toucher ce
+composant) a fait disparaître cet import en ne vérifiant que les
+déclarables utilisés par le template, pas les providers consommés par
+la classe — c'est une régression Phase 5, pas un bug préexistant.
+Corrigée : `UploadService` est maintenant `@Injectable({ providedIn:
+'root' })`, vérifiée sans effet sur ses autres usages (il n'y en a pas
+d'autre dans l'app) et sans conflit avec `commonTestProviders`. Détail
+complet, preuves et vérifications en §7.14.
 
 ### Phase 6 (optionnelle, à valider) — Trancher `APPROVED` dans `AdStatus`
 
@@ -2840,6 +2864,109 @@ chantier :
     entièrement ouverte et n'est pas tranchée par ce test — seul le
     diagnostic est maintenant empirique plutôt que déduit par lecture de
     code.
+
+    **CORRECTION FACTUELLE (2026-09-25, session tech-lead), STATUT : RÉSOLU
+    — plus une question ouverte.** L'analyse ci-dessus (et celle,
+    indépendante, de `CHANTIER-MODERNISATION-REVIEW-PHASE5-LOT4-CLOTURE-WEBAPP.md`
+    §4, qui aboutit à la même conclusion) est **fausse sur l'origine du
+    bug**, bien que le symptôme (`NG0201` empirique) soit correct. Erreur
+    de méthode identifiée : la vérification s'est appuyée sur `git log -p
+    --follow` sur `post-an-ad.component.ts` (qui prouve seulement
+    l'ancienneté de l'**appel** `inject(UploadService)`) et sur la
+    topologie *après* le début de la Phase 5, jamais sur l'état réel de
+    `post-an-ad.module.ts` **avant** toute conversion `standalone`. Ces
+    deux points ne prouvent rien sur la disponibilité du **provider**, qui
+    est une question de topologie de modules, pas d'ancienneté du
+    call-site.
+
+    Preuve directe, en lisant `post-an-ad.module.ts` tel qu'il existait au
+    dernier commit avant le début de la Phase 5 (`8f954a9`, juste avant le
+    pilote `1fa187c`) :
+
+    ```
+    $ git show 8f954a9:apps/webapp/src/app/pages/post-an-ad/post-an-ad.module.ts
+    @NgModule({
+      declarations: [PostAnAdComponent],
+      imports: [
+        CommonModule, PostAnAdRoutingModule, TitledPageModule, NgSelectModule,
+        ReactiveFormsModule, UploadModule, AdFormModule
+      ]
+    })
+    export class PostAnAdModule {}
+    ```
+
+    `UploadModule` (qui portait `providers: [UploadService]`) était importé
+    **directement par `PostAnAdModule` lui-même** — le même `@NgModule` qui
+    déclarait `PostAnAdComponent`. C'est le cas le plus simple qui soit en
+    DI Angular classique : les `providers` d'un module importé sont hissés
+    à l'injecteur de tout module qui l'importe, sans aucune notion
+    d'« ancêtre »/« descendant » dans l'arbre de composants — cette notion
+    ne s'applique qu'aux `providers`/`imports` d'un composant *standalone*,
+    pas à l'import d'un `@NgModule` classique par un autre `@NgModule`
+    classique. `UploadService` était donc bel et bien résolvable par
+    `PostAnAdComponent` avant la Phase 5, par le mécanisme le plus direct
+    possible (import du même module). Le raisonnement « ancêtre vs.
+    descendant dans l'arbre de composants » tenu ci-dessus et dans la revue
+    senior est un raisonnement de portée d'injecteur *standalone*, appliqué
+    à tort à une situation qui, avant la Phase 5, était encore un `@NgModule`
+    classique.
+
+    **La régression a été introduite par le commit `ea0ee06`**
+    (`refactor(webapp): PostAnAdComponent standalone: true`, premier commit
+    de la Phase 5 à toucher ce composant), dont le message dit lui-même :
+    « dropped three imports the template never used (NgSelectModule,
+    ReactiveFormsModule, UploadModule), confirmed dead for this component
+    by grepping post-an-ad.component.html ». Ce grep ne regardait que les
+    déclarables utilisés dans le **template** — il ne pouvait pas voir que
+    `UploadModule` était importé pour son **provider** (`UploadService`,
+    utilisé par la **classe** du composant via `inject(UploadService)`, pas
+    par son template), et non pour un composant/directive/pipe qu'il
+    exporterait. `post-an-ad.module.ts` a perdu l'import d'`UploadModule` à
+    ce commit, sans que rien ne le remplace ni dans le nouveau
+    `PostAnAdComponent standalone`, ni ailleurs. Le commit `55f4d5b`
+    (`UploadComponent standalone: true`), pointé par la revue précédente
+    comme le commit « documentant » ce gap, n'a fait que supprimer
+    `upload.module.ts`, déjà mort à ce moment-là pour cette portée précise
+    — la régression réelle avait déjà eu lieu deux commits plus tôt, à
+    `ea0ee06`.
+
+    **Fix appliqué et vérifié empiriquement** : `UploadService`
+    (`apps/webapp/src/app/shared/components/upload/upload.service.ts`) est
+    désormais `@Injectable({ providedIn: 'root' })` — il ne dépend plus
+    d'aucun graphe d'imports de module, ce qui est de toute façon
+    l'idiome standard pour un service applicatif dans une architecture à
+    base de composants standalone (cohérent avec `DrawerService`/
+    `WelcomeService`/etc., déjà migrés au même pattern ailleurs dans cette
+    phase — voir « Correction de citation — commits `ab693f6`/`1d0defe` »
+    ci-dessus). Vérifié :
+    - `commonTestProviders` (`testing-support.ts`) fournit toujours
+      `UploadService` explicitement — un provider explicite gagne sur
+      `providedIn: 'root'`, donc aucun conflit ; confirmé empiriquement
+      (`nx test webapp` vert, aucune régression sur les 89 tests).
+    - Seul `PostAnAdComponent` injecte `UploadService` dans toute
+      l'application (`grep -rln UploadService apps/webapp/src` re-vérifié
+      après le fix) — `UploadComponent` et
+      `PictureUploaderFormFieldComponent` ne l'injectent jamais, donc le
+      passage à `providedIn: 'root'` n'a aucun effet sur eux.
+    - Le test de caractérisation de `post-an-ad.component.spec.ts` a été
+      réécrit (commit isolé, documenté comme correction d'un test ajouté
+      *dans cette même session* — pas un test historique du repo, donc pas
+      soumis à `qa-reviewer`) : il instancie désormais
+      `PostAnAdComponent` avec `commonTestProviders` **privé
+      explicitement** d'`UploadService`, et prouve que l'instanciation
+      réussit quand même (`providedIn: 'root'` suffit) — confirmant
+      empiriquement, dans le même harnais qui reproduisait `NG0201`
+      auparavant, que le bug est corrigé.
+    - `nx build webapp` (production) relancé, vert.
+
+    Reste correctement non tranché (pas une question produit ni
+    d'architecture nouvelle, juste une limite d'environnement déjà connue
+    — §7 point 10) : vérification humaine au navigateur avec un compte
+    Auth0 réel, toujours bloquée dans ce sandbox. Le diagnostic et le fix
+    ci-dessus sont vérifiés par test de caractérisation reproduisant la
+    topologie d'injecteur réelle de production, pas par navigation
+    manuelle.
+
 15. **Ajoutée 2026-09-25, découverte pendant le chiffrage de la sous-vague
     `admin` (Phase 5)** : `SidenavComponent`
     (`apps/admin/src/app/shared/components/sidenav/sidenav.component.ts`)
