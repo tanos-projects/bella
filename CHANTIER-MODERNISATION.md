@@ -112,11 +112,13 @@ doc) :
   existence est requise), pas un oubli. Le commentaire au-dessus de
   `transitionTo` explique explicitement l'historique du bug et pourquoi le
   fix actuel s'en protège.
-- Seul le TODO `publish()` **« Should be APPROVED before PUBLISHED »**
-  reste d'actualité : `AdStatus.APPROVED` est toujours déclaré mais jamais
-  assigné, `publish()` saute directement `SUBMITTED → PUBLISHED`. C'est un
-  choix de modélisation métier à trancher (voir §6, hypothèse ouverte), pas
-  un bug de state machine.
+- Le TODO `publish()` **« Should be APPROVED before PUBLISHED »** a été
+  résolu (2026-09-25, décision utilisateur actée en §7.2/Phase 6) :
+  `AdStatus.APPROVED` n'était jamais assigné et aucun besoin produit ne
+  justifiait de l'implémenter, donc la valeur a été retirée de l'enum
+  plutôt qu'implémentée ; le TODO devenu sans objet a été retiré avec elle.
+  `publish()` continue de transiter directement `SUBMITTED → PUBLISHED`,
+  désormais sans commentaire suggérant une étape intermédiaire à venir.
 - `ads.service.spec.ts` (327 lignes) couvre déjà : `create`/`createDraft`,
   `findAllPublished` (dépôt du pseudo-filtre `top`), `findAllUnpublished`,
   `countUnpublished`/`countPublished`, **les 4 gardes de transition** (un
@@ -464,7 +466,9 @@ avant qu'une phase front puisse s'appuyer dessus, par exemple).
 
 - **Objectif** : `CLAUDE.md` reflète l'état réel du code (Angular 22, Nx 22,
   NestJS 11, section "Ad lifecycle" mise à jour pour refléter que la garde
-  de transition est en place, seul le TODO APPROVED reste ouvert).
+  de transition est en place). *Mise à jour 2026-09-25 : le TODO APPROVED,
+  seul point encore ouvert à l'époque de cette phase, est résolu depuis —
+  voir Phase 6 et §7.2.*
 - **Fichiers touchés** : `CLAUDE.md` uniquement.
 - **Principe appliqué** : aucun (documentation), mais condition
   préalable à la confiance dans tout le reste du chantier — un cadrage basé
@@ -2586,32 +2590,57 @@ audit, déjà actée dans ce document) ; test vert sur les 6 projets
 89/89, `admin` 25/26+1 skip préexistant). Aucun commit de correction
 supplémentaire nécessaire au-delà du fix `UploadService` déjà en place.
 
-### Phase 6 (optionnelle, à valider) — Trancher `APPROVED` dans `AdStatus`
+### Phase 6 — Trancher `APPROVED` dans `AdStatus` — RÉSOLUE, sans objet (2026-09-25)
 
-- **Objectif** : décider si `publish()` doit réellement transiter par
-  `APPROVED` avant `PUBLISHED` (le TODO existant), ou si `APPROVED` doit
-  être retiré de l'enum s'il n'a jamais été et ne sera jamais utilisé.
-- **C'est une décision produit, pas seulement technique** — voir §7,
-  question ouverte. Ne pas l'entreprendre sans réponse explicite de
-  l'utilisateur, car ça change un contrat d'API (valeurs possibles de
-  `status` dans `AdDTO`) consommé par les deux front-ends.
-- **Charge estimée** : ne peut être chiffrée avant la décision produit —
-  si "oui, l'implémenter" : M-L (nouvelle transition d'état + impact
-  `libs/dtos` + les deux front-ends, voir §6) ; si "non, retirer la
-  valeur" : S (changement d'enum + vérification qu'aucun code mort n'y
-  fait référence).
-- **Risque** : élevé si "oui" — seule phase de ce plan qui toucherait
-  `libs/dtos`, donc l'API et les deux front-ends simultanément (voir §6).
-  Nul si "non" tant que la valeur n'est jamais émise.
-- **Critère d'acceptation** : réponse actée par écrit à la question
-  ouverte §7.2 avant tout commit ; si "oui", tests de caractérisation sur
-  la nouvelle transition `SUBMITTED → APPROVED → PUBLISHED` avant
-  modification, et vérification explicite des deux front-ends (pas
-  seulement l'API) puisque `AdDTO.status` est un contrat partagé.
-- **Rollback** : si "oui", traiter comme un changement cross-app à part
-  entière — rollback coordonné API + les deux fronts, jamais un revert
-  isolé côté API seul si le nouveau statut a déjà pu être émis en
-  production.
+- **Décision utilisateur (§7.2)** : retirer `APPROVED` de l'enum plutôt
+  que l'implémenter. Aucun besoin métier connu ne justifie une étape
+  d'approbation séparée aujourd'hui ; `APPROVED` était déclaré depuis
+  l'origine du projet sans jamais avoir été assigné.
+- **Exécution** (session tech-lead, grep exhaustif d'abord) :
+  - `libs/api/domain/src/lib/ads/ad.entity.ts` : `APPROVED = 'APPROVED'`
+    retiré de l'enum `AdStatus`.
+  - `libs/api/domain/src/lib/ads/ads.service.ts` : TODO
+    `// Should be APPROVED before PUBLISHED` retiré (devenu sans objet).
+  - `libs/dtos` : vérifié — `AdDTO.status` est typé `string` brut, pas de
+    redéclaration/réexport d'`AdStatus` ni de type équivalent à ajuster.
+  - Front-ends (`apps/webapp`, `apps/admin`), i18n (`src/assets/i18n/`) :
+    grep exhaustif, aucune référence à la valeur `'APPROVED'` d'`AdStatus`.
+    Seule occurrence textuelle adjacente trouvée :
+    `ApprobationEventType.APPROVED` dans
+    `apps/admin/.../publications-list.component.ts` — un enum **local et
+    distinct**, purement UI (le type de décision de modération dans la
+    boîte de dialogue), jamais sérialisé vers/depuis `AdDTO.status` ;
+    **non touché**, hors périmètre de cette décision.
+  - `apps/api/.../schemas/ad.schema.ts` dérive dynamiquement son
+    `enum: Object.keys(AdStatus)` Mongoose — aucune modification requise
+    là, la valeur disparaît automatiquement des statuts acceptés en base.
+  - Aucun test existant ne référençait `AdStatus.APPROVED` (grep confirmé
+    sur `ads.service.spec.ts` et tous les autres specs) : aucune
+    modification de test nécessaire, donc aucune soumission `qa-reviewer`
+    requise pour ce changement.
+- **Impact `libs/dtos`** : nul — le risque "élevé" anticipé ci-dessous ne
+  s'est pas matérialisé, `AdDTO.status` n'ayant jamais dépendu de l'enum
+  `AdStatus` par un type partagé.
+- **Vérification** : `npx nx run-many --target={build,lint,test} --all`
+  vert sur les 6 projets après le retrait — en particulier `nx build`
+  (TypeScript) n'a signalé aucune référence orpheline à
+  `AdStatus.APPROVED`, ce qui aurait été le signal le plus fiable d'un
+  oubli.
+- **Section conservée ci-dessous telle qu'écrite au moment du chiffrage**,
+  pour l'historique de la décision et de son scope initialement estimé :
+
+  > **Objectif initial** : décider si `publish()` doit réellement
+  > transiter par `APPROVED` avant `PUBLISHED` (le TODO existant), ou si
+  > `APPROVED` doit être retiré de l'enum s'il n'a jamais été et ne sera
+  > jamais utilisé. C'est une décision produit, pas seulement technique —
+  > voir §7.2. Charge estimée : ne peut être chiffrée avant la décision
+  > produit — si "oui, l'implémenter" : M-L (nouvelle transition d'état +
+  > impact `libs/dtos` + les deux front-ends, voir §6) ; si "non, retirer
+  > la valeur" : S (changement d'enum + vérification qu'aucun code mort
+  > n'y fait référence). Risque : élevé si "oui" (seule phase de ce plan
+  > qui aurait touché `libs/dtos`, donc l'API et les deux front-ends
+  > simultanément) ; nul si "non" tant que la valeur n'est jamais émise —
+  > confirmé nul à l'exécution.
 
 ## 5. Stratégie de tests / non-régression
 
@@ -2750,12 +2779,12 @@ chantier :
 
 - **`libs/dtos` est le point de plus haut risque de propagation** — tel que
   documenté par `CLAUDE.md` et confirmé ici : tout changement de forme
-  (ex. Phase 2.4 si elle finit par exposer un nouveau DTO de requête, ou
-  Phase 6 si `APPROVED` devient une valeur de `status` réellement émise)
+  (ex. Phase 2.4 si elle finit par exposer un nouveau DTO de requête)
   impacte l'API **et** les deux front-ends simultanément. Aucune phase de
-  ce plan ne touche `libs/dtos` de façon actuellement identifiée, mais la
-  Phase 6 (si elle est lancée) devra être traitée comme un changement
-  cross-app à part entière, jamais comme un simple ajustement API.
+  ce plan ne touche `libs/dtos` de façon actuellement identifiée. *Phase 6
+  a été résolue (2026-09-25) en retirant `APPROVED` de l'enum plutôt qu'en
+  l'implémentant, donc sans jamais toucher `libs/dtos` — le risque évoqué
+  ici pour cette phase ne s'est pas matérialisé.*
 - **Phase 2 avant Phase 5** : retoucher `AdsController`/`AdsRepositoryNest`
   puis, ensuite seulement, convertir les composants en standalone limite le
   risque de devoir refaire deux fois le même travail de vérification sur
@@ -2791,10 +2820,22 @@ chantier :
    bonne cible ?** Ce document part de la seconde lecture (§2) — à
    confirmer, car ça change complètement la nature de ce qu'il y avait à
    produire.
-2. **`AdStatus.APPROVED` (Phase 6)** : faut-il l'implémenter réellement (un
-   modérateur "approuve" avant qu'un système ou un second modérateur
-   "publie"), ou retirer cette valeur de l'enum si elle ne correspond à
-   aucun besoin produit actuel ou prévu ? Décision produit, pas technique.
+2. **`AdStatus.APPROVED` (Phase 6) — RÉPONDUE (2026-09-25).** Question :
+   fallait-il l'implémenter réellement (un modérateur "approuve" avant
+   qu'un système ou un second modérateur "publie"), ou retirer cette
+   valeur de l'enum si elle ne correspond à aucun besoin produit actuel ou
+   prévu ? **Décision de l'utilisateur : retirer `APPROVED` de l'enum**
+   (recommandation du Tech Lead suivie — la valeur n'était jamais assignée
+   et aucun besoin métier connu ne justifie une étape d'approbation
+   séparée aujourd'hui). Exécuté : `APPROVED` retiré de `AdStatus`
+   (`ad.entity.ts`), TODO obsolète retiré de `publish()`
+   (`ads.service.ts`). Grep exhaustif (`libs/`, `apps/api`, `apps/webapp`,
+   `apps/admin`, i18n) confirme qu'aucun autre endroit n'y faisait
+   référence ; `libs/dtos` n'était pas concerné (`AdDTO.status: string`
+   brut, pas de type `AdStatus` partagé) — donc **Phase 6 est désormais
+   sans objet** (voir §4, section Phase 6, pour le détail d'exécution).
+   Aucun test existant modifié, donc aucune revue `qa-reviewer` en attente
+   pour ce point.
 3. **`CitiesModule` sans `CitiesController` (§1.3 point 8) — RÉPONDUE
    (2026-09-25, session tech-lead), vérifiée avant toute conclusion, plus
    une question ouverte.** L'utilisateur avait répondu « oui à terminer,
@@ -3265,16 +3306,17 @@ question ouverte §7.9.
 
 ### Points restant ouverts pour arbitrage utilisateur (ni le Tech Lead ni le dev senior ne tranchent ceux-ci)
 
-Les questions ouvertes §7.1 à §7.10 restent, dans leur totalité, à
-trancher par l'utilisateur avant de lancer la moindre phase de refactor
-(2, 4, 5) — en particulier #2 (`APPROVED`), #3 (`CitiesModule`), #4
-(`findAllByUserId`), #7 (qui fait la revue QA des tests modifiés), #9 (une
-raison hors ROI justifie-t-elle la bascule NgRx complète malgré son
-report par défaut ?) et #10 (budget accepté pour l'outillage e2e, ou
-report explicite assumé des phases 4/5 sans filet complet ?). Il n'y a
-pas de désaccord actif restant entre le Tech Lead et le dev senior à ce
-stade — les trois réserves bloquantes sont intégrées et le seul désaccord
-de fond (Phase 4) est tranché en acceptant l'argument du dev senior.
+Les questions ouvertes §7.1 à §7.10 restent, à trancher par l'utilisateur
+avant de lancer la moindre phase de refactor (2, 4, 5) — en particulier
+#3 (`CitiesModule`), #4 (`findAllByUserId`), #7 (qui fait la revue QA des
+tests modifiés), #9 (une raison hors ROI justifie-t-elle la bascule NgRx
+complète malgré son report par défaut ?) et #10 (budget accepté pour
+l'outillage e2e, ou report explicite assumé des phases 4/5 sans filet
+complet ?). *#2 (`APPROVED`) et #3 (`CitiesModule`) sont désormais
+répondues — voir §7 pour le détail de chacune.* Il n'y a pas de désaccord
+actif restant entre le Tech Lead et le dev senior à ce stade — les trois
+réserves bloquantes sont intégrées et le seul désaccord de fond (Phase 4)
+est tranché en acceptant l'argument du dev senior.
 
 ### Réponse à la revue senior du lot pilote Phase 5 (2026-09-24)
 

@@ -64,7 +64,7 @@ Feature domains: `ads`, `categories`, `cities`, `countries`, `users`. Adding one
 
 ### Ad lifecycle
 
-`AdStatus` (`libs/api/domain/src/lib/ads/ad.entity.ts`) declares `DRAFT → SUBMITTED → APPROVED → PUBLISHED`, plus `REJECTED` and `ARCHIVED`. Note that `APPROVED` is declared but never assigned; `publish()` moves straight to `PUBLISHED` (there is a `TODO` saying it should pass through `APPROVED` first).
+`AdStatus` (`libs/api/domain/src/lib/ads/ad.entity.ts`) declares `DRAFT → SUBMITTED → PUBLISHED`, plus `REJECTED` and `ARCHIVED`. It previously also declared `APPROVED`, but that value was never assigned by any code path — `publish()` always moved straight from `SUBMITTED` to `PUBLISHED` — and no product need for a separate approval step was ever identified, so it was removed from the enum (CHANTIER-MODERNISATION.md §7.2).
 
 `AdsService.submit`/`publish`/`reject`/`archive` all go through a central guard, `transitionTo()`: the lookup preceding each transition (`findOneDraft`/`findOneUnpublished`/`findOne`) is checked explicitly (`if (!ad) throwError(() => new AdNotInExpectedStateError(...))`), so a missed match no longer falls through to the update — there is no blind spread of a possibly-`null` lookup result. `reject()`/`archive()` deliberately use `ANY_STATUS` (transition allowed from any originating state) as a documented product choice — an ad can be rejected/archived regardless of its current state, only its existence is required — not an oversight; the comment above `transitionTo()` spells out the history of the bug this guard replaced. `ads.service.spec.ts` covers all four transition guards plus `submit`/`publish`/`reject`/`archive` themselves. Treat any change here as a state-machine change and cover it with tests.
 
