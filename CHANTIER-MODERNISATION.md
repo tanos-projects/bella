@@ -796,8 +796,28 @@ dans l'ordre exécuté :
    d'invocation `run-many`/`NODE_OPTIONS` à résoudre avant intégration CI,
    (c) décision de faire de Node 24 le runtime par défaut du poste de dev
    / CI / PM2-EC2 est **hors mandat de ce spike**, à remonter séparément à
-   l'utilisateur si cette voie est retenue. Prêt pour revue `senior-dev`
-   — à déclencher séparément par l'utilisateur.
+   l'utilisateur si cette voie est retenue.
+
+**Revue `senior-dev` (2026-09-25) — VALIDÉ, avec une réserve non
+bloquante.** Vérification indépendante, pas de confiance sur parole :
+`senior-dev` a **reproduit lui-même tout le spike** (bump réel de
+`package.json` vers NestJS 12.1.0 sous Node 24.21.0 via `yarn install
+--ignore-engines`/corepack, `nx test api` sous
+`NODE_OPTIONS=--experimental-vm-modules`), confirmant à l'identique le
+résultat central (21 suites/130 tests verts, `jest.config.ts`/
+`tsconfig.spec.json` inchangés), le mécanisme technique précis
+(`require('vm').SourceTextModule` passe de `undefined` à `'function'`
+avec le flag, y compris sous 24.21) et le caveat `run-many` (39/39 suites
+`webapp:test` en échec avec le flag positionné globalement — reproduit,
+pas supposé). Restauration post-vérification confirmée propre
+(`package.json`/`yarn.lock` revenus à l'identique, `@nestjs/common` à
+`11.2.6`, `express` racine à `4.22.3`, suite complète revérifiée verte,
+`git status` propre). Seule réserve, non bloquante et déjà corrigée par
+la reformulation de §7.5 ci-dessous : le point 9 ci-dessus (l'arbitrage
+Node 24 par défaut) n'avait pas été reporté dans la liste consolidée §7 —
+un défaut de maintenance croisée entre sections, pas une inexactitude
+factuelle sur le spike lui-même. Détail complet :
+`CHANTIER-MODERNISATION-REVIEW-SPIKE-NODE24.md`.
 
 ### Phase 1 — Filet de sécurité : tests de caractérisation sur les domaines non couverts
 
@@ -3165,11 +3185,34 @@ chantier :
    comme un retrait — l'action a changé de nature (implémentation, pas
    suppression) — retiré de la liste des sous-points en attente de
    retrait ISP.
-5. **NestJS 12 (Phase 0bis)** : le bénéfice de fermer cet écart d'un
-   majeur justifie-t-il le temps d'investiguer/implémenter la solution
-   Babel-ESM, ou est-ce acceptable de rester sur NestJS 11.x pour une
-   durée indéterminée tant que rien ne l'exige (pas de faille de sécurité
-   connue, pas de dépendance qui l'exige) ?
+5. **NestJS 12 (Phase 0bis) — reformulée (2026-09-25) après la reprise du
+   spike et sa revue `senior-dev`.** L'ancienne formulation de cette
+   question ("le coût d'investiguer/implémenter Babel-ESM justifie-t-il…")
+   est obsolète : la reprise du spike (§4, "Reprise du spike (2026-09-25)")
+   montre que ni Babel-ESM ni le mode ESM natif `ts-jest` ne sont
+   nécessaires — la voie qui fonctionne est un changement de runtime Node
+   (≥24.9), confirmé **empiriquement, à deux reprises indépendantes**
+   (tech-lead puis `senior-dev`, qui a reproduit tout le spike lui-même
+   plutôt que de faire confiance au rapport — voir
+   `CHANTIER-MODERNISATION-REVIEW-SPIKE-NODE24.md`, verdict **VALIDÉ, avec
+   une réserve non bloquante** limitée à cette maintenance croisée §4/§7).
+   Le verrou technique Jest/ESM est donc levé et n'est plus la question à
+   trancher. La question qui reste réellement ouverte, posée en toutes
+   lettres au point 9 de la section Phase 0bis (§4) et hors mandat
+   tech-lead/senior-dev : **adopter Node ≥24.9 comme runtime par défaut du
+   poste de dev / CI / déploiement PM2-EC2** (`ecosystem.config.js`), pour
+   pouvoir ensuite bumper NestJS 11→12 — sachant que deux sous-points
+   restent non qualifiés avant d'adopter ce palier en confiance : (a)
+   `@nestjs/platform-express@12.1.0` épingle Express en version majeure
+   `5.2.1`, jamais testée au runtime réel (pas de tests de caractérisation
+   écrits sur `AdsController`/`AdsRepositoryNest` pour ce risque) ; (b) un
+   caveat d'invocation Nx non résolu — `NODE_OPTIONS=--experimental-vm-modules`
+   positionné globalement pour `nx run-many --target=test --all` casse
+   `webapp:test`/`admin:test` (reproduit indépendamment par `senior-dev` :
+   39/39 suites `webapp` en échec), donc aucune commande unique ne fait
+   passer les 6 projets ensemble aujourd'hui — un scope de ce flag au seul
+   target `test` d'`api` (candidat non exploré : `options.env` dans
+   `apps/api/project.json`) reste à vérifier avant intégration CI.
 6. **`@ngrx/store` classique vs. `@ngrx/signals` (Phase 4)** : à trancher
    par un spike avant de s'engager sur l'un ou l'autre — ce document ne
    prend pas position, faute d'avoir testé les deux sur ce cas précis.
