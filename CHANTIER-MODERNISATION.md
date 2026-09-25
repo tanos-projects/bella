@@ -4275,6 +4275,165 @@ le Tech Lead cette fois (contrairement à la première revue, où une
 précision de charge avait été ajoutée sur la Phase 1bis). Aucune question
 produit nouvelle remontée par cette revue.
 
+## 9. Synchronisation avec `main` — merge de PR #53 (2026-09-25)
+
+Pendant que ce chantier avançait sur son propre fil, `origin/main` a
+avancé sur le sien : la branche indépendante `feature/expiration-annonces`
+a été squash-mergée dans `main` sous PR #53 (commit `7b81463`,
+"Feature/expiration annonces (#53)"), touchant *exactement* la même
+state machine (`AdsService`/`AdStatus`) que ce chantier venait de
+nettoyer (§1.2, §7.2, §7.12). Un vrai `git merge origin/main` (pas de
+rebase, pas de squash) a été fait pour faire converger les deux fils sans
+réécrire les SHA déjà cités dans ce document.
+
+### Ce que `origin/main` a apporté
+
+- Un point d'extension domaine `PublicationPlanResolver`, avec une seule
+  implémentation aujourd'hui (`DiscoveryPlan`, 30 jours, renouvellement
+  gratuit) — voir `docs/adr/0001-expiration-annonces-plans-de-publication.md`.
+  `publish()` stampe désormais `publishedAt`/`expiresAt` en résolvant le
+  plan applicable à l'annonce.
+- Une nouvelle valeur `EXPIRED` dans `AdStatus`.
+  `AdExpirationJob` (`@nestjs/schedule` **pinné à `~6.1.3`** — la version
+  `latest` de ce paquet est en ESM pur et casse Jest/ts-jest) fait passer
+  toutes les 10 minutes les annonces `PUBLISHED` dont `expiresAt` est
+  dépassé à `EXPIRED`, via un `updateMany` idempotent (seule l'instance
+  PM2 0 exécute le job, mais la correction ne repose pas sur cette
+  exclusivité — l'idempotence de l'`updateMany` suffit).
+- `POST publications/:id/renew` : le propriétaire d'une annonce `EXPIRED`
+  peut demander sa republication, gardé par un compare-and-set
+  (`updateOneInStatus`) contre une transition concurrente. La vérification
+  de propriété est faite **dans le domaine** (`AdsService.renew`), à la
+  différence de `publish()` dont la vérification d'autorisation reste
+  côté contrôleur — choix documenté dans le commentaire au-dessus de
+  `renew()` : "only the owner renews" est ici la règle métier elle-même,
+  pas une autorisation posée par-dessus.
+
+### Comment le conflit sur `ads.service.ts` a été résolu
+
+C'est le conflit le plus significatif des 8 fichiers en conflit. Lecture
+des deux versions complètes avant résolution (`git show HEAD:...` et
+`git show origin/main:...`) a montré que **ce chantier n'avait fait
+aucune modification comportementale de ce fichier depuis le point de
+divergence** (`b0912af`) — la seule différence entre `HEAD` et la
+base commune était la suppression du commentaire `// TODO => Should be
+APPROVED before PUBLISHED`, cohérente avec la suppression de `APPROVED`
+de l'enum (§7.2). Le guard `transitionTo()` documenté au §1.2/§7.12
+existait déjà à la base commune, avant la divergence des deux branches.
+
+`origin/main`, lui, avait *refactoré* `transitionTo()` en plus d'ajouter
+l'expiration : sa signature est passée de paramètres positionnels
+(`approbationMessage?, moderatedBy?, publishedAt?`) à une factory
+`extra?: (ad: AdEntity) => Partial<AdEntity>`, nécessaire pour que
+`publish()` puisse calculer `expiresAt` à partir de l'annonce que le
+guard vient de charger (résolution du plan applicable).
+
+**Résolution retenue : le fichier final est celui d'`origin/main` dans son
+intégralité** (constructeur `(adsRepository, planResolver, clock)`,
+`transitionTo()` à base de factory, `renew()`, `expireDue()`), **moins**
+le commentaire `TODO => Should be APPROVED` qui n'a plus de sens une fois
+`APPROVED` retiré de l'enum. Ce n'est pas un "on a pris un côté au
+hasard" : c'est la conséquence directe du fait que ce côté contenait déjà,
+sans modification, tout ce que le chantier avait produit sur ce fichier —
+`AdNotInExpectedStateError` levée explicitement sur un lookup manqué,
+`ANY_STATUS` pour `reject`/`archive` comme choix produit documenté. Le
+comportement final :
+
+- `submit`/`publish`/`reject`/`archive`/`renew` passent tous par
+  `transitionTo(id, expectedStatus, nextStatus, extra?)`, qui lève
+  `AdNotInExpectedStateError` sur un lookup `null` (annonce absente ou pas
+  dans l'état attendu) au lieu de laisser passer silencieusement la mise à
+  jour (`{...null}` est `{}` en JavaScript — c'est le bug que ce guard
+  remplace, documenté dans le commentaire au-dessus de la méthode).
+- `reject()`/`archive()` utilisent `ANY_STATUS` : transition autorisée
+  depuis n'importe quel état existant, seule l'existence de l'annonce est
+  vérifiée.
+- `publish()` stampe `publishedAt`/`expiresAt` via le plan résolu pour
+  l'annonce, et enregistre `moderatedBy` si fourni — sans jamais rouvrir
+  la question `APPROVED` (le `TODO` a été retiré, pas contourné).
+- `renew()` vérifie la propriété, l'état `EXPIRED`, interroge le plan pour
+  une décision d'octroi/refus, puis applique un compare-and-set.
+
+Deux fichiers connexes ont nécessité un ajustement manuel au-delà d'un
+simple choix de côté :
+- `apps/api/src/app/api/ads.controller.ts` : le conflit portait sur
+  `publishAd()` — ce chantier avait extrait la policy
+  (`PublishAuthorizationPolicy`) et le shuffler
+  (`MostRecentAdsShuffler`) hors du contrôleur (nettoyage SOLID, Phase 2).
+  `origin/main` avait gardé l'ancienne logique inline et y avait ajouté
+  `renewAd()`. Résolution : garder les extractions de ce chantier (la
+  policy reproduit fidèlement, à l'identique, la logique inline
+  d'`origin/main`) et greffer `renewAd()` + l'import `mapAdDomainError`
+  par-dessus.
+- `ads.controller.spec.ts` : le merge textuel a produit un test
+  (`'accepts EXPIRED so owners can see their expired ads'`, ajouté par
+  `origin/main`) qui appelait encore `getMyPublications()` avec un 4ᵉ
+  argument positionnel — signature pré-Phase-2 (`@Query('limit')` séparé),
+  déjà supprimée côté chantier au profit d'un seul `@Query()` sur
+  `AdSearchQueryDTO`. Ce n'est pas une régression de ce chantier : c'est
+  un test écrit par `origin/main` contre sa propre ancienne signature, que
+  le merge textuel a fait atterrir tel quel. Corrigé en retirant l'argument
+  en trop ; le test passe désormais contre la signature à 3 arguments.
+
+### Autres fichiers en conflit
+
+- `CLAUDE.md` : section "Ad lifecycle" réécrite pour décrire le
+  comportement **final** combiné (pas l'un ou l'autre camp) — plus
+  `EXPIRED` dans l'énumération listée, `transitionTo`/`ANY_STATUS`/absence
+  d'`APPROVED` toujours corrects, plus le paragraphe expiration/renouvellement
+  d'`origin/main`.
+- `apps/webapp/src/app/shared/services/ads.service.spec.ts` (conflit
+  add/add — les deux branches avaient créé ce fichier indépendamment) :
+  les deux versions ne se recoupaient sur aucun `describe` — celle de ce
+  chantier couvrait `getAll`/`getPublishedOne`/`getUnpublishedOne`/
+  `getMostRecentAdsByCategory`/`create`/`search`/listes scoped-caller ;
+  celle d'`origin/main` couvrait seulement `getMyExpiredPublications` et
+  `renew`. Concaténées sans perte des deux côtés.
+- `apps/webapp/src/app/pages/my-publications/my-publications.component.spec.ts` :
+  le composant est `standalone: true` côté chantier (Phase 5) ; la config
+  `TestBed` de ce chantier a été gardée (`imports: [MyPublicationsComponent, ...]`)
+  mais avec le provider explicite `{ provide: AdsService, useValue:
+  adsService }` d'`origin/main` ajouté — sans lui, les mocks
+  `getMyExpiredPublications`/`renew` qu'`origin/main` a ajoutés à ce
+  fichier n'auraient jamais été injectés, et les quatre tests de
+  renouvellement auraient silencieusement tapé le vrai `AdsService`.
+- `package.json`/`yarn.lock` : ligne NestJS 12.x de ce chantier gardée
+  pour `mongoose`/`passport`/`platform-express`/`swagger`/`terminus`,
+  `@nestjs/schedule` `~6.1.3` d'`origin/main` ajouté par-dessus.
+  `yarn.lock` régénéré via `yarn install` (pas d'édition manuelle) — yarn
+  a lui-même détecté et fusionné le conflit de lockfile
+  ("Merge conflict detected in yarn.lock and successfully merged").
+
+### Vérification
+
+- `npx nx run-many --target=test --all` : **6/6 projets verts**
+  (`dtos` sans test, `api-domain` 8 suites/52 tests, `api-adapters` 5
+  suites/28 tests, `webapp` 39 suites/95 tests, `admin` 7 suites/26 tests
+  dont 1 skip, `api` **22 suites/150 tests** — couvrant explicitement
+  `AdExpirationJob`, `PublicationPlanResolver`/`DiscoveryPlan`, et
+  `renew()` côté domaine et côté contrôleur webapp/API).
+- `npx nx run-many --target=build` sur `api`/`webapp`/`admin` : **3/3
+  verts** (`api-domain`/`api-adapters` n'ont pas de target `build` —
+  attendu, ce sont des libs consommées directement en TypeScript).
+  Avertissements pré-existants sans rapport (budget de bundle initial
+  dépassé sur `webapp`/`admin`, dépréciation du builder Webpack Angular) —
+  aucune régression.
+
+### Point laissé pour revue humaine / `senior-dev` — pas tranché ici
+
+`@nestjs/schedule@6.1.3` déclare `peerDependencies` sur
+`@nestjs/common@^10.0.0 || ^11.0.0` / `@nestjs/core@^10.0.0 || ^11.0.0` —
+pas `^12`. `yarn install` l'installe avec un simple warning (pas une
+erreur), et les tests d'`AdExpirationJob` passent en pratique sous
+NestJS 12.1.0 dans cette suite. Mais un warning de peer dependency n'est
+pas une preuve de compatibilité totale à l'exécution en production (DI,
+cycle de vie du module `ScheduleModule`) — c'est un point que je n'ai pas
+la confiance de trancher moi-même par simple lecture du changelog du
+paquet, et qui mérite soit une vérification runtime réelle (serveur démarré,
+job qui tourne, pas seulement les tests unitaires/mocha), soit un ticket
+explicite de suivi si un futur bump de `@nestjs/schedule` publie un
+support déclaré de la v12.
+
 ---
 
 # Annexe — chantier de version NestJS (document antérieur, conservé tel quel)
