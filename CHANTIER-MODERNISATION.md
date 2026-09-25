@@ -157,6 +157,10 @@ l'a fait.
    dépendrait de cette interface pour l'appeler planterait — c'est un
    contrat non honoré. À supprimer de l'interface (et du domaine) plutôt
    qu'à corriger, sauf si un besoin réel la justifie.
+   **RÉPONDU en §7.4 (2026-09-25)** : sur instruction explicite de
+   l'utilisateur, implémentée plutôt que supprimée (commit `4032458`) —
+   requête Mongo directe par `owner`, hypothèse documentée dans la méthode
+   faute d'intention d'origine récupérable.
 3. **`AdsController` — SRP, trop de responsabilités dans un contrôleur** :
    au-delà du routage, il contient de la logique métier (`shuffle()` +
    `fakeMostRecentAds()` — un TODO dans le fichier dit lui-même « Move this
@@ -214,6 +218,11 @@ l'a fait.
    fonctionnalité inachevée (les villes sont-elles censées être exposées
    directement, ou seulement consommées en interne par un autre domaine ?),
    soit du code mort à documenter/retirer. À clarifier (voir §6).
+   **RÉPONDU en §7.3 (2026-09-25)** : `CitiesModule`/`CitiesService` sont
+   consommés en interne par `CountriesController`
+   (`GET /countries/:iso2/cities`), lui-même appelé côté `webapp` — ni
+   fonctionnalité inachevée, ni code mort ; un `CitiesController` séparé
+   n'a jamais été nécessaire.
 
 **Côté front-ends** :
 
@@ -1040,18 +1049,30 @@ tous traités :
        considéré acquis, même règle de gouvernance que pour le sous-point 8
        et `efc3e09`.
 
-  **Sous-points gelés — dépendent d'une question ouverte non tranchée
-  (§7), ne pas les traiter comme acquis dans l'ordre séquentiel :**
-  - **[GELÉ — dépend de §7.4]** Retirer `findAllByUserId` de
-    `AdsRepository` (ISP) — grep exhaustif déjà fait (aucun appelant trouvé
-    ni côté front ni côté back), mais **confirmation explicite de
-    l'utilisateur requise** avant suppression, et un grep de re-vérification
-    à refaire juste avant ce commit précis puisque le code aura bougé
-    entre-temps.
-  - **[GELÉ — dépend de §7.3]** Clarifier/retirer `CitiesModule` si aucun
-    contrôleur n'est prévu (§1.3 point 8) — ne démarre qu'après réponse
-    explicite de l'utilisateur sur la question ouverte.
-- **Fichiers touchés** : `apps/api/src/app/infrastructure/persistence/repositories/ads-repository-nest.ts`, `apps/api/src/app/api/ads.controller.ts`, `apps/api/src/app/api/admin/admin-publication.controller.ts`, `libs/api/domain/src/lib/ads/ads.repository.ts`, `libs/api/adapters/src/lib/ad.mapper.ts`, `libs/api/domain/src/lib/cities/cities.service.ts`, `apps/api/src/app/api/users.controller.ts` (+ `.spec.ts`, sous-point 8), `apps/api/src/app/api/categories.controller.ts` (+ `.spec.ts`, sous-point 9), `apps/api/src/app/api/ad-search-query.dto.ts` (+ `.spec.ts`, nouveau, sous-point 4), `package.json` (ajout `class-validator`/`class-transformer`, sous-point 4).
+  **Sous-points anciennement gelés (§7.3/§7.4) — DÉBLOQUÉS ET CLOS
+  (2026-09-25, session tech-lead), l'utilisateur ayant répondu aux deux
+  questions ouvertes. Détail complet en §7.3/§7.4 ; résumé ici :**
+  - **`findAllByUserId`** : n'a **pas** été retiré d'`AdsRepository` comme
+    initialement envisagé (ISP) — grep re-exécuté cette session, toujours
+    zéro appelant réel confirmé, mais l'utilisateur a demandé de
+    **terminer** (implémenter) plutôt que supprimer, l'implémentation
+    précédente (`throw new Error('Method not implemented.')`) étant un
+    contrat cassé, pas seulement mort. Implémenté (commit `4032458`,
+    `apps/api/src/app/infrastructure/persistence/repositories/ads-repository-nest.ts`) :
+    requête Mongo directe par `owner`, hypothèse documentée dans le
+    commentaire de la méthode faute d'intention d'origine récupérable.
+    Test de caractérisation existant modifié pour verrouiller le nouveau
+    comportement (`ads-repository-nest.spec.ts`) — soumission `qa-reviewer`
+    requise avant considération définitive, non faite dans cette session.
+  - **`CitiesModule`** : rien à clarifier/retirer — vérification effectuée
+    avant toute conclusion (comme demandé), et `CitiesModule`/
+    `CitiesService` se sont révélés **ne pas être du code mort** : ils sont
+    consommés par `CountriesController.getCities`
+    (`GET /countries/:iso2/cities`), lui-même appelé par deux consommateurs
+    front réels (formulaire `post-an-ad`, filtre de recherche). Un
+    `CitiesController` séparé n'a jamais été nécessaire. **Aucune
+    modification de code** pour ce sous-point (aucune n'était justifiée).
+- **Fichiers touchés** : `apps/api/src/app/infrastructure/persistence/repositories/ads-repository-nest.ts` (+ `.spec.ts`, `findAllByUserId`), `apps/api/src/app/api/ads.controller.ts`, `apps/api/src/app/api/admin/admin-publication.controller.ts`, `libs/api/domain/src/lib/ads/ads.repository.ts`, `libs/api/adapters/src/lib/ad.mapper.ts`, `libs/api/domain/src/lib/cities/cities.service.ts`, `apps/api/src/app/api/users.controller.ts` (+ `.spec.ts`, sous-point 8), `apps/api/src/app/api/categories.controller.ts` (+ `.spec.ts`, sous-point 9), `apps/api/src/app/api/ad-search-query.dto.ts` (+ `.spec.ts`, nouveau, sous-point 4), `package.json` (ajout `class-validator`/`class-transformer`, sous-point 4).
 - **Principes appliqués** : OCP, ISP, SRP (détaillés ci-dessus) ; 8 et 9
   sont des corrections de bug fonctionnel/faille de sécurité découvertes en
   Phase 1, pas des applications de principe SOLID au sens strict.
@@ -2774,16 +2795,103 @@ chantier :
    modérateur "approuve" avant qu'un système ou un second modérateur
    "publie"), ou retirer cette valeur de l'enum si elle ne correspond à
    aucun besoin produit actuel ou prévu ? Décision produit, pas technique.
-3. **`CitiesModule` sans `CitiesController` (§1.3 point 8)** : fonctionnalité
-   inachevée à terminer, ou couche interne jamais destinée à être exposée
-   publiquement (auquel cas la documentation devrait le dire explicitement)
-   ? **Bloque le sous-point Phase 2 correspondant, gelé explicitement en
-   §4 tant que cette réponse n'est pas actée.**
-4. **`findAllByUserId` (§1.3 point 2)** : confirmer qu'aucun consommateur
-   front (webapp/admin) ni aucun plan produit à court terme n'en dépend
-   avant de le retirer de l'interface `AdsRepository`. **Bloque le
-   sous-point Phase 2 correspondant, gelé explicitement en §4 tant que
-   cette réponse n'est pas actée.**
+3. **`CitiesModule` sans `CitiesController` (§1.3 point 8) — RÉPONDUE
+   (2026-09-25, session tech-lead), vérifiée avant toute conclusion, plus
+   une question ouverte.** L'utilisateur avait répondu « oui à terminer,
+   même si je suis étonné car on charge bien les villes côté front — mais
+   sans doute que ça vient avec les countries. À vérifier avant. » Vérifié
+   en premier, comme demandé, avant tout changement de code :
+   - **Front `webapp`** : deux consommateurs réels appellent
+     `CountriesService.getCitiesByCountry(iso2)`
+     (`apps/webapp/src/app/shared/services/countries.service.ts:21-23`) —
+     le sélecteur « Ville » du formulaire `post-an-ad`
+     (`apps/webapp/src/app/pages/post-an-ad/ad-form/ad-form.component.ts:247`,
+     champ formly `city`, activé sur le pays sélectionné) et le filtre de
+     recherche (`SearchFilterComponent` via `SearchService.countryCities$`,
+     `apps/webapp/src/app/shared/services/search.service.ts:71`). Cette
+     méthode appelle `GET /countries/:iso2/cities` — **pas** un DTO
+     imbriqué : `CountryDTO`/`CountryDetailedDTO`
+     (`libs/dtos/src/lib/countries/country-dto.ts`) n'embarquent aucune
+     liste de villes, vérifié directement dans leur définition.
+   - **Côté API**, cette route existe déjà et est testée :
+     `CountriesController.getCities`
+     (`apps/api/src/app/api/countries.controller.ts:22-27`) l'implémente en
+     injectant `CitiesService` **directement dans le contrôleur
+     `countries`** (`private citiesService: CitiesService` au
+     constructeur) plutôt que via un contrôleur `cities` séparé.
+     `CitiesModule` est enregistré dans `DOMAIN_MODULES`
+     (`infrastructure.module.ts`) et exporté jusqu'à `ApiModule`
+     précisément pour rendre `CitiesService` injectable là où
+     `CountriesController` en a besoin. Grep exhaustif de
+     `CitiesController` sur tout le repo (`apps`, `libs`) : zéro résultat,
+     confirmé — il n'en a jamais existé.
+   - **Conclusion factuelle, tranchant la question** : l'intuition de
+     l'utilisateur était juste. `CitiesModule`/`CitiesService`/
+     `CitiesRepository` ne sont **pas du code mort** — ils sont
+     activement consommés, seulement pas via leur propre contrôleur REST,
+     mais via une route sœur sous le préfixe `/countries`
+     (`GET /countries/:iso2/cities`), cohérente avec le fait que choisir
+     une ville n'a de sens que dans le contexte d'un pays déjà choisi. Un
+     `CitiesController` séparé **n'a jamais été nécessaire** : la
+     fonctionnalité qu'il aurait exposée existe déjà, sous une forme
+     différente mais pleinement fonctionnelle et déjà en production
+     côté front. Il n'y a **rien à terminer et rien à retirer** — la
+     seule chose obsolète était la formulation de la question elle-même
+     (§1.3 point 8 supposait, à tort, que l'absence de `CitiesController`
+     signifiait code mort ou fonctionnalité inachevée). **Aucune action de
+     code prise dans cette session, aucune n'étant nécessaire.** Le
+     sous-point Phase 2 gelé correspondant (§4) est retiré de la liste des
+     sous-points en attente — il n'y a plus rien à trancher ni exécuter
+     dessus.
+   - **Note annexe, hors périmètre de cette question mais trouvée en
+     vérifiant** (pas remontée comme nouvelle question ouverte, juste
+     notée) : trois méthodes du `CitiesService` domaine (`findOne`,
+     `findByName`, `findAll()` non filtré —
+     `libs/api/domain/src/lib/cities/cities.service.ts`) ne sont appelées
+     nulle part en production ; seule `findByCountryIso2` l'est (via
+     `CountriesController.getCities`). Dead code interne mineur au sein
+     d'un service par ailleurs bien vivant, candidat à un nettoyage futur
+     si souhaité, pas un sujet à trancher maintenant.
+4. **`findAllByUserId` (§1.3 point 2) — RÉPONDUE (2026-09-25, session
+   tech-lead).** Grep exhaustif re-exécuté cette session (pas recopié du
+   résultat de la Phase 2, le code ayant bougé depuis) sur
+   `apps/webapp/src`, `apps/admin/src`, `apps/api/src` et `libs/` : zéro
+   appelant réel, confirmé à nouveau — les seules occurrences sont la
+   déclaration d'interface (`libs/api/domain/src/lib/ads/ads.repository.ts`),
+   l'implémentation (`ads-repository-nest.ts`), son propre test, et un mock
+   `jest.fn()` dans `ads.service.spec.ts` (bootstrap de mock de repository,
+   pas un appel réel). Aucune piste non plus côté historique git : la
+   méthode est présente, non implémentée, depuis le tout premier commit
+   ayant introduit `apps/api` — rien n'explique son intention d'origine.
+
+   Contrairement à `CitiesModule`, ce n'était pas juste « non appelée » :
+   son implémentation levait `throw new Error('Method not implemented.')`
+   inconditionnellement — un contrat cassé, pas seulement mort. Sur
+   instruction explicite de l'utilisateur (« à terminer »), **implémentée
+   plutôt que retirée** (commit `4032458`) :
+   `AdsRepositoryNest.findAllByUserId(userId)` interroge désormais Mongo
+   directement par `owner` (`{ owner: userId }`), la façon idiomatique de
+   filtrer un chemin `ObjectId` de référence Mongoose (Mongoose caste une
+   chaîne hex en `ObjectId` automatiquement). Délibérément **pas** une
+   délégation vers `AdsService.findAllByOwner`/`AdsRepository.findAll({owner})`
+   — cette dernière attend une `UserEntity` complète en paramètre `owner`,
+   pas un simple id, et le `userId: string` de la signature de
+   `findAllByUserId` ne s'y prête pas sans un aller-retour avec perte
+   d'information (`{ id: userId } as UserEntity`). Hypothèse
+   d'implémentation documentée directement dans le commentaire de la
+   méthode, faute d'intention d'origine récupérable par ailleurs.
+
+   Test de caractérisation existant modifié
+   (`ads-repository-nest.spec.ts`, bloc `describe('findAllByUserId', ...)`,
+   qui verrouillait auparavant le `throw`) pour verrouiller le nouveau
+   comportement à la place — **modification d'un test existant** au sens
+   de la gouvernance (§5/`tech-lead.md`) : feu vert `qa-reviewer` **non
+   sollicité dans cette session**, à obtenir avant considération
+   définitive. `nx build/lint/test api` verts après ce commit. Le
+   sous-point Phase 2 gelé correspondant (§4) n'a plus lieu d'être formulé
+   comme un retrait — l'action a changé de nature (implémentation, pas
+   suppression) — retiré de la liste des sous-points en attente de
+   retrait ISP.
 5. **NestJS 12 (Phase 0bis)** : le bénéfice de fermer cet écart d'un
    majeur justifie-t-il le temps d'investiguer/implémenter la solution
    Babel-ESM, ou est-ce acceptable de rester sur NestJS 11.x pour une
