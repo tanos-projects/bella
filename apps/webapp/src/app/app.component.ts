@@ -1,5 +1,5 @@
 import { Component, OnDestroy, inject } from '@angular/core';
-import { NavigationStart, Router, RouterEvent } from '@angular/router';
+import { NavigationStart, Router, RouterEvent, RouterOutlet } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { DeviceInfo } from 'ngx-device-detector';
 import { Subject } from 'rxjs';
@@ -8,12 +8,16 @@ import { filter, takeUntil } from 'rxjs/operators';
 import { AuthUser } from './auth/auth-user.model';
 import { MyDeviceService } from './shared/services/my-device.service';
 import { SearchService } from './shared/services/search.service';
+import { DrawerComponent } from './shared/components/drawer/drawer.component';
+import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
+import { LoadingComponent } from './shared/components/loading/loading.component';
 
 @Component({
   selector: 'bella-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
-  standalone: false,
+  standalone: true,
+  imports: [RouterOutlet, DrawerComponent, SidebarComponent, LoadingComponent],
 })
 export class AppComponent implements OnDestroy {
   private router = inject(Router);

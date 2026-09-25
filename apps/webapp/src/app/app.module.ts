@@ -21,15 +21,11 @@ import { environment } from '../environments/environment';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { AuthenticationModule } from './auth/authentication.module';
-import { DrawerComponent } from './shared/components/drawer/drawer.component';
-import { LoadingComponent } from './shared/components/loading/loading.component';
-import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
 import { VALIDATION_MESSAGE_FORMATTERS } from './shared/form/validation-messages';
 
 registerLocaleData(localeFr);
 
 @NgModule({
-  declarations: [AppComponent],
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
@@ -41,8 +37,6 @@ registerLocaleData(localeFr);
     ModalModule,
     TabsModule,
     ProgressbarModule,
-
-    DrawerComponent,
 
     //
     AuthModule.forRoot({
@@ -97,10 +91,6 @@ registerLocaleData(localeFr);
       }
     }),
     AuthenticationModule.forRoot(),
-    LoadingComponent,
-
-    //
-    SidebarComponent,
 
     // Shared third party modules
     NgSelectModule, // For entry components (such as Modal)
