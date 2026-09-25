@@ -9,13 +9,13 @@ import { AuthUserService } from '../../../../auth/auth-user.service';
 import { LogoutButtonComponent } from '../../../../shared/components/buttons/logout/logout-button.component';
 import { UserSettingsService } from '../../../../shared/services/user-settings.service';
 import { TitledPageComponent } from '../../../../shared/layouts/titled-page/titled-page.component';
-import { ProfileFormModule } from '../form/profile-form.module';
+import { ProfileFormComponent } from '../form/profile-form.component';
 
 @Component({
   selector: 'bella-create-profile',
   templateUrl: './create-profile.component.html',
   standalone: true,
-  imports: [CommonModule, TitledPageComponent, ProfileFormModule, LogoutButtonComponent],
+  imports: [CommonModule, TitledPageComponent, ProfileFormComponent, LogoutButtonComponent],
 })
 export class CreateProfileComponent {
   private auth = inject(AuthCustomService);

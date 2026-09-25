@@ -1,19 +1,25 @@
+import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
 import {
+  ReactiveFormsModule,
   UntypedFormBuilder,
   UntypedFormGroup,
   Validators,
 } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { NgSelectModule } from '@ng-select/ng-select';
 import dayjs from 'dayjs';
 
 import { AuthUser } from '../../../../auth/auth-user.model';
 import { CountriesService } from '../../../../shared/services/countries.service';
 import { MyDeviceService } from '../../../../shared/services/my-device.service';
+import { FieldErrorComponent } from '../../../../shared/form/field-error/field-error.component';
 
 @Component({
   selector: 'bella-profile-form',
   templateUrl: './profile-form.component.html',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, NgSelectModule, RouterModule, FieldErrorComponent],
 })
 export class ProfileFormComponent implements OnInit {
   private fb = inject(UntypedFormBuilder);

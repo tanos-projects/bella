@@ -4,7 +4,7 @@ import { TitledPageComponent } from '../../shared/layouts/titled-page/titled-pag
 import { AccountRoutingModule } from './account-routing.module';
 import { AccountComponent } from './account.component';
 import { CreateProfileComponent } from './profile/create/create-profile-component';
-import { ProfileFormModule } from './profile/form/profile-form.module';
+import { ProfileFormComponent } from './profile/form/profile-form.component';
 import { LoginSignupComponent } from '../../shared/components/buttons/login-signup/login-signup.component';
 import { LogoutButtonComponent } from '../../shared/components/buttons/logout/logout-button.component';
 
@@ -14,7 +14,7 @@ import { LogoutButtonComponent } from '../../shared/components/buttons/logout/lo
     CommonModule,
     AccountRoutingModule,
     TitledPageComponent,
-    ProfileFormModule,
+    ProfileFormComponent,
     CreateProfileComponent,
     LoginSignupComponent,
     LogoutButtonComponent
