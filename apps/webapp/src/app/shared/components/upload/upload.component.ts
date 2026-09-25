@@ -27,7 +27,7 @@ import { MyDeviceService } from '../../services/my-device.service';
       multi: true,
     },
   ],
-  standalone: false,
+  standalone: true,
 })
 export class UploadComponent /*implements ControlValueAccessor*/ {
   private host = inject<ElementRef<HTMLInputElement>>(ElementRef);

@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 
-import { UploadModule } from '../../../../shared/components/upload/upload.module';
+import { UploadComponent } from '../../../../shared/components/upload/upload.component';
 
 class Picture {
   get type(): string {
@@ -184,7 +184,7 @@ interface PictureUploaderFormFieldOptions {
     </div>
   `,
   standalone: true,
-  imports: [CommonModule, UploadModule, ReactiveFormsModule],
+  imports: [CommonModule, UploadComponent, ReactiveFormsModule],
 })
 export class PictureUploaderFormFieldComponent
   extends FieldType<FieldTypeConfig & PictureUploaderFormFieldOptions>
