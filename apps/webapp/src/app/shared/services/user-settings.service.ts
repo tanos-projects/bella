@@ -48,6 +48,6 @@ export class UserSettingsService {
   }
 
   reset(): void {
-    window.localStorage.removeItem(COUNTRY_ENTRY_KEY);
+    this.setCountry('');
   }
 }
