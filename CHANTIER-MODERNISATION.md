@@ -1019,6 +1019,28 @@ production. Les deux sous-points qui empêchaient de considérer ce palier
 décision produit/infra — mais la décision elle-même reste entièrement
 ouverte.
 
+**Revue `senior-dev` (2026-09-25) — VALIDÉ.** Vérification indépendante
+complète, pas une relecture du rapport : grep exhaustif refait sur tous
+les `@Query()` de l'API (confirmé 100 % scalaires), `nx test api`
+relancé (21/134 verts confirmé), et l'overlay complet reproduit une
+troisième fois de façon indépendante (bump réel vers NestJS ~12.x sous
+Node 24.21.0 via corepack, `express@5.2.1` niché confirmé, tests
+identiques 21/134 verts, restauration scrupuleuse ensuite revérifiée
+propre). Sur le caveat `NODE_OPTIONS`, la vérification est allée plus
+loin que le rapport du tech-lead : remontée jusqu'à
+`run-many.js`/`run-one.js`/`affected.js` dans les sources de `nx@22.7.12`
+pour confirmer que `NX_LOAD_DOT_ENV_FILES` est actif par défaut (pas
+seulement plausible), et `nx run-many --target=test --all` (sans
+`NODE_OPTIONS` dans le shell) relancé indépendamment sous baseline et
+sous overlay — 6/6 projets verts dans les deux cas, `ExperimentalWarning`
+visible uniquement sur la tâche `api:test` sous overlay, preuve directe
+de l'isolation. Aucun écart trouvé entre les affirmations du tech-lead et
+les reproductions indépendantes. Détail complet :
+`CHANTIER-MODERNISATION-REVIEW-EXPRESS5-NODEOPTIONS.md`. **Les deux
+sous-points qui restaient à qualifier avant de considérer le palier
+NestJS 12/Node ≥24.9 "acquis en confiance" sont donc definitivement
+clos** — seule la décision produit/infra ci-dessus reste ouverte.
+
 ### Phase 1 — Filet de sécurité : tests de caractérisation sur les domaines non couverts
 
 - **Objectif** : combler les trous de §1.5 **avant** de toucher au code
