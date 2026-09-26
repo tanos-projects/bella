@@ -4294,8 +4294,9 @@ réécrire les SHA déjà cités dans ce document.
   `publish()` stampe désormais `publishedAt`/`expiresAt` en résolvant le
   plan applicable à l'annonce.
 - Une nouvelle valeur `EXPIRED` dans `AdStatus`.
-  `AdExpirationJob` (`@nestjs/schedule` **pinné à `~6.1.3`** — la version
-  `latest` de ce paquet est en ESM pur et casse Jest/ts-jest) fait passer
+  `AdExpirationJob` (`@nestjs/schedule` **pinné à `~6.1.3`** au moment de
+  ce merge — bumpé depuis à `~12.0.2`, voir plus bas "RÉSOLU" — la version
+  `latest` en `6.x` était en ESM pur et cassait Jest/ts-jest) fait passer
   toutes les 10 minutes les annonces `PUBLISHED` dont `expiresAt` est
   dépassé à `EXPIRED`, via un `updateMany` idempotent (seule l'instance
   PM2 0 exécute le job, mais la correction ne repose pas sur cette
@@ -4419,20 +4420,39 @@ simple choix de côté :
   dépassé sur `webapp`/`admin`, dépréciation du builder Webpack Angular) —
   aucune régression.
 
-### Point laissé pour revue humaine / `senior-dev` — pas tranché ici
+### `@nestjs/schedule` — RÉSOLU (2026-09-26) : bumpé à `~12.0.2`, plus de warning peer dep
 
-`@nestjs/schedule@6.1.3` déclare `peerDependencies` sur
-`@nestjs/common@^10.0.0 || ^11.0.0` / `@nestjs/core@^10.0.0 || ^11.0.0` —
-pas `^12`. `yarn install` l'installe avec un simple warning (pas une
-erreur), et les tests d'`AdExpirationJob` passent en pratique sous
-NestJS 12.1.0 dans cette suite. Mais un warning de peer dependency n'est
-pas une preuve de compatibilité totale à l'exécution en production (DI,
-cycle de vie du module `ScheduleModule`) — c'est un point que je n'ai pas
-la confiance de trancher moi-même par simple lecture du changelog du
-paquet, et qui mérite soit une vérification runtime réelle (serveur démarré,
-job qui tourne, pas seulement les tests unitaires/mocha), soit un ticket
-explicite de suivi si un futur bump de `@nestjs/schedule` publie un
-support déclaré de la v12.
+Le point laissé ci-dessus pour revue humaine avait sa réponse dans le
+registre npm, pas besoin d'un ticket de suivi : `@nestjs/schedule@12.0.0`
+(publié après `6.1.3`) déclare `peerDependencies` sur
+`@nestjs/common@^11.0.0 || ^12.0.0` / `@nestjs/core@^11.0.0 || ^12.0.0` —
+exactement la ligne NestJS de ce repo. Vérifié sur le registre
+(`registry.npmjs.org/@nestjs/schedule`) avant de bumper : les paliers
+`4.x`/`5.x`/`6.x` ciblaient respectivement NestJS 8-10/10-11/10-11, et
+`12.x` est le premier palier à cibler explicitement `^12`.
+
+`package.json` bumpé `~6.1.3` → `~12.0.2`, `yarn.lock` régénéré par
+`yarn install` (pas d'édition manuelle). Comme `@nestjs/schedule@12.x` est
+un paquet ESM pur (`"type": "module"`, la même caractéristique qui avait
+initialement fait éviter la balise `latest` en `6.1.3` avant même la
+question du peer dep — voir plus haut), la question réelle n'était pas le
+warning peer dep mais si le mécanisme ESM déjà mis en place en Phase 0bis
+pour l'interop `@nestjs/*` (`NODE_OPTIONS=--experimental-vm-modules` scopé
+par `apps/api/.env.test`, voir §4 Phase 0bis) l'absorbait aussi pour ce
+paquet précis. Vérifié empiriquement, pas supposé : `npx nx test api`
+(22/22 suites, 150/150 tests, y compris `ad-expiration.job.spec.ts`) et
+`npx nx build api` restent verts après le bump, sans aucun ajustement
+supplémentaire du mécanisme ESM existant — il couvrait déjà ce cas.
+`npx nx run-many --target=test --all` (6 projets) et
+`npx nx run-many --target=build` sur `api`/`webapp`/`admin` confirmés verts
+aussi (le seul échec observé en cours de route,
+`admin:build:production` → "Inlining of fonts failed... fonts.googleapis.com
+... 403", est un artefact du sandbox de cette session qui bloque l'accès
+réseau à Google Fonts, pas une régression — reproduit et confirmé vert une
+fois ce host temporairement autorisé). Aucune vérification runtime serveur
+démarré au-delà des tests n'a été faite (même limite qu'ailleurs dans ce
+chantier, §7.10) — mais le peer dep étant maintenant exact plutôt
+qu'approximatif, il n'y a plus de warning à surveiller.
 
 ---
 
