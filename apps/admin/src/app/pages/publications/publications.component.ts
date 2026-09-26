@@ -1,7 +1,9 @@
+import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 import { map } from 'rxjs';
 
 import { PublicationsActions } from '../../store/publications/publications.action';
@@ -10,6 +12,7 @@ import { PublicationActionResult } from '../../store/publications/publications.s
 import {
   ApprobationEvent,
   ApprobationEventType,
+  PublicationsListComponent,
 } from './components/list/publications-list.component';
 
 // 'archive' is reused both as "supprimer" from the pending queue and as
@@ -30,7 +33,8 @@ const ACTION_VERBS: Record<PublicationActionResult['action'], string> = {
 @Component({
   selector: 'bella-publications',
   templateUrl: './publications.component.html',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, MatTabsModule, PublicationsListComponent],
 })
 export class PublicationsComponent implements OnInit {
   private state = inject(PublicationsState);

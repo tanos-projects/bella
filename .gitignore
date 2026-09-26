@@ -48,6 +48,11 @@ Thumbs.db
 .env.*
 !.env.dist
 /apps/**/.env
+# Exception: apps/api/.env.test carries no secret, only a scoped
+# NODE_OPTIONS for `nx test api` (CHANTIER-MODERNISATION.md §4, Phase
+# 0bis, §7 point 5) - Nx loads project+target-scoped .env.<target> files
+# automatically per task, so this only ever reaches api's own test task.
+!/apps/api/.env.test
 
 # Nx local cache and daemon/workspace state (Nx 19+ adds workspace-data
 # alongside cache — none of .nx/ is meant to be committed)

@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-Bella is a classifieds/listings platform ("annonces") for an African market — the successor to the `afrik-tangazo` repository, restructured as an **Nx 15 monorepo** (`npmScope: bella`). Three deployable apps share a framework-agnostic domain layer:
+Bella is a classifieds/listings platform ("annonces") for an African market — the successor to the `afrik-tangazo` repository, restructured as an **Nx 22 monorepo** (`npmScope: bella`). Three deployable apps share a framework-agnostic domain layer:
 
-- `apps/webapp/` — Angular 14 PWA, the public product UI (port 4200)
-- `apps/admin/` — Angular 14 back-office for moderating publications, NgRx store (port 4300)
-- `apps/api/` — NestJS 9 API on MongoDB/Mongoose (port 3000, global prefix `/api`)
+- `apps/webapp/` — Angular 22 PWA, the public product UI (port 4200)
+- `apps/admin/` — Angular 22 back-office for moderating publications, NgRx store (port 4300)
+- `apps/api/` — NestJS 12 API on MongoDB/Mongoose (port 3000, global prefix `/api`)
 - `apps/webapp-e2e/`, `apps/admin-e2e/` — Cypress e2e projects
 
 Shared libraries under `libs/`, imported through the `@bella/*` path aliases declared in `tsconfig.base.json`:
@@ -22,6 +22,8 @@ Shared libraries under `libs/`, imported through the `@bella/*` path aliases dec
 `libs/dtos` is what keeps the front-ends and the API in sync — a DTO change is a cross-app change.
 
 ## Commands
+
+Node `>=24.9 <25` (`package.json` `engines`; `.nvmrc` pins the exact version this repo is qualified against, `24.21.0` — run `nvm use` before installing). Required since the NestJS 11→12 bump: `apps/api`'s Jest suite needs Jest's native `require(esm)` support, which lands at Node 24.9 (see `apps/api/.env.test`, which scopes `NODE_OPTIONS=--experimental-vm-modules` to the `api` project's `test` target only, so `nx run-many --target=test --all` doesn't need it set in the shell and it doesn't leak into `webapp`/`admin`'s test runs).
 
 Nx drives everything; the root `package.json` scripts are thin wrappers (`yarn start` → `nx serve`, etc.). Target a project explicitly:
 
@@ -40,7 +42,7 @@ npx nx lint webapp
 npx nx e2e webapp-e2e
 ```
 
-Project names are not directory names: `libs/api/domain` is the **`api-domain`** project, `libs/api/adapters` is **`api-adapters`**. `nx show projects` does not exist on Nx 15 — read the `name` field of each `project.json`, or use `npx nx print-affected --type=app --select=projects` to list the apps a diff touches.
+Project names are not directory names: `libs/api/domain` is the **`api-domain`** project, `libs/api/adapters` is **`api-adapters`**. `npx nx show projects` lists them; use `npx nx print-affected --type=app --select=projects` to list only the apps a diff touches.
 
 Jest is configured per project (`jest.config.ts` at the root only aggregates via `getJestProjects()`), so a root-level jest invocation will not do what you expect — go through Nx.
 
@@ -64,11 +66,11 @@ Feature domains: `ads`, `categories`, `cities`, `countries`, `users`. Adding one
 
 ### Ad lifecycle
 
-`AdStatus` (`libs/api/domain/src/lib/ads/ad.entity.ts`) declares `DRAFT → SUBMITTED → APPROVED → PUBLISHED`, plus `REJECTED`, `ARCHIVED` and `EXPIRED`. Note that `APPROVED` is declared but never assigned; `publish()` moves straight to `PUBLISHED` (there is a `TODO` saying it should pass through `APPROVED` first).
+`AdStatus` (`libs/api/domain/src/lib/ads/ad.entity.ts`) declares `DRAFT → SUBMITTED → PUBLISHED`, plus `REJECTED`, `ARCHIVED` and `EXPIRED`. It previously also declared `APPROVED`, but that value was never assigned by any code path — `publish()` always moved straight from `SUBMITTED` to `PUBLISHED` — and no product need for a separate approval step was ever identified, so it was removed from the enum (CHANTIER-MODERNISATION.md §7.2); the stale `TODO` about passing through `APPROVED` first was removed from `publish()` along with it.
 
-Every transition in `AdsService` goes through a private `transitionTo(id, expectedStatus, nextStatus, extra?)` that guards on the lookup preceding it: a `null` lookup (ad missing, or not in `expectedStatus`) raises `AdNotInExpectedStateError` instead of silently writing the new status — this used to be broken (`{...null}` is `{}` in JavaScript, so a missed guard still ran the update), but is fixed and covered by a status × transition matrix in `ads.service.spec.ts`. Treat any change here as a state-machine change and cover it with tests.
+`AdsService.submit`/`publish`/`reject`/`archive`/`renew` all go through a central guard, `transitionTo(id, expectedStatus, nextStatus, extra?)`: the lookup preceding each transition (`findOneDraft`/`findOneUnpublished`/`findOne`) is checked explicitly (`if (!ad) throwError(() => new AdNotInExpectedStateError(...))`), so a missed match no longer falls through to the update — there is no blind spread of a possibly-`null` lookup result. `extra` is a factory (`(ad) => Partial<AdEntity>`) rather than a plain object, because some callers (`publish`) need the ad the guard just fetched to compute their update, e.g. resolving its publication plan. `reject()`/`archive()` deliberately use `ANY_STATUS` (transition allowed from any originating state) as a documented product choice — an ad can be rejected/archived regardless of its current state, only its existence is required — not an oversight; the comment above `transitionTo()` spells out the history of the bug this guard replaced (`{...null}` is `{}` in JavaScript, so a missed guard used to let the update through silently). `ads.service.spec.ts` covers all transition guards plus `submit`/`publish`/`reject`/`archive`/`renew` themselves, including a status × transition matrix. Treat any change here as a state-machine change and cover it with tests.
 
-**Expiration and renewal** (see `docs/adr/0001-expiration-annonces-plans-de-publication.md`): `publish()` stamps `publishedAt`/`expiresAt` from a `PublicationPlan`, resolved per-ad by a `PublicationPlanResolver` — the domain's extension point for a future paid plan. `DiscoveryPlan` (30 days, free renewal) is the only implementation today. A scheduled job (`AdExpirationJob`, `@nestjs/schedule` **pinned to `~6.1.3`** — its `latest` tag ships pure ESM and breaks Jest/ts-jest) moves `PUBLISHED` ads past `expiresAt` to `EXPIRED` every 10 minutes via an idempotent `updateMany`; only PM2 instance 0 runs it, but correctness relies on the `updateMany`'s idempotence, not that filter. The owner (checked in the domain, unlike `publish`'s ownership check which lives in the controller) can renew an `EXPIRED` ad via `POST publications/:id/renew`, guarded by a compare-and-set (`updateOneInStatus`) against a concurrent transition.
+**Expiration and renewal** (see `docs/adr/0001-expiration-annonces-plans-de-publication.md`): `publish()` stamps `publishedAt`/`expiresAt` from a `PublicationPlan`, resolved per-ad by a `PublicationPlanResolver` — the domain's extension point for a future paid plan. `DiscoveryPlan` (30 days, free renewal) is the only implementation today. A scheduled job (`AdExpirationJob`, `@nestjs/schedule` pinned to `~12.0.2` — the only major line whose `peerDependencies` actually target NestJS 12; it's ESM-only, absorbed by the same Jest ESM interop mechanism the NestJS 12 bump already needed, see Commands above) moves `PUBLISHED` ads past `expiresAt` to `EXPIRED` every 10 minutes via an idempotent `updateMany`; only PM2 instance 0 runs it, but correctness relies on the `updateMany`'s idempotence, not that filter. The owner (checked in the domain, unlike `publish`'s ownership check which lives in the controller) can renew an `EXPIRED` ad via `POST publications/:id/renew`, guarded by a compare-and-set (`updateOneInStatus`) against a concurrent transition.
 
 ### Authorization (issue #49)
 
@@ -90,7 +92,7 @@ trust boundary (the API guard is still what actually enforces this).
 
 ## Front-end architecture (webapp and admin)
 
-Both are Angular 14 with lazy-loaded feature modules and Auth0 (`@auth0/auth0-angular`) configured in `src/environments/environment.ts` (`authConfig`, `apiBaseUrl`).
+Both are Angular 22 with lazy-loaded feature modules and Auth0 (`@auth0/auth0-angular`) configured in `src/environments/environment.ts` (`authConfig`, `apiBaseUrl`).
 
 `webapp` route guards:
 - `AuthGuard` (Auth0) — requires login.
@@ -108,3 +110,5 @@ Locale is French (`LOCALE_ID: 'fr'`), translations under `src/assets/i18n/` via 
 ## Deployment
 
 `ecosystem.config.js` describes the only wired-up deployment: **PM2 in cluster mode on an AWS EC2 host**, serving `dist/apps/api/main.js`, with `pm2 deploy` targeting `origin/dev` (development) and `origin/main` (production). `Procfile` (`web: yarn start api`) is a leftover from a Heroku-style buildpack host. Neither front-end has a deployment configuration in the repository.
+
+`ecosystem.config.js` doesn't pin a Node version itself (no `interpreter` path) — it runs under whatever `node` PM2 finds on the EC2 host's `PATH`, so the NestJS 12 bump (needs Node `>=24.9`, see Commands above) only actually works in production once that host's Node is upgraded — outside this repo, not tracked here.

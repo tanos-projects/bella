@@ -6,7 +6,7 @@ import { AuthUserService } from '../../auth/auth-user.service';
 import { UserSettingsService } from '../../shared/services/user-settings.service';
 import { WelcomeService } from './welcome.service';
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class WelcomeGuard implements CanLoad, CanActivate {
   private welcomeService = inject(WelcomeService);
   private router = inject(Router);

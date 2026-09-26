@@ -37,7 +37,7 @@ export interface UploadedFile {
   url: string;
 }
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class UploadService {
   private http = inject(HttpClient);
 

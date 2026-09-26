@@ -14,19 +14,15 @@ import { PreloadAllModules, RouterModule } from '@angular/router';
 import { AppComponent } from './app.component';
 import { appRoutes } from './app.routes';
 import { AuthenticationModule } from './auth/authentication.module';
-import { NavbarModule } from './shared/components/navbar/navbar.component';
-import { SidenavModule } from './shared/components/sidenav/sidenav.module';
 import { StoreModule } from './store/store.module';
 
 registerLocaleData(localeFr);
 @NgModule({
-  declarations: [AppComponent],
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
     AuthenticationModule.forRoot(),
     StoreModule,
-    SidenavModule,
     // Routing
     RouterModule.forRoot(appRoutes, {
       initialNavigation: 'enabledBlocking',
@@ -41,7 +37,6 @@ registerLocaleData(localeFr);
     MatSidenavModule,
     MatIconModule,
     MatListModule,
-    NavbarModule,
   ],
   providers: [{ provide: LOCALE_ID, useValue: 'fr' }],
   bootstrap: [AppComponent],

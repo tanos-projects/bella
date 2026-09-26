@@ -36,8 +36,7 @@ describe('MyPublicationsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      declarations: [MyPublicationsComponent],
-      imports: [...commonTestImports],
+      imports: [MyPublicationsComponent, ...commonTestImports],
       providers: [...commonTestProviders, { provide: AdsService, useValue: adsService }],
       schemas: [...commonTestSchemas],
     }).compileComponents();

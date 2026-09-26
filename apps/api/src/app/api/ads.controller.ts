@@ -4,18 +4,18 @@ import { AdDTO, CreateAdDTO } from '@bella/dtos';
 import {
   Body,
   Controller,
-  ForbiddenException,
   Get,
   NotFoundException,
   Param,
   Post,
   Query,
   Request,
-  UseGuards
+  UseGuards,
+  ValidationPipe
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
-import { Observable, OperatorFunction } from 'rxjs';
+import { Observable } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 
 import { AuthUser } from '../auth/auth-user';
@@ -26,30 +26,67 @@ import {
   mapAdDomainError,
   mapAdTransitionError,
 } from '../utils/ad-transition-error.operator';
+import { throwIfNullish } from '../utils/throw-if-nullish.operator';
+import { AdSearchQueryDTO } from './ad-search-query.dto';
+import { MostRecentAdsShuffler } from './most-recent-ads-shuffler';
+import { PublishAuthorizationPolicy } from './publish-authorization.policy';
 
 interface RequestWithUser extends ExpressRequest {
   user: AuthUser;
 }
 
-function shuffle<T>(array: Array<T>): Array<T> {
-  return [...array].sort(() => Math.random() - 0.5);
-}
+// whitelist+forbidNonWhitelisted: an unrecognized query param used to reach
+// AdsRepositoryNest and, from there, MongoDB unmodified (Phase 2,
+// sub-point 4) - now rejected with a 400 instead of silently forwarded.
+// Exported so ads.controller.spec.ts can exercise this exact instance
+// directly, the same way a unit test invoking a controller method
+// bypasses Nest's guard/pipe pipeline entirely (see users.controller.spec.ts's
+// GUARDS_METADATA tests) - a plain call to getAll()/getMyPublications()
+// never runs this pipe.
+//
+// getAll()/getMyPublications() bind this pipe to a single, keyless
+// `@Query()` parameter and nothing else: a keyless `@Query()` resolves to
+// the entire query object, so a second, separately-bound `@Query('x')` on
+// the same handler doesn't carve `x` out of it - it just duplicates `x`
+// into that handler's own parameter *in addition to* it still being in the
+// object `@Query()` receives. With forbidNonWhitelisted, that entire
+// object gets validated against AdSearchQueryDTO, so `x` still has to be a
+// whitelisted property of it or the whole request 400s (this is exactly
+// how `?limit=` used to break both routes - see AdSearchQueryDTO's
+// `limit` field).
+export const adSearchQueryValidationPipe = new ValidationPipe({
+  transform: true,
+  whitelist: true,
+  forbidNonWhitelisted: true,
+});
 
 @Controller('publications')
 export class AdsController {
+  private readonly mostRecentAdsShuffler = new MostRecentAdsShuffler();
+  private readonly publishAuthorizationPolicy: PublishAuthorizationPolicy;
+
   constructor(
     private adsService: AdsService,
     private usersService: UsersService
-  ) {}
+  ) {
+    this.publishAuthorizationPolicy = new PublishAuthorizationPolicy(
+      adsService,
+      usersService
+    );
+  }
 
   @Get()
   getAll(
-    @Query() filter: any, // TODO type it !
-    @Query('limit') limit: number
+    @Query(adSearchQueryValidationPipe) filter: AdSearchQueryDTO
   ): Observable<AdDTO[]> {
+    // `limit` is a pagination option, not a filter criterion - pulling it
+    // off `filter` before spreading the rest keeps it out of the Mongo
+    // filter object (see AdsMongoFilterBuilder.build, which forwards every
+    // key it's given as-is).
+    const { limit, ...criteria } = filter;
     return this.adsService
       .findAllPublished(
-        { ...filter },
+        { ...criteria },
         {
           limit: limit ?? 0,
           // populate: ['owner'], // TODO Still we need this ?
@@ -73,8 +110,7 @@ export class AdsController {
       )
       .pipe(
         map(AdMapper.modelToDTOList),
-        // TODO Move this fake logic to service instead
-        this.fakeMostRecentAds(undefined)
+        this.mostRecentAdsShuffler.fakeMostRecentAds(undefined)
       );
   }
 
@@ -84,19 +120,20 @@ export class AdsController {
   getMyPublications(
     @Param() params,
     @Request() req,
-    @Query() filter: any, // TODO type it !
-    @Query('limit') limit: number,
+    @Query(adSearchQueryValidationPipe) filter: AdSearchQueryDTO,
   ): Observable<AdDTO[]> {
     const status = params.status.toUpperCase();
     if (![AdStatus.DRAFT, AdStatus.PUBLISHED, AdStatus.SUBMITTED, AdStatus.EXPIRED].includes(status)) {
       throw new NotFoundException();
     }
+    // `limit` is a pagination option, not a filter criterion - see getAll().
+    const { limit, ...criteria } = filter;
     return this.getUser(req.user).pipe(
       switchMap((user) => {
         return this.adsService
         .findAllByOwner(
           user,
-          { ...filter, ...{status: status} },
+          { ...criteria, ...{status: status} },
           {
             limit: limit ?? 0,
           },
@@ -111,12 +148,18 @@ export class AdsController {
 
   @Get(':id')
   findOne(@Param('id') id: string): Observable<AdDTO> {
-    return this.adsService.findOne(id).pipe(map(AdMapper.modelToDTO));
+    return this.adsService.findOne(id).pipe(
+      throwIfNullish(() => new NotFoundException('Ad not found')),
+      map(AdMapper.modelToDTO)
+    );
   }
 
   @Get('published/:id')
   findPublishedOne(@Param('id') id: string): Observable<AdDTO> {
-    return this.adsService.findOnePublished(id).pipe(map(AdMapper.modelToDTO));
+    return this.adsService.findOnePublished(id).pipe(
+      throwIfNullish(() => new NotFoundException('Ad not found')),
+      map(AdMapper.modelToDTO)
+    );
   }
 
   // TODO move to admin or add right check
@@ -148,25 +191,9 @@ export class AdsController {
     @Param('id') id: string,
     @Request() req: RequestWithUser
   ): Observable<AdDTO> {
-    if ((req.user.permissions ?? []).includes('manage:publications')) {
-      return this.adsService
-        .publish(id)
-        .pipe(mapAdTransitionError(), map(AdMapper.modelToDTO));
-    }
-    return this.getUser(req.user).pipe(
-      switchMap((caller) =>
-        this.adsService.findOne(id).pipe(
-          switchMap((ad) => {
-            if (!ad.owner || ad.owner.id !== caller.id) {
-              throw new ForbiddenException('Only the ad owner can publish it');
-            }
-            return this.adsService
-              .publish(id)
-              .pipe(mapAdTransitionError(), map(AdMapper.modelToDTO));
-          })
-        )
-      )
-    );
+    return this.publishAuthorizationPolicy
+      .publishIfAuthorized(id, req.user)
+      .pipe(mapAdTransitionError(), map(AdMapper.modelToDTO));
   }
 
   // Renewal is restricted to the ad's owner — see AdsService.renew, which
@@ -184,12 +211,6 @@ export class AdsController {
       ),
       map(AdMapper.modelToDTO)
     );
-  }
-
-  private fakeMostRecentAds(
-    limit?: number
-  ): OperatorFunction<AdDTO[], AdDTO[]> {
-    return map((ads: AdDTO[]) => shuffle(ads).slice(0, limit));
   }
 
   private getUser(user: AuthUser): Observable<UserEntity> {

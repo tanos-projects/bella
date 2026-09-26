@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, NgModule, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 
-import { UploadModule } from '../../../../shared/components/upload/upload.module';
+import { UploadComponent } from '../../../../shared/components/upload/upload.component';
 
 class Picture {
   get type(): string {
@@ -183,7 +183,8 @@ interface PictureUploaderFormFieldOptions {
       }
     </div>
   `,
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, UploadComponent, ReactiveFormsModule],
 })
 export class PictureUploaderFormFieldComponent
   extends FieldType<FieldTypeConfig & PictureUploaderFormFieldOptions>
@@ -229,10 +230,3 @@ export class PictureUploaderFormFieldComponent
     this.pictureManager.remove(i);
   }
 }
-
-@NgModule({
-  declarations: [PictureUploaderFormFieldComponent],
-  exports: [PictureUploaderFormFieldComponent],
-  imports: [CommonModule, UploadModule, ReactiveFormsModule],
-})
-export class PictureUploaderFormFieldModule {}

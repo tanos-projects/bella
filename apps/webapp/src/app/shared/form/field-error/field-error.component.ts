@@ -5,7 +5,7 @@ import { VALIDATION_MESSAGE_FORMATTERS } from '../validation-messages';
 @Component({
   selector: 'bella-field-error',
   templateUrl: './field-error.component.html',
-  standalone: false,
+  standalone: true,
 })
 export class FieldErrorComponent {
   @Input() control: AbstractControl | null = null;

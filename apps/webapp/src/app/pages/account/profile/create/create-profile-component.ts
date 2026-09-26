@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import { Component, DOCUMENT, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthCustomService } from '../../../../auth/auth-custom.service';
@@ -5,12 +6,16 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AuthUser } from '../../../../auth/auth-user.model';
 import { AuthUserService } from '../../../../auth/auth-user.service';
+import { LogoutButtonComponent } from '../../../../shared/components/buttons/logout/logout-button.component';
 import { UserSettingsService } from '../../../../shared/services/user-settings.service';
+import { TitledPageComponent } from '../../../../shared/layouts/titled-page/titled-page.component';
+import { ProfileFormComponent } from '../form/profile-form.component';
 
 @Component({
   selector: 'bella-create-profile',
   templateUrl: './create-profile.component.html',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, TitledPageComponent, ProfileFormComponent, LogoutButtonComponent],
 })
 export class CreateProfileComponent {
   private auth = inject(AuthCustomService);

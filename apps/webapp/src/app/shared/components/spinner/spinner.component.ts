@@ -3,6 +3,6 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'bella-spinner',
   templateUrl: './spinner.component.html',
-  standalone: false,
+  standalone: true,
 })
 export class SpinnerComponent {}

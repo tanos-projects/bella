@@ -1,5 +1,7 @@
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { UntypedFormGroup } from '@angular/forms';
+import { ReactiveFormsModule, UntypedFormGroup } from '@angular/forms';
+import { NgSelectModule } from '@ng-select/ng-select';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 import { of } from 'rxjs';
 import { Observable } from 'rxjs';
@@ -9,7 +11,8 @@ import { Observable } from 'rxjs';
   templateUrl: './ng-select-form-field.component.html',
   styleUrls: ['./ng-select-form-field.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, NgSelectModule],
 })
 export class NgSelectFormFieldComponent extends FieldType<FieldTypeConfig> {
   constructor() {

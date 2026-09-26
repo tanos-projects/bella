@@ -123,7 +123,6 @@ export class AdsService {
   }
 
   publish(id: string, moderatedBy?: string): Observable<AdEntity> {
-    // TODO => Should be APPROVED before PUBLISHED
     return this.adsRepository.findOneUnpublished(id).pipe(
       this.transitionTo(id, AdStatus.SUBMITTED, AdStatus.PUBLISHED, (ad) => {
         const now = this.clock.now();

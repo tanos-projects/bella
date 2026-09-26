@@ -19,8 +19,6 @@ export class PublicationsEffects {
   private service = inject(AdminPublicationsService);
 
   start(store: PublicationsStore): void {
-    console.log('Init effects');
-
     store.actions$
       .pipe(
         ofType(loadUnpublished),

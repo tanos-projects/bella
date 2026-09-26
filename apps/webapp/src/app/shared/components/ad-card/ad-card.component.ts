@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -5,7 +6,7 @@ import {
   OnInit,
   inject,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AdDTO } from '../../models/ads.model';
 
 @Component({
@@ -13,7 +14,8 @@ import { AdDTO } from '../../models/ads.model';
   templateUrl: './ad-card.component.html',
   styleUrls: ['./ad-card.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, RouterModule],
 })
 export class AdCardComponent implements OnInit {
   private router = inject(Router);

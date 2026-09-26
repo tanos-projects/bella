@@ -12,11 +12,7 @@ import { SearchService } from './shared/services/search.service';
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      // NxWelcomeComponent used to be declared here; the file was deleted when
-      // the real shell landed, and the stale import was a compile error that
-      // took the whole suite down with it.
-      declarations: [AppComponent],
-      imports: [...commonTestImports],
+      imports: [AppComponent, ...commonTestImports],
       providers: [...commonTestProviders, MyDeviceService, SearchService],
       schemas: [...commonTestSchemas],
     }).compileComponents();

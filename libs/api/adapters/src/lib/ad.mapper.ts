@@ -1,12 +1,13 @@
 import { AdEntity } from '@bella/api/domain';
 import { AdDTO, CreateAdDTO } from '@bella/dtos';
-import { NotFoundException } from '@nestjs/common';
 import * as UserMapper from './user.mapper';
 
+// modelToDTO no longer throws on a null model (Phase 2, sub-point 5): a
+// mapper's job is to map, not to decide the HTTP status for "not found" -
+// that decision now belongs to the caller (AdsController), which must
+// check for null itself before mapping. See throwIfNullish in
+// apps/api/src/app/utils.
 export const modelToDTO: (model: AdEntity) => AdDTO = (model) => {
-  if (null === model) {
-    throw new NotFoundException('Ad not found');
-  }
   return {
     id: model.id || null,
     title: model.title || null,
@@ -25,7 +26,11 @@ export const modelToDTO: (model: AdEntity) => AdDTO = (model) => {
     contactSettings: model.contactSettings || null,
     createdAt: model.createdAt || null,
     updatedAt: model.updatedAt || null,
-    owner: UserMapper.modelToDTO(model.owner),
+    // Not UserMapper.modelToDTO(model.owner) unconditionally: a null/
+    // undefined owner (e.g. a dangling reference) now degrades to a null
+    // owner in the DTO, like every other optional field on this mapper,
+    // instead of cascading into UserMapper's own null handling.
+    owner: model.owner ? UserMapper.modelToDTO(model.owner) : null,
     status: model.status || null,
     approbationMessage: model.approbationMessage || null,
     moderatedBy: model.moderatedBy || null,

@@ -13,8 +13,7 @@ describe('FooterToolbarActionComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [FooterToolbarActionComponent],
-      imports: [...commonTestImports],
+      imports: [FooterToolbarActionComponent, ...commonTestImports],
       providers: [...commonTestProviders],
       schemas: [...commonTestSchemas],
     }).compileComponents();

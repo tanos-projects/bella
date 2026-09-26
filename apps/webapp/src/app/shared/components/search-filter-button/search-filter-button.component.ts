@@ -1,5 +1,8 @@
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NgSelectModule } from '@ng-select/ng-select';
 import { BsModalService } from 'ngx-bootstrap/modal';
 import { map } from 'rxjs/operators';
 
@@ -12,7 +15,8 @@ import { SearchFilterComponent } from '../search-filter/search-filter.component'
   templateUrl: './search-filter-button.component.html',
   styleUrls: ['./search-filter-button.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, FormsModule, NgSelectModule],
 })
 export class SearchFilterButtonComponent /*implements OnInit*/ {
   private searchService = inject(SearchService);

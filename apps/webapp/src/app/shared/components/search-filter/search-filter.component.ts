@@ -1,6 +1,12 @@
+import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
-import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
+import {
+  ReactiveFormsModule,
+  UntypedFormBuilder,
+  UntypedFormGroup,
+} from '@angular/forms';
 import { Router } from '@angular/router';
+import { NgSelectModule } from '@ng-select/ng-select';
 import { BsModalRef } from 'ngx-bootstrap/modal';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -11,7 +17,8 @@ import { removeEmpty, SearchService } from '../../services/search.service';
 @Component({
   selector: 'bella-search-filter',
   templateUrl: './search-filter.component.html',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, NgSelectModule],
 })
 export class SearchFilterComponent implements OnInit, OnDestroy {
   private router = inject(Router);

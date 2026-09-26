@@ -4,7 +4,7 @@ import { Component, OnInit } from '@angular/core';
   selector: 'bella-dashboard',
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],
-  standalone: false,
+  standalone: true,
 })
 export class DashboardComponent implements OnInit {
   constructor() {}

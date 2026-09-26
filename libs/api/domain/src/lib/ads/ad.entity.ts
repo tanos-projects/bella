@@ -14,7 +14,6 @@ export class ContactSetting {
 export enum AdStatus {
   DRAFT = 'DRAFT',
   SUBMITTED = 'SUBMITTED',
-  APPROVED = 'APPROVED',
   PUBLISHED = 'PUBLISHED',
   REJECTED = 'REJECTED',
   ARCHIVED = 'ARCHIVED',

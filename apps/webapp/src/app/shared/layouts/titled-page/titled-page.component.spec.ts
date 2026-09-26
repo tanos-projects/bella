@@ -13,8 +13,7 @@ describe('TitledPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [TitledPageComponent],
-      imports: [...commonTestImports],
+      imports: [TitledPageComponent, ...commonTestImports],
       providers: [...commonTestProviders],
       schemas: [...commonTestSchemas],
     }).compileComponents();

@@ -1,10 +1,13 @@
+import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'bella-footer-toolbar-action',
   templateUrl: './footer-toolbar-action.component.html',
   styleUrls: ['./footer-toolbar-action.component.scss'],
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, RouterModule],
 })
 export class FooterToolbarActionComponent {
   @Input() label!: string;

@@ -1,5 +1,8 @@
+import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { FooterComponent } from '../../../shared/components/footer/footer.component';
+import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { MyDeviceService } from '../../../shared/services/my-device.service';
 import { ProfileService } from './profile.service';
 
@@ -7,7 +10,8 @@ import { ProfileService } from './profile.service';
   selector: 'bella-profile',
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss'],
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, HeaderComponent, FooterComponent],
 })
 export class ProfileComponent {
   private routeParams = inject(ActivatedRoute);

@@ -1,5 +1,6 @@
 import { Component, ViewChild } from '@angular/core';
-import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
+import { FieldType, FormlyFieldConfig, FormlyModule } from '@ngx-formly/core';
+import { ProgressbarModule } from 'ngx-bootstrap/progressbar';
 import { TabsetComponent } from 'ngx-bootstrap/tabs';
 import { environment } from '../../../../../environments/environment';
 
@@ -73,7 +74,8 @@ import { environment } from '../../../../../environments/environment';
       }
     }
   `,
-  standalone: false,
+  standalone: true,
+  imports: [ProgressbarModule, FormlyModule],
 })
 export class SteppedFormFieldComponent extends FieldType {
   @ViewChild('staticTabs', { static: false }) staticTabs?: TabsetComponent;

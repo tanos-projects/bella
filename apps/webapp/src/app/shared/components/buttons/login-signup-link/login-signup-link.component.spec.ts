@@ -13,8 +13,7 @@ describe('AuthButtonComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [LoginSignupLinkComponent],
-      imports: [...commonTestImports],
+      imports: [LoginSignupLinkComponent, ...commonTestImports],
       providers: [...commonTestProviders],
       schemas: [...commonTestSchemas],
     }).compileComponents();

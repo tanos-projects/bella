@@ -1,17 +1,31 @@
-import { Location } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { Component, inject } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { map } from 'rxjs/operators';
 
 import { AdsService } from '../../shared/services/ads.service';
 import { ContactService } from '../../shared/services/contact.service';
 import { MyDeviceService } from '../../shared/services/my-device.service';
+import { AdContactsComponent } from '../../shared/components/ad-contacts/ad-contacts.component';
+import { HeaderComponent } from '../../shared/components/header/header.component';
+import { CarouselComponent } from '../../shared/components/carousel/carousel.component';
+import { AdPublisherCardComponent } from '../../shared/components/ad-publisher-card/ad-publisher-card.component';
 
 @Component({
   selector: 'bella-ad-detail',
   templateUrl: './ad-detail.component.html',
   styleUrls: ['./ad-detail.component.scss'],
-  standalone: false,
+  standalone: true,
+  imports: [
+    CommonModule,
+    RouterModule,
+    AdContactsComponent,
+    TranslatePipe,
+    HeaderComponent,
+    CarouselComponent,
+    AdPublisherCardComponent,
+  ],
 })
 export class AdDetailComponent {
   private routeParams = inject(ActivatedRoute);

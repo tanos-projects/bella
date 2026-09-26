@@ -14,7 +14,8 @@ import {
   UseGuards
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
-import { forkJoin, map, Observable, switchMap } from 'rxjs';
+import { IncomingHttpHeaders } from 'http';
+import { Observable, map, switchMap } from 'rxjs';
 import { AuthUser } from '../../auth/auth-user';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { ModeratorIdentityService } from '../../auth/moderator-identity.service';
@@ -22,9 +23,18 @@ import { Permissions } from '../../auth/permissions.decorator';
 import { PermissionsGuard } from '../../auth/permissions.guard';
 import { AdsService } from '../../infrastructure/ads/ads.service';
 import { mapAdTransitionError } from '../../utils/ad-transition-error.operator';
+import { parsePagination, toPaginatedResult } from '../../utils/paginated-result.helper';
 
+// `headers` is declared explicitly (typed off Node's own @types/node
+// rather than express's) because the environment this chantier has been
+// executed in has intermittently been missing usable Express type
+// declarations altogether (see the Phase 2 sub-point 4 blocker note in
+// CHANTIER-MODERNISATION.md) - without this, ExpressRequest sometimes
+// resolves to a shape TypeScript infers as lacking `headers`, breaking
+// nx build/test api for reasons unrelated to any code in this file.
 interface RequestWithUser extends ExpressRequest {
   user: AuthUser;
+  headers: IncomingHttpHeaders;
 }
 
 // The access token itself has no email/name claim on this tenant (no
@@ -36,8 +46,6 @@ function extractBearerToken(req: RequestWithUser): string | undefined {
   const [scheme, token] = header?.split(' ') ?? [];
   return scheme?.toLowerCase() === 'bearer' ? token : undefined;
 }
-
-const DEFAULT_PAGE_SIZE = 20;
 
 // Requires the caller's Auth0 access token to carry the `manage:publications`
 // permission (RBAC role assigned in the Auth0 dashboard) — see issue #49.
@@ -55,19 +63,13 @@ export class AdminPublicationController {
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string
   ): Observable<PaginatedResultDTO<AdDTO>> {
-    const { pageNum, pageSizeNum, skip } = this.parsePagination(page, pageSize);
-    return forkJoin([
+    const pagination = parsePagination(page, pageSize);
+    return toPaginatedResult(
       this.adsService
-        .findAllUnpublished({ skip, limit: pageSizeNum })
+        .findAllUnpublished({ skip: pagination.skip, limit: pagination.pageSizeNum })
         .pipe(map(AdMapper.modelToDTOList)),
       this.adsService.countUnpublished(),
-    ]).pipe(
-      map(([items, total]) => ({
-        items,
-        total,
-        page: pageNum,
-        pageSize: pageSizeNum,
-      }))
+      pagination
     );
   }
 
@@ -80,19 +82,13 @@ export class AdminPublicationController {
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string
   ): Observable<PaginatedResultDTO<AdDTO>> {
-    const { pageNum, pageSizeNum, skip } = this.parsePagination(page, pageSize);
-    return forkJoin([
+    const pagination = parsePagination(page, pageSize);
+    return toPaginatedResult(
       this.adsService
-        .findAllPublished({}, { skip, limit: pageSizeNum })
+        .findAllPublished({}, { skip: pagination.skip, limit: pagination.pageSizeNum })
         .pipe(map(AdMapper.modelToDTOList)),
       this.adsService.countPublished(),
-    ]).pipe(
-      map(([items, total]) => ({
-        items,
-        total,
-        page: pageNum,
-        pageSize: pageSizeNum,
-      }))
+      pagination
     );
   }
 
@@ -102,37 +98,21 @@ export class AdminPublicationController {
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string
   ): Observable<PaginatedResultDTO<AdDTO>> {
-    const { pageNum, pageSizeNum, skip } = this.parsePagination(page, pageSize);
-    return forkJoin([
+    const pagination = parsePagination(page, pageSize);
+    return toPaginatedResult(
       // populate: the "utilisateur" column needs the real owner, not a
       // bare Mongo ref (unlike the pending/published tabs, which don't
       // show an owner column and so never asked for it).
       this.adsService
-        .findAllArchived({ skip, limit: pageSizeNum, populate: ['owner'] })
+        .findAllArchived({
+          skip: pagination.skip,
+          limit: pagination.pageSizeNum,
+          populate: ['owner'],
+        })
         .pipe(map(AdMapper.modelToDTOList)),
       this.adsService.countArchived(),
-    ]).pipe(
-      map(([items, total]) => ({
-        items,
-        total,
-        page: pageNum,
-        pageSize: pageSizeNum,
-      }))
+      pagination
     );
-  }
-
-  private parsePagination(
-    page?: string,
-    pageSize?: string
-  ): { pageNum: number; pageSizeNum: number; skip: number } {
-    const pageNum = Math.max(1, Number(page) || 1);
-    // Any non-positive or non-numeric pageSize falls back to the 20
-    // default, not to 1 - `Number(pageSize) || DEFAULT` only catches 0
-    // (falsy), so a negative value used to slip past it and get floored
-    // to 1 by Math.max instead, treating 0 and -1 inconsistently.
-    const parsedPageSize = Number(pageSize);
-    const pageSizeNum = parsedPageSize > 0 ? parsedPageSize : DEFAULT_PAGE_SIZE;
-    return { pageNum, pageSizeNum, skip: (pageNum - 1) * pageSizeNum };
   }
 
   @Patch('unpublished/:id/approve')

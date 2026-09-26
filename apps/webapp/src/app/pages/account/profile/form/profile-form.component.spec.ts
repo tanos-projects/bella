@@ -14,8 +14,7 @@ describe('ProfileFormComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ProfileFormComponent],
-      imports: [...commonTestImports],
+      imports: [ProfileFormComponent, ...commonTestImports],
       providers: [...commonTestProviders, CountriesService],
       schemas: [...commonTestSchemas],
     }).compileComponents();

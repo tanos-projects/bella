@@ -13,8 +13,7 @@ describe('AdPublisherCardComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [AdPublisherCardComponent],
-      imports: [...commonTestImports],
+      imports: [AdPublisherCardComponent, ...commonTestImports],
       providers: [...commonTestProviders],
       schemas: [...commonTestSchemas],
     }).compileComponents();

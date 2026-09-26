@@ -10,8 +10,7 @@ describe('AccessDeniedComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MatButtonModule],
-      declarations: [AccessDeniedComponent],
+      imports: [AccessDeniedComponent, MatButtonModule],
       providers: [{ provide: AuthCustomService, useValue: { logout: () => undefined } }],
     }).compileComponents();
 

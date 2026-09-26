@@ -5,7 +5,7 @@ import { map, switchMap } from 'rxjs/operators';
 import { AuthCustomService } from '../../auth/auth-custom.service';
 import { UserSettingsService } from '../../shared/services/user-settings.service';
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class WelcomeService {
   private router = inject(Router);
   private auth = inject(AuthCustomService);
