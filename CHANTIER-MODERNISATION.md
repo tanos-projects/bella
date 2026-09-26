@@ -4454,6 +4454,110 @@ démarré au-delà des tests n'a été faite (même limite qu'ailleurs dans ce
 chantier, §7.10) — mais le peer dep étant maintenant exact plutôt
 qu'approximatif, il n'y a plus de warning à surveiller.
 
+### Revue `senior-dev` (2026-09-26) : synchronisation §9 + bump `@nestjs/schedule` — **VALIDÉ avec réserve mineure non bloquante**
+
+Revue indépendante des trois commits `ec92a14` (merge), `2d38b21` (doc) et
+`31aa78b` (bump `@nestjs/schedule`), tout re-vérifié dans le code réel, pas
+seulement lu dans les messages de commit.
+
+**`ads.service.ts` — confirmé, au caractère près.** `git diff b0912af
+eacc4d7 -- .../ads.service.ts` ne montre qu'un seul hunk côté chantier
+(retrait du commentaire `// TODO => Should be APPROVED before PUBLISHED`) ;
+`git diff 7b81463 ec92a14 -- .../ads.service.ts` montre exactement le même
+hunk entre `origin/main` et le résultat mergé. Le fichier final est donc
+bien celui d'`origin/main` à la ligne près, moins ce commentaire — l'
+affirmation du tech-lead est exacte, pas approximative. Lecture complète du
+fichier mergé : `transitionTo()` lève bien `AdNotInExpectedStateError` sur
+un lookup `null`, `reject()`/`archive()` utilisent bien `ANY_STATUS`,
+`publish()` calcule bien `publishedAt`/`expiresAt` via `extra` en factory
+(`(ad) => Partial<AdEntity>`), `renew()` vérifie bien la propriété puis fait
+un compare-and-set via `updateOneInStatus`. Les deux lignées sont
+correctement préservées simultanément.
+
+**`ads.controller.ts` — extraction fidèle, confirmée.** La policy
+`PublishAuthorizationPolicy.publishIfAuthorized()` reproduit exactement,
+branche par branche (permission `manage:publications` en court-circuit,
+sinon vérification de propriété via `getUser`/`findOne`, même message
+`ForbiddenException`), la logique inline d'`origin/main`. `renewAd()` +
+l'import `mapAdDomainError` ont bien été greffés par-dessus sans toucher
+aux extractions Phase 2.
+
+**Conflits add/add — rien perdu de part et d'autre.** Les `describe()` de
+`ads.service.spec.ts` (webapp) : les 8 blocs du chantier
+(`getAll`/`getPublishedOne`/`getUnpublishedOne`/`getMostRecentAdsByCategory`/
+`create`/`search`/`caller-scoped publication lists` + le describe racine)
+et les 2 blocs d'`origin/main` (`getMyExpiredPublications`/`renew`) sont
+tous présents dans le fichier mergé — vérifié par grep différentiel sur
+les trois versions. `my-publications.component.spec.ts` : le provider
+explicite `{ provide: AdsService, useValue: adsService }` d'`origin/main`
+est bien présent, et les mocks `getMyExpiredPublications`/`renew` sont bien
+injectés (sinon les tests de renouvellement taperaient le vrai service).
+Le test `'accepts EXPIRED so owners can see their expired ads'` dans
+`ads.controller.spec.ts` appelle bien `getMyPublications()` à 3 arguments
+(`params, req, filter`), pas 4 — la correction du call-site pré-Phase-2 est
+bien en place.
+
+**Tests re-exécutés moi-même, pas repris du rapport** (Node 24.21.0 via
+nvm, `npx nx run-many --target=test --all --skip-nx-cache`) : **6/6
+projets verts**, chiffres identiques à ceux du tech-lead — `api-domain`
+8/52, `api-adapters` 5/28, `admin` 7/26 (1 skip), `webapp` 39/95, `api`
+22/150. Aucun écart.
+
+**Builds re-exécutés moi-même** (`npx nx run-many --target=build
+--projects=api,webapp,admin --skip-nx-cache`) : `api` et `webapp` verts.
+`admin:build:production` a échoué sur *"Inlining of fonts failed...
+fonts.googleapis.com... 403"* — diagnostic du tech-lead re-vérifié
+indépendamment en ré-exécutant la même cible avec `fonts.googleapis.com`
+explicitement autorisé pour cette seule commande : build vert. C'est bien
+un artefact réseau du sandbox de cette session, pas une régression.
+
+**`@nestjs/schedule` ~12.0.2 — peer deps confirmées, bar de vérification
+jugé suffisant.** Lu directement `node_modules/@nestjs/schedule/package.json`
+après install réel : `peerDependencies` déclare `@nestjs/common@^11.0.0 ||
+^12.0.0` / `@nestjs/core@^11.0.0 || ^12.0.0`, qui correspond exactement aux
+lignes `~12.1.0` de ce repo — pas un warning approximatif comme avec
+`6.1.3`. Le tech-lead note lui-même qu'aucun smoke test serveur démarré
+n'a été fait au-delà des tests unitaires (`ad-expiration.job.spec.ts`) ;
+j'accepte ce niveau de preuve comme suffisant ici et ne le bloque pas,
+pour trois raisons cumulatives : le peer dep est maintenant exact (pas
+juste toléré), le job repose sur un `updateMany` idempotent qui ne dépend
+d'aucun état interne du scheduler en cas de double exécution, et le
+changement ne touche que le wrapper `@Cron`/`ScheduleModule`, pas la
+logique métier déjà couverte par les 150 tests API. Recommandation non
+bloquante : un vrai `nx serve api` avec le job qui tourne au moins un
+cycle, avant le prochain déploiement PM2 sur l'hôte EC2 (qui n'a pas
+Node ≥24.9 non plus à ce jour, cf. `ecosystem.config.js` — point déjà
+documenté séparément, pas propre à ce bump).
+
+**Réserve trouvée, non signalée par le tech-lead — documentation
+seulement, pas fonctionnelle.** `CLAUDE.md` ligne 73 (section "Ad
+lifecycle", paragraphe "Expiration and renewal") affirme encore
+`@nestjs/schedule` **pinned to `~6.1.3`**, alors que `31aa78b` a bumpé la
+dépendance réelle à `~12.0.2` — confirmé par `package.json`/`yarn.lock`/
+`node_modules`. Le commit `31aa78b` a bien corrigé le paragraphe
+équivalent au §9 de ce document (voir "RÉSOLU" ci-dessus) mais a oublié
+la même affirmation dupliquée dans `CLAUDE.md`, qui n'apparaît nulle part
+dans son diff (`git show 31aa78b --stat` ne touche que
+`CHANTIER-MODERNISATION.md`/`package.json`/`yarn.lock`). Résultat : un
+lecteur qui ouvre seulement `CLAUDE.md` (le point d'entrée normal pour
+Claude Code) reçoit une information fausse sur la version pinnée et sur
+la raison du pin. Aucun risque d'exécution — c'est une inexactitude
+documentaire, pas un bug de code — mais elle contredit directement l'état
+réel du repo et doit être corrigée dans un commit de suivi (remplacer la
+phrase citant `~6.1.3` par une formulation cohérente avec le bump à
+`~12.0.2`, en gardant l'explication ESM qui reste pertinente pour la
+version 12.x elle-même).
+
+**Arbre de travail** : `git status` propre, rien en attente, rien en
+suspens (`nothing to commit, working tree clean`).
+
+**Verdict : VALIDÉ avec réserve mineure non bloquante.** Les trois
+commits peuvent être poussés et squash-mergés dans `main` tels quels — le
+merge de la state machine et l'ajout expiration/renouvellement sont
+corrects et testés, le bump `@nestjs/schedule` est justifié et vérifié.
+La réserve (stale claim `~6.1.3` dans `CLAUDE.md`) est une dette
+documentaire à corriger en suivi, pas un obstacle au merge de ce lot.
+
 ---
 
 # Annexe — chantier de version NestJS (document antérieur, conservé tel quel)
